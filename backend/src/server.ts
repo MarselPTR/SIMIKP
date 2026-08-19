@@ -5,6 +5,7 @@ import multipart from "@fastify/multipart";
 import { ZodError } from "zod";
 import activitiesRoutes from "./modules/activities/activities.routes";
 import assignmentsRoutes from "./modules/assignments/assignments.routes";
+import productionRoutes from "./modules/production/production.routes";
 
 const server = Fastify({
   logger: true,
@@ -49,6 +50,7 @@ server.setErrorHandler((error: FastifyError | any, request, reply) => {
 // Register routes
 server.register(activitiesRoutes, { prefix: "/api/v1/activities" });
 server.register(assignmentsRoutes, { prefix: "/api/v1/assignments" });
+server.register(productionRoutes, { prefix: "/api/v1/production" });
 
 const start = async () => {
   try {

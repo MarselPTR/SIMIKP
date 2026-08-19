@@ -1,10 +1,10 @@
 import { mysqlTable, char, varchar, text, boolean, primaryKey } from "drizzle-orm/mysql-core";
-import { productionFiles } from "./production";
+import { productionVersions } from "./production";
 import { persons, keywords } from "./master";
 
 export const archiveAssets = mysqlTable("archive_assets", {
   id: char("id", { length: 36 }).primaryKey(),
-  productionFileId: char("production_file_id", { length: 36 }).notNull().unique().references(() => productionFiles.id),
+  productionFileId: char("production_file_id", { length: 36 }).notNull().unique().references(() => productionVersions.id),
   title: varchar("title", { length: 255 }),
   description: text("description"),
   isPublic: boolean("is_public").default(false),
