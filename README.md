@@ -50,32 +50,49 @@ backend/src/
 ```
 frontend/src/
 ├── pages/
-│   ├── auth/            # Login              — Dev 2
-│   ├── dashboard/        # Dashboard          — Dev 6
-│   ├── kegiatan/          # Kegiatan/agenda    — Dev 3
-│   ├── penugasan/          # Penugasan         — Dev 3
-│   ├── produksi/            # Upload, review    — Dev 4
-│   ├── bank-konten/          # Search & archive  — Dev 5
-│   └── laporan/                # Laporan          — Dev 5
-├── components/ui/               # shadcn/ui         — Dev 6
-├── layouts/                       # Sidebar, Topbar   — Dev 6
-├── hooks/                           # TanStack Query hooks per modul
-├── lib/                               # api-client.ts, utils.ts — auth context nanti di sini (Dev 2)
-└── routes/                             # router.tsx — protected route setup nanti di sini (Dev 2)
+│   ├── auth/LoginPage.tsx               — Dev 2
+│   ├── dashboard/DashboardPage.tsx      — Dev 6
+│   ├── kegiatan/KegiatanPage.tsx        — Dev 3
+│   ├── penugasan/PenugasanPage.tsx      — Dev 3
+│   ├── produksi/                        — Dev 4 (satu folder, 3 halaman)
+│   │   ├── ProduksiPage.tsx
+│   │   ├── ReviewPage.tsx
+│   │   └── PublikasiPage.tsx
+│   ├── bank-konten/BankKontenPage.tsx   — Dev 5
+│   └── laporan/LaporanPage.tsx          — Dev 5
+├── components/
+│   ├── ui/       # Button, Input, Select, Badge, Card, Table, Tabs, Dialog,
+│   │              Pagination, FileUploader — Dev 6, masih hand-rolled Tailwind,
+│   │              BUKAN shadcn/ui asli (lihat catatan di bawah)
+│   └── shared/    # StateComponents.tsx (Loading/Empty/Error)
+├── layouts/            # Sidebar.tsx, Topbar.tsx, AppLayout.tsx — Dev 6
+├── contexts/           # ToastContext.tsx
+├── hooks/              # TanStack Query hooks per modul (masih kosong)
+├── lib/
+│   ├── api-client.ts    # fetch wrapper ke backend asli (credentials: include) — belum dipakai
+│   ├── AuthContext.tsx   # kerangka auth — Dev 2, MASIH MOCK (lihat catatan di bawah)
+│   ├── mock-data.ts       # data dummy semua modul, dipakai sampai endpoint asli siap
+│   ├── mock-api.ts         # "API" dummy di atas mock-data.ts
+│   └── utils.ts
+└── routes/
+    ├── router.tsx        # route tree lengkap (React Router, createBrowserRouter)
+    └── ProtectedRoute.tsx # redirect ke /login kalau belum auth — Dev 2
 ```
 
 ## Status saat ini (Phase 2A: Project Foundation)
 
 **Sudah ada:**
 - Backend: koneksi database (Drizzle + mysql2), Fastify app dengan CORS/cookie/multipart, error handler terpusat, schema lengkap untuk semua entitas inti (`users`, `roles`, `user_roles`, master data, `activities`, `production_*`, `publications`, `archive_*`), stub route `auth`/`activities`/`production` (baru placeholder response, belum ada logic).
-- Frontend: baru discaffold di branch ini — routing dasar (React Router), TanStack Query provider, Tailwind + CSS variables untuk shadcn/ui, struktur folder per modul/dev, `lib/api-client.ts` (fetch wrapper dengan cookie credentials, siap dipakai session-based auth).
+- Frontend: **UI sudah lengkap secara visual untuk semua halaman** (login, dashboard, kegiatan, penugasan, produksi, review, publikasi, bank konten, laporan) — routing nyata (React Router + protected route), Sidebar/Topbar/layout jadi, komponen UI dasar (Button, Table, Badge, dst) jadi. **Tapi semuanya masih jalan di atas data dummy** (`lib/mock-data.ts` / `lib/mock-api.ts`), termasuk login (`lib/AuthContext.tsx` cek email/password ke daftar mock user, bukan ke backend).
 
-**Belum ada (menunggu dev masing-masing):**
-- Auth & RBAC asli (login, session, guard middleware, user management) — Dev 2
-- Halaman & endpoint kegiatan/penugasan — Dev 3
-- Halaman & endpoint produksi/publikasi — Dev 4
-- Bank konten (search) & laporan — Dev 5
-- Dashboard, komponen shadcn/ui, layout (sidebar/topbar) — Dev 6
+**Belum ada / belum nyambung ke backend asli (menunggu dev masing-masing):**
+- **Dev 2**: Auth & RBAC asli di backend (login, session cookie, guard middleware, user management). `lib/AuthContext.tsx` di frontend sudah dibentuk sesuai arsitektur session-cookie (bukan localStorage/token), tapi login-nya masih manggil `mock-api.ts` — begitu `/api/v1/auth/login` & `/api/v1/auth/me` nyata, ganti isi `login()`/`logout()` di file itu (sudah ada TODO comment di sana) dan tambahkan pengecekan sesi saat app dimuat.
+- **Dev 3**: Endpoint kegiatan/penugasan di backend. `KegiatanPage.tsx`/`PenugasanPage.tsx` sudah ada dan berfungsi, tinggal ganti `mockApi.kegiatan.getAll` / `mockApi.penugasan.getAll` jadi panggilan `api-client.ts` ke endpoint asli.
+- **Dev 4**: Endpoint produksi (versioning, upload file), review, publikasi. `ProduksiPage.tsx`, `ReviewPage.tsx`, `PublikasiPage.tsx` (semua di `pages/produksi/`) sudah ada, sama seperti di atas tinggal disambung ke endpoint asli. Halaman ini juga yang nantinya butuh upload file streaming ke `storage/private/simikp/`.
+- **Dev 5**: Endpoint Bank Konten (search, tanpa Elasticsearch — MySQL + index) & laporan (termasuk excel export). `BankKontenPage.tsx`/`LaporanPage.tsx` sudah ada, tinggal disambung.
+- **Dev 6**: Review ulang tampilan Dashboard/Sidebar/Topbar/komponen `components/ui/*` — ini semua **buatan cepat dari prototipe, bukan shadcn/ui asli** (lihat CLAUDE.md: shadcn/ui dikunci di tech stack). Kalau mau tetap pakai styling sekarang, cukup pasang shadcn/ui generator di atasnya; kalau mau redesign, folder & routing sudah siap dipakai berapa pun bentuk UI barunya.
+
+Intinya: **kerangka + tampilan sudah ada duluan untuk semua modul**, jadi kerja tiap dev sekarang lebih ke "ganti sumber data dari mock ke API asli" plus bangun endpoint backend-nya — bukan mulai dari kosong.
 
 ## Perbaikan config di branch ini
 
@@ -107,14 +124,16 @@ npm run dev                # http://localhost:5173
 
 ## Pembagian tanggung jawab (2 role: SUPER_ADMIN, PETUGAS)
 
-| Dev | Scope |
-|---|---|
-| Dev 1 | Config, koneksi database, schema Drizzle (`db/schema/`), middleware & service bersama (`shared/`) — API contract & schema `users`/`roles`/`user_roles` harus koordinasi ke dia dulu |
-| Dev 2 | Auth (`login`/`logout`/`me`), session cookie, RBAC 2 role + multi-role, user management, protected route frontend |
-| Dev 3 | Kegiatan/agenda & penugasan |
-| Dev 4 | Produksi (versioning, review) & publikasi (pencatatan) |
-| Dev 5 | Bank Konten (arsip, search) & laporan |
-| Dev 6 | Dashboard, komponen UI (shadcn), layout |
+| Dev | Scope | File/folder terkait | Status |
+|---|---|---|---|
+| Dev 1 | Config, koneksi database, schema Drizzle, middleware & service bersama — API contract dan schema `users`/`roles`/`user_roles` harus koordinasi ke dia dulu sebelum diubah dev lain | `backend/src/config/`, `backend/src/db/schema/`, `backend/src/shared/` | Schema semua entitas sudah ada; belum ada middleware/guard bersama |
+| Dev 2 | Auth (`login`/`logout`/`me`) & session cookie asli di backend; RBAC 2 role + multi-role; user management (CRUD user + role); protected route frontend | `backend/src/modules/auth/`, `backend/src/modules/users/` (belum ada), `frontend/src/lib/AuthContext.tsx`, `frontend/src/routes/ProtectedRoute.tsx` | Backend baru placeholder response; frontend auth masih mock — lihat catatan di atas |
+| Dev 3 | Kegiatan/agenda (CRUD, assign strategic issue/lokasi/person/keyword) & penugasan (activity → assignment) | `backend/src/modules/activities/`, `backend/src/modules/assignments/` (belum ada), `frontend/src/pages/kegiatan/`, `frontend/src/pages/penugasan/` | Backend baru placeholder; frontend UI jadi, masih pakai mock data |
+| Dev 4 | Produksi (versioning revisi, `is_current` flag), review (approve/revisi), publikasi (pencatatan channel/tanggal/URL — bukan auto-post) | `backend/src/modules/production/`, `frontend/src/pages/produksi/` (`ProduksiPage`, `ReviewPage`, `PublikasiPage`) | Backend baru placeholder; frontend UI jadi (3 halaman), masih pakai mock data |
+| Dev 5 | Bank Konten (arsip tanpa duplikasi file, search pakai MySQL + index, bukan Elasticsearch) & laporan (termasuk excel export) | `backend/src/modules/archive/`, `backend/src/modules/reports/` (belum ada), `frontend/src/pages/bank-konten/`, `frontend/src/pages/laporan/` | Belum ada di backend sama sekali; frontend UI jadi, masih pakai mock data |
+| Dev 6 | Dashboard, komponen UI, layout (Sidebar/Topbar) | `frontend/src/pages/dashboard/`, `frontend/src/components/ui/`, `frontend/src/layouts/` | Sudah ada versi cepat (hasil port dari prototipe) — **bukan shadcn/ui asli**, perlu direview: dipertahankan + dipasangi shadcn generator, atau didesain ulang |
+
+Struktur folder lengkap tiap dev ada di CLAUDE.md section 5; Definition of Done detail baru tersedia untuk Dev 2 di section 6 (dev lain silakan tambahkan versi masing-masing di CLAUDE.md kalau mau dipakai bersama).
 
 ## Aturan kerja tim
 
