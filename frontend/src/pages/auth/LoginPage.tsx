@@ -29,7 +29,12 @@ const LoginPage = () => {
         className="hidden md:flex flex-col items-center justify-center flex-1 px-12"
         style={{ backgroundColor: "#0f1f5c" }}
       >
-        <img src={logoKotaBatu} alt="Logo Kota Batu" className="w-44 h-auto mb-8 drop-shadow-lg" />
+        <img
+          src={logoKotaBatu}
+          alt="Logo Kota Batu"
+          className="w-44 max-w-full h-auto mb-8 drop-shadow-lg object-contain"
+          style={{ maxWidth: "160px", maxHeight: "180px" }}
+        />
 
         <h1 className="text-3xl font-bold text-white text-center leading-snug">SIMIKP Kota Batu</h1>
         <p className="mt-4 text-blue-200 text-center text-base leading-relaxed max-w-sm">
@@ -41,7 +46,12 @@ const LoginPage = () => {
       <div className="w-full md:w-[420px] lg:w-[480px] flex flex-col justify-center px-10 py-16 bg-white">
         {/* Mobile: show logo on top */}
         <div className="flex md:hidden justify-center mb-8">
-          <img src={logoKotaBatu} alt="Logo Kota Batu" className="w-24 h-auto" />
+          <img
+            src={logoKotaBatu}
+            alt="Logo Kota Batu"
+            className="w-24 max-w-full h-auto object-contain"
+            style={{ maxWidth: "100px", maxHeight: "100px" }}
+          />
         </div>
 
         <h2 className="text-3xl font-bold mb-1" style={{ color: "#1a2a6c" }}>
