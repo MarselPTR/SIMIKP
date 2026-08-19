@@ -77,10 +77,15 @@ frontend/src/
 - Bank konten (search) & laporan — Dev 5
 - Dashboard, komponen shadcn/ui, layout (sidebar/topbar) — Dev 6
 
-## Known issue
+## Perbaikan config di branch ini
 
-- `backend/tsconfig.json` pakai `"moduleResolution": "node"`, tapi versi TypeScript yang terpasang (`^7.0.2`) sudah **menghapus** alias `node10` ini → `npx tsc --noEmit` di `backend/` langsung error (`TS5108`). Perlu diperbaiki oleh Dev 1 (ganti ke `"node10"` eksplisit dijadikan `"nodenext"`/`"bundler"`, atau pin TypeScript ke versi 5.x).
-- `.env.example` di root belum ada `COOKIE_SECRET`, padahal `backend/src/server.ts` sudah membacanya (ada fallback default yang tidak aman untuk production) — perlu ditambahkan.
+Ditemukan & diperbaiki (menyentuh area Dev 1 — tolong direview, bukan dieksekusi sepihak untuk perubahan berikutnya):
+
+- `backend/tsconfig.json`: `"moduleResolution": "node"` dihapus. TypeScript `^7.0.2` yang terpasang sudah membuang alias `node10`/`node` sama sekali (`TS5108`), sehingga `npx tsc --noEmit` gagal total sebelum sempat mengecek file lain. Menghapus baris tersebut membuat TS memakai default yang kompatibel dengan `"module": "CommonJS"`.
+- `backend/src/server.ts`: parameter `error` di `setErrorHandler` diberi tipe eksplisit `FastifyError` — tanpa fix `moduleResolution` di atas, error TS18046 (`error` dianggap `unknown`) ini baru kelihatan dan bikin build gagal.
+- Root `.env.example`: ditambahkan `COOKIE_SECRET` (dipakai `server.ts`, sebelumnya tidak terdokumentasi dan jatuh ke fallback default yang tidak aman untuk production).
+
+Sudah diverifikasi: `npx tsc --noEmit` di `backend/` bersih, dan `npm run dev` berhasil listen di `http://127.0.0.1:3000` (belum dites dengan koneksi Aiven asli).
 
 ## Cara jalanin di lokal
 
