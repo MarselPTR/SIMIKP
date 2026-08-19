@@ -9,7 +9,7 @@ import {
   mockProduksi,
   mockReview,
   mockPublikasi,
-  mockBankKonten,
+  mockBankKontenFolders,
 } from "./mock-data";
 
 const delay = (ms = 600) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -53,7 +53,7 @@ export const mockApi = {
   bankKonten: {
     getAll: async () => {
       await delay(500);
-      return mockBankKonten;
+      return mockBankKontenFolders;
     },
   },
 

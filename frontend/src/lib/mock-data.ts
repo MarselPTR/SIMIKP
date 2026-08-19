@@ -104,18 +104,52 @@ export const mockPublikasi: MockPublikasi[] = [
   { id: "pu3", title: "Video: Tailwind CSS", platform: "YouTube", status: "draft", publishDate: null, views: 0 },
 ];
 
-export interface MockBankKonten {
+// Bank Konten: satu "folder" = satu kegiatan, isinya file hasil produksi
+// kegiatan itu. Satu kegiatan bisa berisi campuran foto & video sekaligus —
+// jenis konten itu sifat per FILE, bukan per folder. Nanti diisi dari data
+// penugasan/produksi asli, bukan diinput manual — bentuknya sudah disusun
+// begitu supaya gampang disambung.
+export interface MockBankKontenFile {
   id: string;
-  title: string;
-  type: "template" | "image" | "video" | "document";
-  category: string;
-  tags: string[];
-  createdAt: string;
+  name: string;
+  jenisKonten: "foto" | "video";
 }
 
-export const mockBankKonten: MockBankKonten[] = [
-  { id: "b1", title: "Template Email Promo", type: "template", category: "email", tags: ["promo", "email"], createdAt: "2026-08-10" },
-  { id: "b2", title: "Foto Produk Terbaru", type: "image", category: "product", tags: ["foto", "produk"], createdAt: "2026-08-15" },
-  { id: "b3", title: "Video Animasi Intro", type: "video", category: "branding", tags: ["animasi", "intro"], createdAt: "2026-08-20" },
-  { id: "b4", title: "Dokumen Panduan", type: "document", category: "guide", tags: ["panduan", "dokumen"], createdAt: "2026-08-22" },
+export interface MockBankKontenFolder {
+  id: string;
+  title: string;
+  tanggal: string;
+  petugas: string;
+  files: MockBankKontenFile[];
+}
+
+const filesOf = (prefix: string, ext: string, jenisKonten: "foto" | "video", count: number): MockBankKontenFile[] =>
+  Array.from({ length: count }, (_, i) => ({
+    id: `${prefix}-${jenisKonten}-f${i + 1}`,
+    name: `${prefix} ${i + 1}.${ext}`,
+    jenisKonten,
+  }));
+
+export const mockBankKontenFolders: MockBankKontenFolder[] = [
+  {
+    id: "bk1",
+    title: "Upacara Agustusan",
+    tanggal: "2026-08-17",
+    petugas: "Rizky F.",
+    files: [...filesOf("Video", "mp4", "video", 4), ...filesOf("Foto", "jpg", "foto", 3)],
+  },
+  {
+    id: "bk2",
+    title: "Peresmian Jembatan",
+    tanggal: "2026-08-20",
+    petugas: "Dinda A.",
+    files: [...filesOf("Foto", "jpg", "foto", 6), ...filesOf("Video", "mp4", "video", 2)],
+  },
+  {
+    id: "bk3",
+    title: "Rapat Koordinasi",
+    tanggal: "2026-08-15",
+    petugas: "Rizky F.",
+    files: filesOf("Foto", "jpg", "foto", 5),
+  },
 ];
