@@ -1,4 +1,4 @@
-import Fastify from "fastify";
+import Fastify, { FastifyError } from "fastify";
 import cors from "@fastify/cors";
 import cookie from "@fastify/cookie";
 import multipart from "@fastify/multipart";
@@ -25,7 +25,7 @@ server.register(multipart, {
 });
 
 // Centralized error handler
-server.setErrorHandler((error, request, reply) => {
+server.setErrorHandler((error: FastifyError, request, reply) => {
   if (error instanceof ZodError) {
     return reply.status(400).send({
       success: false,
