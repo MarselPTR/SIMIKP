@@ -23,12 +23,31 @@
     --primary: 210 40% 98%;
     --primary-foreground: 222.2 47.4% 11.2%;
   }
+}
 
-  * {
-    @apply border-border;
-  }
+* {
+  font-family: "Inter", sans-serif;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-  body {
-    @apply bg-background text-foreground;
-  }
+body {
+  background: #f8fafc;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
