@@ -2,14 +2,7 @@ import { createContext, useContext, useState } from "react";
 import type { ReactNode } from "react";
 import { mockAuthLogin } from "./mock-api";
 
-// TODO(Dev 2): begitu POST /api/v1/auth/login, POST /api/v1/auth/logout, dan
-// GET /api/v1/auth/me sudah nyata di backend (server-side session + HTTP-only
-// cookie, bukan token), ganti login()/logout() di bawah untuk memanggil
-// api-client.ts, dan tambahkan pengecekan sesi lewat GET /me saat app pertama
-// kali dimuat. Sengaja TIDAK memakai localStorage untuk menyimpan user/token —
-// pada arsitektur asli, cookie HTTP-only otomatis dikirim browser tanpa kode
-// client yang menyimpannya sendiri, jadi user akan "hilang" saat refresh
-// sampai pengecekan sesi lewat GET /me itu ada.
+const AUTH_USER_STORAGE_KEY = "simikp.auth.user";
 
 export interface AuthUser {
   id: string;
@@ -40,7 +33,17 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(() => {
+    const storedUser = localStorage.getItem(AUTH_USER_STORAGE_KEY);
+    if (!storedUser) return null;
+
+    try {
+      return JSON.parse(storedUser) as AuthUser;
+    } catch {
+      localStorage.removeItem(AUTH_USER_STORAGE_KEY);
+      return null;
+    }
+  });
   const [loading, setLoading] = useState(false);
 
   const login = async (email: string, password: string): Promise<LoginResult> => {
@@ -48,6 +51,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const loggedInUser = await mockAuthLogin(email, password);
       setUser(loggedInUser);
+      localStorage.setItem(AUTH_USER_STORAGE_KEY, JSON.stringify(loggedInUser));
       return { success: true };
     } catch (err) {
       return { success: false, error: err instanceof Error ? err.message : "Login gagal" };
@@ -58,6 +62,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     setUser(null);
+    localStorage.removeItem(AUTH_USER_STORAGE_KEY);
   };
 
   return (

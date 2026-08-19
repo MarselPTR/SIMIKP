@@ -3,6 +3,9 @@ import cors from "@fastify/cors";
 import cookie from "@fastify/cookie";
 import multipart from "@fastify/multipart";
 import { ZodError } from "zod";
+import authRoutes from "./modules/auth/auth.routes";
+import activitiesRoutes from "./modules/activities/activities.routes";
+import productionRoutes from "./modules/production/production.routes";
 
 const server = Fastify({
   logger: true,
@@ -44,8 +47,9 @@ server.setErrorHandler((error: FastifyError, request, reply) => {
   });
 });
 
-// Register routes placeholders here
-// server.register(require("./modules/auth/auth.routes"), { prefix: "/api/v1/auth" });
+server.register(authRoutes, { prefix: "/api/v1/auth" });
+server.register(activitiesRoutes, { prefix: "/api/v1/activities" });
+server.register(productionRoutes, { prefix: "/api/v1/production" });
 
 const start = async () => {
   try {

@@ -28,6 +28,7 @@ export const router = createBrowserRouter([
           { path: "publikasi", element: <PublikasiPage /> },
           { path: "bank-konten", element: <BankKontenPage /> },
           { path: "laporan", element: <LaporanPage /> },
+          { path: "*", element: <Navigate to="/dashboard" replace /> },
         ],
       },
     ],
