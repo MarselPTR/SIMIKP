@@ -1,11 +1,9 @@
 import { FastifyInstance } from "fastify";
+import { ProductionController } from "./production.controller";
 
-export default async function productionRoutes(server: FastifyInstance) {
-  server.get("/", async (request, reply) => {
-    return { message: "Production list placeholder" };
-  });
-
-  server.post("/:versionId/files", async (request, reply) => {
-    return { message: "Upload file placeholder" };
-  });
+export default async function productionRoutes(fastify: FastifyInstance) {
+  fastify.post("/upload", ProductionController.uploadVersion);
+  fastify.get("/download", ProductionController.downloadFile);
+  fastify.post("/review", ProductionController.reviewContent);
+  fastify.patch("/:id/publish", ProductionController.publishContent);
 }

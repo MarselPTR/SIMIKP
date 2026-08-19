@@ -1,62 +1,80 @@
-import Fastify from "fastify";
-import cors from "@fastify/cors";
-import cookie from "@fastify/cookie";
-import multipart from "@fastify/multipart";
-import { ZodError } from "zod";
+import fs from "fs";
+import fsPromises from "fs/promises";
+import path from "path";
+import stream from "stream";
+import { promisify } from "util";
+import crypto from "crypto";
 
-const server = Fastify({
-  logger: true,
-});
+const pipeline = promisify(stream.pipeline);
 
-server.register(cors, {
-  origin: true, // adjust based on frontend URL
-  credentials: true,
-});
+export interface FileMetadata {
+  originalFilename: string;
+  ext: string;
+  activityCode: string;
+  contentType: string;
+  year: string;
+  month: string;
+}
 
-server.register(cookie, {
-  secret: process.env.COOKIE_SECRET || "simikp-super-secret-cookie-key", // for cookies signature
-  parseOptions: {}
-});
+export interface StorageResult {
+  filename: string;
+  path: string;
+  size: number;
+}
 
-server.register(multipart, {
-  limits: {
-    fileSize: (parseInt(process.env.MAX_FILE_SIZE_MB || "250") * 1024 * 1024),
+export class LocalPrivateStorage {
+  private basePath: string;
+
+  constructor() {
+    this.basePath = process.env.STORAGE_PATH || path.resolve(process.cwd(), "storage/private");
   }
-});
 
-// Centralized error handler
-server.setErrorHandler((error, request, reply) => {
-  if (error instanceof ZodError) {
-    return reply.status(400).send({
-      success: false,
-      code: "VALIDATION_ERROR",
-      message: "Input validation failed",
-      errors: error.flatten().fieldErrors,
-    });
+  private getSecureAbsolutePath(storagePath: string): string {
+    const absolutePath = path.resolve(storagePath);
+    const normalizedBase = path.resolve(this.basePath) + path.sep;
+
+    if (!absolutePath.startsWith(normalizedBase) && absolutePath !== path.resolve(this.basePath)) {
+      throw new Error("Path traversal attempt");
+    }
+
+    return absolutePath;
   }
-  
-  server.log.error(error);
-  
-  return reply.status(error.statusCode || 500).send({
-    success: false,
-    code: error.code || "INTERNAL_SERVER_ERROR",
-    message: error.message || "An unexpected error occurred",
-  });
-});
 
-// Register routes placeholders here
-// server.register(require("./modules/auth/auth.routes"), { prefix: "/api/v1/auth" });
+  async uploadFile(fileStream: stream.Readable, metadata: FileMetadata): Promise<StorageResult> {
+    const { year, month, activityCode, contentType, ext } = metadata;
+    const dir = path.join(this.basePath, year, month, activityCode, contentType);
 
-const start = async () => {
-  try {
-    const port = parseInt(process.env.PORT || "3000");
-    const host = process.env.HOST || "127.0.0.1";
-    await server.listen({ port, host });
-    console.log(`Server listening at http://${host}:${port}`);
-  } catch (err) {
-    server.log.error(err);
-    process.exit(1);
+    await fsPromises.mkdir(dir, { recursive: true });
+
+    const sanitizedExt = ext.startsWith(".") ? ext : `.${ext}`;
+    const uniqueFilename = `${crypto.randomUUID()}${sanitizedExt}`;
+    const filePath = path.join(dir, uniqueFilename);
+    const writeStream = fs.createWriteStream(filePath);
+
+    try {
+      await pipeline(fileStream, writeStream);
+      const stats = await fsPromises.stat(filePath);
+
+      return {
+        filename: uniqueFilename,
+        path: filePath,
+        size: stats.size,
+      };
+    } catch (error) {
+      if (fs.existsSync(filePath)) {
+        await fsPromises.unlink(filePath).catch(() => {});
+      }
+      throw error;
+    }
   }
-};
 
-start();
+  downloadFile(storagePath: string): stream.Readable {
+    const absolutePath = this.getSecureAbsolutePath(storagePath);
+    
+    if (!fs.existsSync(absolutePath)) {
+      throw new Error("File tidak ditemukan");
+    }
+
+    return fs.createReadStream(absolutePath);
+  }
+}
