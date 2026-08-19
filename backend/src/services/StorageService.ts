@@ -1,4 +1,5 @@
 import fs from "fs";
+import fsPromises from "fs/promises";
 import path from "path";
 import stream from "stream";
 import { promisify } from "util";
@@ -21,56 +22,96 @@ export interface StorageResult {
   size: number;
 }
 
-export interface StorageProvider {
-  uploadFile(fileStream: stream.Readable, metadata: FileMetadata): Promise<StorageResult>;
-  downloadFile(storagePath: string): stream.Readable;
-  deleteFile(storagePath: string): Promise<void>;
-}
-
-export class LocalPrivateStorage implements StorageProvider {
+export class LocalPrivateStorage {
   private basePath: string;
 
   constructor() {
-    this.basePath = process.env.STORAGE_PATH || path.resolve(process.cwd(), "storage/private");
+    this.basePath = process.env.STORAGE_PATH 
+      ? path.resolve(process.env.STORAGE_PATH) 
+      : path.resolve(process.cwd(), "storage/private");
   }
 
-  async uploadFile(fileStream: stream.Readable, metadata: FileMetadata): Promise<StorageResult> {
-    const { year, month, activityCode, contentType, ext } = metadata;
-    const dir = path.join(this.basePath, year, month, activityCode, contentType);
-    
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
+  /**
+   * Mengubah path relatif/absolut menjadi path absolut aman di dalam basePath
+   */
+  private getSecureAbsolutePath(storagePath: string): string {
+    // Gabungkan dengan basePath jika storagePath adalah path relatif
+    const absolutePath = path.isAbsolute(storagePath)
+      ? path.resolve(storagePath)
+      : path.resolve(this.basePath, storagePath);
+
+    const normalizedBase = path.resolve(this.basePath);
+
+    // Cek apakah target file benar-benar di dalam basePath
+    if (!absolutePath.startsWith(normalizedBase)) {
+      throw new Error("Path traversal attempt detected");
     }
 
-    const uniqueFilename = crypto.randomUUID() + ext;
+    return absolutePath;
+  }
+
+  /**
+   * Upload File Stream
+   */
+  async uploadFile(fileStream: stream.Readable, metadata: FileMetadata): Promise<StorageResult> {
+    const { year, month, activityCode, contentType, ext } = metadata;
+    
+    // Sanitasi input agar aman jadi nama folder
+    const safeActivity = activityCode.replace(/[^a-zA-Z0-9_-]/g, "_");
+    const safeContent = contentType.replace(/[^a-zA-Z0-9_-]/g, "_");
+    
+    const dir = path.join(this.basePath, year, month, safeActivity, safeContent);
+
+    await fsPromises.mkdir(dir, { recursive: true });
+
+    const sanitizedExt = ext.startsWith(".") ? ext : `.${ext}`;
+    const uniqueFilename = `${crypto.randomUUID()}${sanitizedExt}`;
     const filePath = path.join(dir, uniqueFilename);
     const writeStream = fs.createWriteStream(filePath);
 
-    await pipeline(fileStream, writeStream);
+    try {
+      await pipeline(fileStream, writeStream);
+      const stats = await fsPromises.stat(filePath);
 
-    const stats = fs.statSync(filePath);
-
-    return {
-      filename: uniqueFilename,
-      path: filePath,
-      size: stats.size,
-    };
+      return {
+        filename: uniqueFilename,
+        path: filePath,
+        size: stats.size,
+      };
+    } catch (error) {
+      if (fs.existsSync(filePath)) {
+        await fsPromises.unlink(filePath).catch(() => {});
+      }
+      throw error;
+    }
   }
 
-  downloadFile(storagePath: string): stream.Readable {
-    // Note: storagePath from DB is absolute or relative to base
-    // Always ensure it's securely resolved
-    const absolutePath = path.resolve(storagePath);
-    if (!absolutePath.startsWith(path.resolve(this.basePath))) {
-      throw new Error("Path traversal attempt");
+  /**
+   * Stream File untuk Download (Async Check)
+   */
+  async downloadFile(storagePath: string): Promise<stream.Readable> {
+    const absolutePath = this.getSecureAbsolutePath(storagePath);
+    
+    try {
+      await fsPromises.access(absolutePath, fs.constants.R_OK);
+    } catch {
+      throw new Error("File tidak ditemukan atau tidak memiliki akses");
     }
+
     return fs.createReadStream(absolutePath);
   }
 
+  /**
+   * Hapus File Fisik
+   */
   async deleteFile(storagePath: string): Promise<void> {
-    const absolutePath = path.resolve(storagePath);
-    if (fs.existsSync(absolutePath)) {
-      fs.unlinkSync(absolutePath);
+    const absolutePath = this.getSecureAbsolutePath(storagePath);
+    try {
+      await fsPromises.unlink(absolutePath);
+    } catch (error: any) {
+      if (error.code !== "ENOENT") {
+        throw error;
+      }
     }
   }
 }
