@@ -16,7 +16,8 @@ const PublikasiPage = () => {
 
   const columns: TableColumn<MockPublikasi>[] = [
     { key: "title", label: "Judul" },
-    { key: "platform", label: "Platform" },
+    { key: "channel", label: "Kanal Publikasi" },
+    { key: "link", label: "Tautan", render: (val) => val ? <a href={val as string} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline">Buka Link</a> : "—" },
     { key: "publishDate", label: "Tanggal Terbit", render: (val) => (val as string) || "—" },
     { key: "views", label: "Tayangan" },
     {

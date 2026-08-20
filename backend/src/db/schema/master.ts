@@ -5,6 +5,12 @@ export const contentTypes = mysqlTable("content_types", {
   name: varchar("name", { length: 255 }).notNull().unique(),
 });
 
+export const opds = mysqlTable("opds", {
+  id: char("id", { length: 36 }).primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  singkatan: varchar("singkatan", { length: 50 }),
+});
+
 export const strategicIssues = mysqlTable("strategic_issues", {
   id: char("id", { length: 36 }).primaryKey(),
   name: varchar("name", { length: 255 }).notNull().unique(),

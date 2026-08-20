@@ -12,7 +12,6 @@ export const menuItems: MenuItem[] = [
   { path: "/kegiatan", label: "Kegiatan", group: null },
   { path: "/penugasan", label: "Penugasan", group: "MANAJEMEN" },
   { path: "/produksi", label: "Produksi", group: "MANAJEMEN" },
-  { path: "/review", label: "Review", group: "MANAJEMEN" },
   { path: "/publikasi", label: "Publikasi", group: "KONTEN" },
   { path: "/bank-konten", label: "Bank Konten", group: "KONTEN" },
   { path: "/laporan", label: "Laporan", group: "KONTEN" },

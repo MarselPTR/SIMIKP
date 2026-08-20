@@ -15,14 +15,22 @@ const ProduksiPage = () => {
   });
 
   const columns: TableColumn<MockProduksi>[] = [
-    { key: "name", label: "Nama Produksi" },
-    { key: "qty", label: "Jumlah", render: (val, row) => `${val} ${row.unit}` },
+    { key: "kegiatan", label: "Kegiatan" },
+    { key: "bidangPekerjaan", label: "Bidang" },
+    { key: "workLink", label: "Link Kerja", render: (val) => val ? <a href={val as string} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline">Buka Link</a> : "—" },
     { key: "startDate", label: "Mulai" },
     { key: "endDate", label: "Selesai" },
     {
       key: "status",
       label: "Status",
-      render: (val) => <Badge variant={val === "running" ? "success" : "default"}>{val as string}</Badge>,
+      render: (val) => {
+        const str = val as string;
+        let v = "default";
+        if (str === "SELESAI" || str === "SIAP_TAYANG") v = "success";
+        else if (str === "REVISI") v = "warning";
+        else if (str === "LIPUTAN" || str === "DESAIN") v = "info";
+        return <Badge variant={v as any}>{str.replace("_", " ")}</Badge>;
+      },
     },
   ];
 

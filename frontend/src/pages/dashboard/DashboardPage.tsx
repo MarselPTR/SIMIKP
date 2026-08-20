@@ -1,7 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { mockApi } from "../../lib/mock-api";
-import { mockKegiatan, mockReview } from "../../lib/mock-data";
-import Badge from "../../components/ui/Badge";
 import { LoadingSpinner, ErrorState } from "../../components/shared/StateComponents";
 
 const NAVY = "#0f1f5c";
@@ -69,59 +67,80 @@ const DashboardPage = () => {
 
       {/* Bottom panels */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Kegiatan Terbaru */}
+        {/* Produksi per OPD */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h3 className="text-base font-semibold text-gray-900">Kegiatan Terbaru</h3>
+          <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+            <h3 className="text-base font-semibold text-gray-900">Produksi per OPD</h3>
+            <span className="text-xs text-gray-500">Bulan Ini</span>
           </div>
-          <div className="divide-y divide-gray-100">
-            {mockKegiatan.slice(0, 4).map((k) => (
-              <div key={k.id} className="flex items-center justify-between px-6 py-3 hover:bg-gray-50 transition">
-                <div>
-                  <p className="text-sm font-medium text-gray-800">{k.title}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">Deadline: {k.deadline}</p>
-                </div>
-                <Badge
-                  variant={
-                    k.status === "active" ? "success" : k.status === "review" ? "warning" : k.status === "done" ? "default" : "info"
-                  }
-                >
-                  {k.status}
-                </Badge>
+          <div className="divide-y divide-gray-100 p-4 space-y-4">
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="font-medium text-gray-700">Diskominfo</span>
+                <span className="font-bold text-gray-900">25</span>
               </div>
-            ))}
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-blue-600 h-2 rounded-full" style={{ width: '85%' }}></div>
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-sm mb-1 mt-2">
+                <span className="font-medium text-gray-700">Dinas Pendidikan</span>
+                <span className="font-bold text-gray-900">18</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-blue-500 h-2 rounded-full" style={{ width: '60%' }}></div>
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-sm mb-1 mt-2">
+                <span className="font-medium text-gray-700">Dinas Kesehatan</span>
+                <span className="font-bold text-gray-900">12</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-blue-400 h-2 rounded-full" style={{ width: '40%' }}></div>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Aktivitas Terkini */}
+        {/* Produksi per Pegawai (PIC) */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h3 className="text-base font-semibold text-gray-900">Aktivitas Terkini</h3>
+          <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+            <h3 className="text-base font-semibold text-gray-900">Produksi per Pegawai</h3>
+            <span className="text-xs text-gray-500">Bulan Ini</span>
           </div>
           <div className="divide-y divide-gray-100">
-            {mockReview.slice(0, 3).map((r) => (
-              <div key={r.id} className="flex items-start gap-3 px-6 py-3 hover:bg-gray-50 transition">
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
-                  style={{ backgroundColor: `${NAVY}10`, color: NAVY }}
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
+            <div className="flex items-center justify-between px-6 py-3 hover:bg-gray-50 transition">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold">AP</div>
+                <div>
+                  <p className="text-sm font-medium text-gray-800">Andi Prahum</p>
+                  <p className="text-xs text-gray-500">PRAHUM</p>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-800">{r.content}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">Reviewer: {r.reviewer}</p>
-                </div>
-                <Badge variant={r.status === "approved" ? "success" : r.status === "revision" ? "warning" : "default"}>
-                  {r.status}
-                </Badge>
               </div>
-            ))}
+              <span className="font-bold text-gray-900">15 Konten</span>
+            </div>
+            <div className="flex items-center justify-between px-6 py-3 hover:bg-gray-50 transition">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold">BF</div>
+                <div>
+                  <p className="text-sm font-medium text-gray-800">Budi Fotografer</p>
+                  <p className="text-xs text-gray-500">FOTO_VIDEO</p>
+                </div>
+              </div>
+              <span className="font-bold text-gray-900">12 Konten</span>
+            </div>
+            <div className="flex items-center justify-between px-6 py-3 hover:bg-gray-50 transition">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center text-xs font-bold">CD</div>
+                <div>
+                  <p className="text-sm font-medium text-gray-800">Citra Desainer</p>
+                  <p className="text-xs text-gray-500">DESAINER_EDITOR</p>
+                </div>
+              </div>
+              <span className="font-bold text-gray-900">8 Konten</span>
+            </div>
           </div>
         </div>
       </div>

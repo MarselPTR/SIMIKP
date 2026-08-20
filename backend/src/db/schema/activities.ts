@@ -1,5 +1,5 @@
-import { mysqlTable, char, varchar, date, datetime, text, int, primaryKey } from "drizzle-orm/mysql-core";
-import { locations, strategicIssues, persons, keywords, contentTypes } from "./master";
+import { mysqlTable, char, varchar, date, datetime, time, text, int, primaryKey } from "drizzle-orm/mysql-core";
+import { locations, strategicIssues, persons, keywords, contentTypes, opds } from "./master";
 import { users } from "./users";
 
 export const activities = mysqlTable("activities", {
@@ -9,7 +9,10 @@ export const activities = mysqlTable("activities", {
   strakomNumber: varchar("strakom_number", { length: 100 }),
   activityDate: date("activity_date").notNull(),
   activityTime: varchar("activity_time", { length: 50 }),
+  startTime: time("start_time"),
+  endTime: time("end_time"),
   locationId: char("location_id", { length: 36 }).references(() => locations.id),
+  opdId: char("opd_id", { length: 36 }).references(() => opds.id),
   description: text("description"),
   priority: varchar("priority", { length: 50 }),
   status: varchar("status", { length: 50 }).notNull(),
@@ -38,12 +41,21 @@ export const activityKeywords = mysqlTable("activity_keywords", {
   pk: primaryKey({ columns: [t.activityId, t.keywordId] }),
 }));
 
+export const activityRequiredContents = mysqlTable("activity_required_contents", {
+  activityId: char("activity_id", { length: 36 }).notNull().references(() => activities.id),
+  contentTypeId: char("content_type_id", { length: 36 }).notNull().references(() => contentTypes.id),
+}, (t) => ({
+  pk: primaryKey({ columns: [t.activityId, t.contentTypeId] }),
+}));
+
 export const assignments = mysqlTable("assignments", {
   id: char("id", { length: 36 }).primaryKey(),
   activityId: char("activity_id", { length: 36 }).notNull().references(() => activities.id),
   userId: char("user_id", { length: 36 }).notNull().references(() => users.id),
   contentTypeId: char("content_type_id", { length: 36 }).notNull().references(() => contentTypes.id),
   assignedAt: datetime("assigned_at").default(new Date()),
+  startTime: time("start_time"),
+  endTime: time("end_time"),
   deadline: datetime("deadline"),
   status: varchar("status", { length: 50 }).notNull(),
   instruction: text("instruction"),

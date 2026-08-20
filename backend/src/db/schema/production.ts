@@ -14,6 +14,7 @@ export const productionVersions = mysqlTable("production_versions", {
   id: char("id", { length: 36 }).primaryKey(),
   productionItemId: char("production_item_id", { length: 36 }).notNull().references(() => productionItems.id),
   versionNumber: int("version_number").notNull(),
+  workLink: varchar("work_link", { length: 500 }),
   isCurrent: boolean("is_current").default(false),
   createdAt: datetime("created_at").default(new Date()),
 }, (t) => ({

@@ -6,6 +6,7 @@ export const users = mysqlTable("users", {
   username: varchar("username", { length: 255 }).notNull().unique(),
   passwordHash: varchar("password_hash", { length: 255 }).notNull(),
   name: varchar("name", { length: 255 }).notNull(),
+  staffType: varchar("staff_type", { length: 50 }),
   active: boolean("active").default(true),
   createdAt: datetime("created_at").default(new Date()),
 });

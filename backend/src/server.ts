@@ -25,16 +25,17 @@ server.register(multipart, {
 });
 
 // Centralized error handler
-server.setErrorHandler((error, request, reply) => {
-  if (error instanceof ZodError) {
+server.setErrorHandler((err: unknown, request, reply) => {
+  if (err instanceof ZodError) {
     return reply.status(400).send({
       success: false,
       code: "VALIDATION_ERROR",
       message: "Input validation failed",
-      errors: error.flatten().fieldErrors,
+      errors: err.flatten().fieldErrors,
     });
   }
   
+  const error = err as any;
   server.log.error(error);
   
   return reply.status(error.statusCode || 500).send({
@@ -44,9 +45,14 @@ server.setErrorHandler((error, request, reply) => {
   });
 });
 
-// Register routes placeholders here
-// server.register(require("./modules/auth/auth.routes"), { prefix: "/api/v1/auth" });
+import { authRoutes } from "./modules/auth/auth.routes";
+import { assignmentRoutes } from "./modules/assignments/assignments.routes";
+import { dashboardRoutes } from "./modules/dashboard/dashboard.routes";
 
+// Register routes
+server.register(authRoutes, { prefix: "/api/v1/auth" });
+server.register(assignmentRoutes, { prefix: "/api/v1/assignments" });
+server.register(dashboardRoutes, { prefix: "/api/v1/dashboard" });
 const start = async () => {
   try {
     const port = parseInt(process.env.PORT || "3000");

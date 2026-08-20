@@ -64,7 +64,7 @@ export const mockApi = {
         totalKegiatan: mockKegiatan.length,
         aktifKegiatan: mockKegiatan.filter((k) => k.status === "active").length,
         totalPenugasan: mockPenugasan.length,
-        produksiRunning: mockProduksi.filter((p) => p.status === "running").length,
+        produksiRunning: mockProduksi.filter((p) => p.status === "LIPUTAN" || p.status === "DESAIN" || p.status === "REVISI").length,
         reviewPending: mockReview.filter((r) => r.status === "pending").length,
         publikasiPublished: mockPublikasi.filter((p) => p.status === "published").length,
       };

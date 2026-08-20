@@ -1,8 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { mockApi } from "../../lib/mock-api";
 import Card from "../../components/ui/Card";
-import Badge from "../../components/ui/Badge";
-import { EmptyState } from "../../components/shared/StateComponents";
 
 const LaporanPage = () => {
   const { data: kegiatan } = useQuery({ queryKey: ["kegiatan"], queryFn: mockApi.kegiatan.getAll });
@@ -35,17 +33,49 @@ const LaporanPage = () => {
         </Card>
       </div>
 
-      <Card title="Ringkasan Kegiatan">
-        <div className="space-y-2">
-          {kegiatan?.slice(0, 5).map((k) => (
-            <div key={k.id} className="flex items-center justify-between p-2 border-b border-gray-100">
-              <span className="text-sm">{k.title}</span>
-              <Badge variant={k.status === "active" ? "success" : "default"}>{k.status}</Badge>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card title="Produksi per OPD">
+          <div className="space-y-4 pt-2">
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span>Diskominfo</span>
+                <span className="font-bold">25</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-blue-600 h-2 rounded-full" style={{ width: '85%' }}></div>
+              </div>
             </div>
-          ))}
-          {(!kegiatan || kegiatan.length === 0) && <EmptyState title="Belum ada kegiatan" />}
-        </div>
-      </Card>
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span>Dinas Pendidikan</span>
+                <span className="font-bold">18</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-blue-500 h-2 rounded-full" style={{ width: '60%' }}></div>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <Card title="Produksi per Pegawai">
+          <div className="space-y-3 pt-2">
+            <div className="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
+              <div>
+                <p className="text-sm font-medium">Andi Prahum</p>
+                <p className="text-xs text-gray-500">PRAHUM</p>
+              </div>
+              <span className="font-bold">15</span>
+            </div>
+            <div className="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
+              <div>
+                <p className="text-sm font-medium">Budi Fotografer</p>
+                <p className="text-xs text-gray-500">FOTO_VIDEO</p>
+              </div>
+              <span className="font-bold">12</span>
+            </div>
+          </div>
+        </Card>
+      </div>
     </div>
   );
 };

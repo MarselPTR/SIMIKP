@@ -93,48 +93,52 @@ export interface MockKegiatan {
   status: "active" | "review" | "done" | "pending";
   progress: number;
   deadline: string;
-  assignee: string;
-  priority: "high" | "medium" | "low";
+  prioritas: "Tinggi" | "Sedang" | "Rendah";
+  lokasi?: string;
+  opdPenyelenggara?: string;
+  outputDibutuhkan?: string[];
 }
 
 export const mockKegiatan: MockKegiatan[] = [
-  { id: "k1", title: "Pembuatan Konten SEO", status: "active", progress: 75, deadline: "2026-09-15", assignee: "Budi Santoso", priority: "high" },
-  { id: "k2", title: "Desain UI/UX Dashboard", status: "review", progress: 90, deadline: "2026-08-30", assignee: "Siti Rahayu", priority: "medium" },
-  { id: "k3", title: "Pengembangan API Gateway", status: "done", progress: 100, deadline: "2026-08-20", assignee: "Admin Utama", priority: "high" },
-  { id: "k4", title: "Testing Aplikasi Mobile", status: "active", progress: 45, deadline: "2026-09-25", assignee: "Dewi Lestari", priority: "low" },
-  { id: "k5", title: "Dokumentasi Proyek", status: "pending", progress: 20, deadline: "2026-10-01", assignee: "Budi Santoso", priority: "medium" },
-  { id: "k6", title: "Optimasi Database", status: "active", progress: 60, deadline: "2026-09-10", assignee: "Admin Utama", priority: "high" },
+  { id: "k1", title: "Pembuatan Konten SEO", status: "active", progress: 75, deadline: "2026-09-15", prioritas: "Tinggi", lokasi: "Kantor Pemkot", opdPenyelenggara: "Diskominfo", outputDibutuhkan: ["Berita", "Foto"] },
+  { id: "k2", title: "Desain UI/UX Dashboard", status: "review", progress: 90, deadline: "2026-08-30", prioritas: "Sedang", lokasi: "Lab Komputer", opdPenyelenggara: "Diskominfo", outputDibutuhkan: ["Reels", "Flyer"] },
+  { id: "k3", title: "Pengembangan API Gateway", status: "done", progress: 100, deadline: "2026-08-20", prioritas: "Tinggi", lokasi: "Ruang Server", opdPenyelenggara: "Dinas Pendidikan", outputDibutuhkan: ["Foto"] },
+  { id: "k4", title: "Testing Aplikasi Mobile", status: "active", progress: 45, deadline: "2026-09-25", prioritas: "Rendah", lokasi: "Lapangan", opdPenyelenggara: "Dinas Kesehatan", outputDibutuhkan: ["Berita", "Reels"] },
+  { id: "k5", title: "Dokumentasi Proyek", status: "pending", progress: 20, deadline: "2026-10-01", prioritas: "Sedang", lokasi: "Hotel Aston", opdPenyelenggara: "Diskominfo", outputDibutuhkan: ["Foto", "Video"] },
+  { id: "k6", title: "Optimasi Database", status: "active", progress: 60, deadline: "2026-09-10", prioritas: "Tinggi", lokasi: "Balaikota", opdPenyelenggara: "Dispendik", outputDibutuhkan: ["Berita"] },
 ];
 
 export interface MockPenugasan {
   id: string;
-  title: string;
-  assignedTo: string;
-  dueDate: string;
+  kegiatanTerkait: string;
+  jenisKonten: string;
+  pic: string;
+  jamMulai: string;
+  jamSelesai: string;
   status: "in-progress" | "done" | "pending";
 }
 
 export const mockPenugasan: MockPenugasan[] = [
-  { id: "p1", title: "Menyusun Laporan Bulanan", assignedTo: "Budi Santoso", dueDate: "2026-09-05", status: "in-progress" },
-  { id: "p2", title: "Review Desain Mockup", assignedTo: "Siti Rahayu", dueDate: "2026-09-02", status: "done" },
-  { id: "p3", title: "Implementasi Modul Auth", assignedTo: "Admin Utama", dueDate: "2026-09-10", status: "pending" },
-  { id: "p4", title: "Uji Coba Produksi", assignedTo: "Dewi Lestari", dueDate: "2026-09-08", status: "in-progress" },
+  { id: "p1", kegiatanTerkait: "Upacara Hari Jadi Kota", jenisKonten: "Foto", pic: "Budi Fotografer", jamMulai: "08:00", jamSelesai: "10:00", status: "in-progress" },
+  { id: "p2", kegiatanTerkait: "Peresmian Taman Kota", jenisKonten: "Naskah Berita", pic: "Andi Prahum", jamMulai: "10:00", jamSelesai: "12:00", status: "done" },
+  { id: "p3", kegiatanTerkait: "Rapat Koordinasi", jenisKonten: "Flyer/Infografis", pic: "Citra Desainer", jamMulai: "13:00", jamSelesai: "15:00", status: "pending" },
+  { id: "p4", kegiatanTerkait: "Sosialisasi Pajak", jenisKonten: "Video", pic: "Budi Fotografer", jamMulai: "09:00", jamSelesai: "11:00", status: "in-progress" },
 ];
 
 export interface MockProduksi {
   id: string;
-  name: string;
-  qty: number;
-  unit: string;
-  status: "running" | "completed";
+  kegiatan: string;
+  bidangPekerjaan: string;
+  workLink?: string;
   startDate: string;
   endDate: string;
+  status: "BELUM" | "LIPUTAN" | "DESAIN" | "REVISI" | "SIAP_TAYANG" | "SELESAI";
 }
 
 export const mockProduksi: MockProduksi[] = [
-  { id: "pr1", name: "Artikel Blog Bulanan", qty: 45, unit: "artikel", status: "running", startDate: "2026-08-01", endDate: "2026-08-31" },
-  { id: "pr2", name: "Video Tutorial", qty: 12, unit: "video", status: "completed", startDate: "2026-07-01", endDate: "2026-07-30" },
-  { id: "pr3", name: "Infografis Sosial Media", qty: 8, unit: "unit", status: "running", startDate: "2026-08-15", endDate: "2026-09-15" },
+  { id: "pr1", kegiatan: "Liputan Peresmian Taman Kota", bidangPekerjaan: "PRAHUM", workLink: "https://drive.google.com/xyz", startDate: "2026-08-01", endDate: "2026-08-31", status: "LIPUTAN" },
+  { id: "pr2", kegiatan: "Video Profil Daerah", bidangPekerjaan: "FOTO_VIDEO", workLink: "https://drive.google.com/abc", startDate: "2026-07-01", endDate: "2026-07-30", status: "SELESAI" },
+  { id: "pr3", kegiatan: "Infografis APBD", bidangPekerjaan: "DESAINER_EDITOR", startDate: "2026-08-15", endDate: "2026-09-15", status: "REVISI" },
 ];
 
 export interface MockReview {
@@ -155,16 +159,17 @@ export const mockReview: MockReview[] = [
 export interface MockPublikasi {
   id: string;
   title: string;
-  platform: string;
+  channel: string;
   status: "published" | "scheduled" | "draft";
   publishDate: string | null;
   views: number;
+  link?: string;
 }
 
 export const mockPublikasi: MockPublikasi[] = [
-  { id: "pu1", title: "Blog: Panduan React", platform: "Website", status: "published", publishDate: "2026-08-25", views: 1250 },
-  { id: "pu2", title: "Infografis: Tren 2026", platform: "Instagram", status: "scheduled", publishDate: "2026-09-05", views: 0 },
-  { id: "pu3", title: "Video: Tailwind CSS", platform: "YouTube", status: "draft", publishDate: null, views: 0 },
+  { id: "pu1", title: "Blog: Panduan React", channel: "Website", status: "published", publishDate: "2026-08-25", views: 1250, link: "https://batu.go.id/1" },
+  { id: "pu2", title: "Infografis: Tren 2026", channel: "Instagram", status: "scheduled", publishDate: "2026-09-05", views: 0 },
+  { id: "pu3", title: "Video: Tailwind CSS", channel: "YouTube", status: "draft", publishDate: null, views: 0 },
 ];
 
 // Bank Konten: satu "folder" = satu kegiatan, isinya file hasil produksi
