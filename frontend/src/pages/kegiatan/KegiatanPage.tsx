@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { mockApi } from "../../lib/mock-api";
 import type { MockKegiatan } from "../../lib/mock-data";
+import { KEGIATAN_STATUS_COLORS, KEGIATAN_STATUS_LABELS } from "../../lib/mock-data";
 import Badge from "../../components/ui/Badge";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
@@ -24,19 +25,8 @@ import { LoadingSpinner, ErrorState } from "../../components/shared/StateCompone
 import EventCalendar from "../../components/shared/EventCalendar";
 import type { CalendarEvent } from "../../components/shared/EventCalendar";
 
-const STATUS_COLORS: Record<MockKegiatan["status"], string> = {
-  active: "#22c55e",
-  review: "#f59e0b",
-  done: "#9ca3af",
-  pending: "#3b82f6",
-};
-
-const STATUS_LABELS: Record<MockKegiatan["status"], string> = {
-  active: "Aktif",
-  review: "Review",
-  done: "Selesai",
-  pending: "Pending",
-};
+const STATUS_COLORS = KEGIATAN_STATUS_COLORS;
+const STATUS_LABELS = KEGIATAN_STATUS_LABELS;
 
 const STATUS_BADGE_VARIANT: Record<MockKegiatan["status"], "success" | "warning" | "default" | "info"> = {
   active: "success",
@@ -73,6 +63,17 @@ const formatTanggal = (iso: string) => {
   return new Date(y, m - 1, d).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
 };
 
+const formatTanggalPanjang = (iso: string) => {
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return iso;
+  return new Date(y, m - 1, d).toLocaleDateString("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+};
+
 const KegiatanPage = () => {
   const { data: kegiatanData, isLoading, error, refetch } = useQuery({
     queryKey: ["kegiatan"],
@@ -93,6 +94,7 @@ const KegiatanPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [viewDateKey, setViewDateKey] = useState<string | null>(null);
 
   const now = new Date();
   const [calYear, setCalYear] = useState(now.getFullYear());
@@ -133,6 +135,11 @@ const KegiatanPage = () => {
     for (const k of items) counts[k.status]++;
     return counts;
   }, [items]);
+
+  const tugasPadaTanggal = useMemo(
+    () => (viewDateKey ? items.filter((k) => k.deadline === viewDateKey) : []),
+    [items, viewDateKey],
+  );
 
   const openAddDialog = (prefillDate?: string) => {
     setEditingId(null);
@@ -230,12 +237,13 @@ const KegiatanPage = () => {
         month={calMonth}
         events={calendarEvents}
         legend={calendarLegend}
-        subtitle="Klik tanggal untuk menambahkan kegiatan baru pada hari itu"
+        subtitle="Klik tanggal untuk melihat kegiatan pada hari itu"
+        selectedDateKey={viewDateKey}
         onNavigate={(y, m) => {
           setCalYear(y);
           setCalMonth(m);
         }}
-        onDayClick={(dateKey) => openAddDialog(dateKey)}
+        onDayClick={(dateKey) => setViewDateKey((prev) => (prev === dateKey ? null : dateKey))}
       />
 
       {/* Toolbar */}
@@ -575,6 +583,69 @@ const KegiatanPage = () => {
             <Button variant="outline" onClick={closeDialog}>Batal</Button>
             <Button variant="default" disabled={!form.title.trim() || !form.deadline} onClick={handleSave}>
               {editingId ? "Simpan Perubahan" : "Simpan Kegiatan"}
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+
+      {/* Popup daftar kegiatan pada tanggal yang diklik di kalender */}
+      <Dialog
+        open={viewDateKey !== null}
+        onClose={() => setViewDateKey(null)}
+        title={viewDateKey ? formatTanggalPanjang(viewDateKey) : "Detail Tanggal"}
+      >
+        <div className="mt-1">
+          {tugasPadaTanggal.length > 0 ? (
+            <div className="space-y-2 max-h-80 overflow-y-auto -mx-1 px-1">
+              {tugasPadaTanggal.map((k) => (
+                <button
+                  key={k.id}
+                  type="button"
+                  onClick={() => {
+                    setViewDateKey(null);
+                    openEditDialog(k);
+                  }}
+                  className="w-full text-left flex items-start gap-3 rounded-lg border border-gray-100 p-3 transition-all duration-150 hover:border-blue-200 hover:bg-blue-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                >
+                  <span
+                    className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0"
+                    style={{ backgroundColor: STATUS_COLORS[k.status] }}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-gray-900 truncate">{k.title}</p>
+                    <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                      <Badge variant={STATUS_BADGE_VARIANT[k.status]}>{STATUS_LABELS[k.status]}</Badge>
+                      <Badge variant={PRIORITAS_BADGE_VARIANT[k.prioritas]}>{k.prioritas}</Badge>
+                      {k.lokasi && <span className="text-xs text-gray-400 truncate">{k.lokasi}</span>}
+                    </div>
+                  </div>
+                  <Pencil className="w-3.5 h-3.5 text-gray-300 flex-shrink-0 mt-1" />
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mb-2">
+                <Inbox className="w-5 h-5 text-gray-300" />
+              </div>
+              <p className="text-sm text-gray-500">Belum ada kegiatan pada tanggal ini.</p>
+            </div>
+          )}
+
+          <div className="pt-4 mt-4 border-t border-gray-100 flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setViewDateKey(null)}>
+              Tutup
+            </Button>
+            <Button
+              variant="default"
+              className="gap-1.5"
+              onClick={() => {
+                const date = viewDateKey ?? undefined;
+                setViewDateKey(null);
+                openAddDialog(date);
+              }}
+            >
+              <Plus className="w-4 h-4" /> Tambah Kegiatan
             </Button>
           </div>
         </div>

@@ -99,13 +99,60 @@ export interface MockKegiatan {
   outputDibutuhkan?: string[];
 }
 
+// Warna & label status dipusatkan di sini supaya Beranda dan Manajemen Kegiatan
+// (kalender, badge, chip filter) selalu tampil konsisten — satu sumber kebenaran,
+// bukan didefinisikan ulang di tiap halaman.
+export const KEGIATAN_STATUS_COLORS: Record<MockKegiatan["status"], string> = {
+  active: "#22c55e",
+  review: "#f59e0b",
+  done: "#9ca3af",
+  pending: "#3b82f6",
+};
+
+export const KEGIATAN_STATUS_LABELS: Record<MockKegiatan["status"], string> = {
+  active: "Aktif",
+  review: "Review",
+  done: "Selesai",
+  pending: "Pending",
+};
+
+// Sengaja dibuat padat mengisi hampir satu bulan penuh (Agustus 2026 — bulan
+// berjalan) supaya kalender kegiatan (dipakai bareng oleh Beranda & Manajemen
+// Kegiatan) bisa dilihat dalam kondisi ramai/realistis, bukan cuma beberapa
+// data contoh. Kegiatan sebelum "hari ini" (24 Agu) berstatus done/review,
+// kegiatan setelahnya active/pending — meniru alur kerja nyata.
 export const mockKegiatan: MockKegiatan[] = [
-  { id: "k1", title: "Pembuatan Konten SEO", status: "active", progress: 75, deadline: "2026-09-15", prioritas: "Tinggi", lokasi: "Kantor Pemkot", opdPenyelenggara: "Diskominfo", outputDibutuhkan: ["Berita", "Foto"] },
-  { id: "k2", title: "Desain UI/UX Dashboard", status: "review", progress: 90, deadline: "2026-08-30", prioritas: "Sedang", lokasi: "Lab Komputer", opdPenyelenggara: "Diskominfo", outputDibutuhkan: ["Reels", "Flyer"] },
-  { id: "k3", title: "Pengembangan API Gateway", status: "done", progress: 100, deadline: "2026-08-20", prioritas: "Tinggi", lokasi: "Ruang Server", opdPenyelenggara: "Dinas Pendidikan", outputDibutuhkan: ["Foto"] },
-  { id: "k4", title: "Testing Aplikasi Mobile", status: "active", progress: 45, deadline: "2026-09-25", prioritas: "Rendah", lokasi: "Lapangan", opdPenyelenggara: "Dinas Kesehatan", outputDibutuhkan: ["Berita", "Reels"] },
-  { id: "k5", title: "Dokumentasi Proyek", status: "pending", progress: 20, deadline: "2026-10-01", prioritas: "Sedang", lokasi: "Hotel Aston", opdPenyelenggara: "Diskominfo", outputDibutuhkan: ["Foto", "Video"] },
-  { id: "k6", title: "Optimasi Database", status: "active", progress: 60, deadline: "2026-09-10", prioritas: "Tinggi", lokasi: "Balaikota", opdPenyelenggara: "Dispendik", outputDibutuhkan: ["Berita"] },
+  { id: "k1", title: "Upacara Bendera Hari Senin", status: "done", progress: 100, deadline: "2026-08-03", prioritas: "Rendah", lokasi: "Halaman Balaikota", opdPenyelenggara: "Diskominfo", outputDibutuhkan: ["Foto"] },
+  { id: "k2", title: "Rapat Koordinasi Mingguan OPD", status: "done", progress: 100, deadline: "2026-08-04", prioritas: "Sedang", lokasi: "Ruang Rapat Balaikota", opdPenyelenggara: "Diskominfo", outputDibutuhkan: ["Naskah Berita"] },
+  { id: "k3", title: "Sosialisasi Vaksinasi Anak Sekolah", status: "done", progress: 100, deadline: "2026-08-05", prioritas: "Tinggi", lokasi: "SDN 1 Batu", opdPenyelenggara: "Dinas Kesehatan", outputDibutuhkan: ["Foto", "Video"] },
+  { id: "k4", title: "Rapat Persiapan Tahun Ajaran Baru", status: "done", progress: 100, deadline: "2026-08-05", prioritas: "Sedang", lokasi: "Aula Dinas Pendidikan", opdPenyelenggara: "Dinas Pendidikan", outputDibutuhkan: ["Naskah Berita"] },
+  { id: "k5", title: "Bimbingan Teknis SIMIKP untuk Petugas Lapangan", status: "done", progress: 100, deadline: "2026-08-06", prioritas: "Sedang", lokasi: "Kantor Diskominfo", opdPenyelenggara: "Diskominfo", outputDibutuhkan: ["Foto"] },
+  { id: "k6", title: "Konferensi Pers Mingguan Wali Kota", status: "done", progress: 100, deadline: "2026-08-07", prioritas: "Tinggi", lokasi: "Media Center Balaikota", opdPenyelenggara: "Diskominfo", outputDibutuhkan: ["Naskah Berita", "Video"] },
+  { id: "k7", title: "Jalan Sehat Keluarga Sehat", status: "done", progress: 100, deadline: "2026-08-08", prioritas: "Rendah", lokasi: "Alun-Alun Kota Batu", opdPenyelenggara: "Dinas Kesehatan", outputDibutuhkan: ["Foto", "Reels"] },
+  { id: "k8", title: "Upacara Bendera Hari Senin", status: "done", progress: 100, deadline: "2026-08-10", prioritas: "Rendah", lokasi: "Halaman Balaikota", opdPenyelenggara: "Diskominfo", outputDibutuhkan: ["Foto"] },
+  { id: "k9", title: "Kunjungan Kerja ke Puskesmas Junrejo", status: "done", progress: 100, deadline: "2026-08-11", prioritas: "Sedang", lokasi: "Puskesmas Junrejo", opdPenyelenggara: "Dinas Kesehatan", outputDibutuhkan: ["Foto", "Naskah Berita"] },
+  { id: "k10", title: "Lomba Cerdas Cermat Antar Sekolah", status: "done", progress: 100, deadline: "2026-08-12", prioritas: "Sedang", lokasi: "GOR Ganesha", opdPenyelenggara: "Dinas Pendidikan", outputDibutuhkan: ["Foto", "Video"] },
+  { id: "k11", title: "Pelatihan Videografi Konten Media Sosial", status: "review", progress: 90, deadline: "2026-08-13", prioritas: "Rendah", lokasi: "Studio Diskominfo", opdPenyelenggara: "Diskominfo", outputDibutuhkan: ["Video"] },
+  { id: "k12", title: "Penyuluhan Gizi Balita", status: "review", progress: 85, deadline: "2026-08-13", prioritas: "Rendah", lokasi: "Posyandu Melati", opdPenyelenggara: "Dinas Kesehatan", outputDibutuhkan: ["Foto"] },
+  { id: "k13", title: "Rapat Evaluasi Program Kesehatan Semester", status: "review", progress: 90, deadline: "2026-08-14", prioritas: "Sedang", lokasi: "Kantor Dinas Kesehatan", opdPenyelenggara: "Dinas Kesehatan", outputDibutuhkan: ["Naskah Berita"] },
+  { id: "k14", title: "Gladi Bersih Upacara HUT Kemerdekaan RI", status: "review", progress: 95, deadline: "2026-08-15", prioritas: "Tinggi", lokasi: "Alun-Alun Kota Batu", opdPenyelenggara: "Diskominfo", outputDibutuhkan: ["Foto", "Video"] },
+  { id: "k15", title: "Upacara HUT Kemerdekaan RI ke-81", status: "review", progress: 95, deadline: "2026-08-17", prioritas: "Tinggi", lokasi: "Alun-Alun Kota Batu", opdPenyelenggara: "Diskominfo", outputDibutuhkan: ["Foto", "Video", "Naskah Berita", "Reels"] },
+  { id: "k16", title: "Karnaval Budaya HUT Kota Batu", status: "active", progress: 40, deadline: "2026-08-18", prioritas: "Tinggi", lokasi: "Jalan Diponegoro", opdPenyelenggara: "Diskominfo", outputDibutuhkan: ["Foto", "Video", "Reels"] },
+  { id: "k17", title: "Pameran UMKM dan Produk Sekolah", status: "active", progress: 35, deadline: "2026-08-19", prioritas: "Sedang", lokasi: "GOR Ganesha", opdPenyelenggara: "Dinas Pendidikan", outputDibutuhkan: ["Foto", "Naskah Berita"] },
+  { id: "k18", title: "Media Gathering bersama Wartawan", status: "active", progress: 30, deadline: "2026-08-20", prioritas: "Sedang", lokasi: "Hotel Aston", opdPenyelenggara: "Diskominfo", outputDibutuhkan: ["Naskah Berita", "Foto"] },
+  { id: "k19", title: "Vaksinasi Booster Lansia", status: "active", progress: 25, deadline: "2026-08-20", prioritas: "Rendah", lokasi: "Balai RW 05", opdPenyelenggara: "Dinas Kesehatan", outputDibutuhkan: ["Foto"] },
+  { id: "k20", title: "Audiensi Wali Kota dengan Komunitas Difabel", status: "active", progress: 20, deadline: "2026-08-21", prioritas: "Sedang", lokasi: "Ruang Audiensi Balaikota", opdPenyelenggara: "Dinas Kesehatan", outputDibutuhkan: ["Foto", "Naskah Berita"] },
+  { id: "k21", title: "Festival Anak Sehat", status: "active", progress: 15, deadline: "2026-08-22", prioritas: "Rendah", lokasi: "Taman Kota", opdPenyelenggara: "Dinas Kesehatan", outputDibutuhkan: ["Foto", "Reels"] },
+  { id: "k22", title: "Rapat Koordinasi Lintas OPD Persiapan MTQ", status: "active", progress: 10, deadline: "2026-08-24", prioritas: "Tinggi", lokasi: "Ruang Rapat Balaikota", opdPenyelenggara: "Diskominfo", outputDibutuhkan: ["Naskah Berita"] },
+  { id: "k23", title: "Sosialisasi Kurikulum Merdeka", status: "pending", progress: 0, deadline: "2026-08-24", prioritas: "Sedang", lokasi: "Aula Dinas Pendidikan", opdPenyelenggara: "Dinas Pendidikan", outputDibutuhkan: ["Naskah Berita", "Foto"] },
+  { id: "k24", title: "Talkshow Radio Pemkot: Layanan Publik Digital", status: "pending", progress: 0, deadline: "2026-08-25", prioritas: "Rendah", lokasi: "Studio RRI Batu", opdPenyelenggara: "Diskominfo", outputDibutuhkan: ["Naskah Berita"] },
+  { id: "k25", title: "Sosialisasi Bahaya Narkoba di Sekolah", status: "pending", progress: 0, deadline: "2026-08-26", prioritas: "Sedang", lokasi: "SMPN 2 Batu", opdPenyelenggara: "Dinas Pendidikan", outputDibutuhkan: ["Foto", "Naskah Berita"] },
+  { id: "k26", title: "Rapat Anggaran Perubahan OPD", status: "pending", progress: 0, deadline: "2026-08-27", prioritas: "Tinggi", lokasi: "Ruang Rapat Balaikota", opdPenyelenggara: "Diskominfo", outputDibutuhkan: ["Naskah Berita"] },
+  { id: "k27", title: "Pelatihan Jurnalistik Warga", status: "pending", progress: 0, deadline: "2026-08-28", prioritas: "Rendah", lokasi: "Balaikota", opdPenyelenggara: "Diskominfo", outputDibutuhkan: ["Foto", "Video"] },
+  { id: "k28", title: "Donor Darah Massal", status: "pending", progress: 0, deadline: "2026-08-29", prioritas: "Sedang", lokasi: "GOR Ganesha", opdPenyelenggara: "Dinas Kesehatan", outputDibutuhkan: ["Foto", "Reels"] },
+  { id: "k29", title: "Upacara Bendera Hari Senin", status: "pending", progress: 0, deadline: "2026-08-31", prioritas: "Rendah", lokasi: "Halaman Balaikota", opdPenyelenggara: "Diskominfo", outputDibutuhkan: ["Foto"] },
+  { id: "k30", title: "Rapat Evaluasi Akhir Bulan", status: "pending", progress: 0, deadline: "2026-09-02", prioritas: "Sedang", lokasi: "Ruang Rapat Balaikota", opdPenyelenggara: "Diskominfo", outputDibutuhkan: ["Naskah Berita"] },
+  { id: "k31", title: "Peluncuran Aplikasi Layanan Publik", status: "pending", progress: 0, deadline: "2026-09-10", prioritas: "Tinggi", lokasi: "Balaikota", opdPenyelenggara: "Diskominfo", outputDibutuhkan: ["Foto", "Video", "Naskah Berita"] },
 ];
 
 export interface MockPenugasan {
