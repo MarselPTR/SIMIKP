@@ -43,7 +43,14 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(() => {
+    try {
+      const saved = localStorage.getItem("simikp_user");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [loading, setLoading] = useState(false);
 
   const login = async (email: string, password: string): Promise<LoginResult> => {
@@ -51,6 +58,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const loggedInUser = await mockAuthLogin(email, password);
       setUser(loggedInUser);
+      try {
+        localStorage.setItem("simikp_user", JSON.stringify(loggedInUser));
+      } catch (err) {
+        console.error("Failed to save user to localStorage", err);
+      }
       return { success: true, user: loggedInUser };
     } catch (err) {
       return { success: false, error: err instanceof Error ? err.message : "Login gagal" };
@@ -61,6 +73,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     setUser(null);
+    try {
+      localStorage.removeItem("simikp_user");
+    } catch (err) {
+      console.error("Failed to remove user from localStorage", err);
+    }
   };
 
   return (
@@ -69,3 +86,4 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     </AuthContext.Provider>
   );
 };
+

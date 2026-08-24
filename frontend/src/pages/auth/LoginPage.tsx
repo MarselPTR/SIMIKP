@@ -1,16 +1,21 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../lib/AuthContext";
 import { Role } from "../../lib/mock-data";
 import logoKotaBatu from "../../assets/Logo_Kota_Batu.png";
 
 const LoginPage = () => {
-  const { login, loading } = useAuth();
+  const { login, loading, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+
+  if (isAuthenticated && user) {
+    const destination = user.role === Role.PETUGAS ? "/petugas/dashboard" : "/dashboard";
+    return <Navigate to={destination} replace />;
+  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -23,6 +28,7 @@ const LoginPage = () => {
     const destination = result.user?.role === Role.PETUGAS ? "/petugas/dashboard" : "/dashboard";
     navigate(destination, { replace: true });
   };
+
 
   return (
     <div className="min-h-screen flex">
