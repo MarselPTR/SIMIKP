@@ -459,7 +459,7 @@ export default function PenugasanPage() {
         </div>
         <button
           onClick={handleOpenCreate}
-          className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition active:scale-[0.98] self-start sm:self-auto cursor-pointer"
+          className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-[#0f1f5c] hover:bg-[#0a1540] text-white text-sm font-semibold rounded-lg shadow-sm transition active:scale-[0.98] self-start sm:self-auto cursor-pointer"
         >
           <Plus className="w-4 h-4 stroke-[2.5]" />
           <span>Tugas Baru</span>
@@ -480,7 +480,7 @@ export default function PenugasanPage() {
             }}
             className={`pb-3.5 flex items-center gap-2 font-medium transition relative whitespace-nowrap cursor-pointer ${
               activeTab === "all"
-                ? "text-blue-600 font-semibold border-b-2 border-blue-600"
+                ? "text-[#0f1f5c] font-bold border-b-2 border-[#0f1f5c]"
                 : "text-gray-500 hover:text-gray-800"
             }`}
           >
@@ -505,7 +505,7 @@ export default function PenugasanPage() {
             }}
             className={`pb-3.5 flex items-center gap-2 font-medium transition relative whitespace-nowrap cursor-pointer ${
               activeTab === "in-progress"
-                ? "text-blue-600 font-semibold border-b-2 border-blue-600"
+                ? "text-[#0f1f5c] font-bold border-b-2 border-[#0f1f5c]"
                 : "text-gray-500 hover:text-gray-800"
             }`}
           >
@@ -530,7 +530,7 @@ export default function PenugasanPage() {
             }}
             className={`pb-3.5 flex items-center gap-2 font-medium transition relative whitespace-nowrap cursor-pointer ${
               activeTab === "done"
-                ? "text-blue-600 font-semibold border-b-2 border-blue-600"
+                ? "text-[#0f1f5c] font-bold border-b-2 border-[#0f1f5c]"
                 : "text-gray-500 hover:text-gray-800"
             }`}
           >
@@ -555,7 +555,7 @@ export default function PenugasanPage() {
             }}
             className={`pb-3.5 flex items-center gap-2 font-medium transition relative whitespace-nowrap cursor-pointer ${
               activeTab === "pending"
-                ? "text-blue-600 font-semibold border-b-2 border-blue-600"
+                ? "text-[#0f1f5c] font-bold border-b-2 border-[#0f1f5c]"
                 : "text-gray-500 hover:text-gray-800"
             }`}
           >
@@ -580,7 +580,7 @@ export default function PenugasanPage() {
             }}
             className={`pb-3.5 flex items-center gap-2 font-medium transition relative whitespace-nowrap cursor-pointer ${
               activeTab === "conflict"
-                ? "text-blue-600 font-semibold border-b-2 border-blue-600"
+                ? "text-[#0f1f5c] font-bold border-b-2 border-[#0f1f5c]"
                 : "text-gray-500 hover:text-gray-800"
             }`}
           >
@@ -1190,7 +1190,7 @@ export default function PenugasanPage() {
             </Button>
             <button
               onClick={isCreateOpen ? handleSaveCreate : handleSaveEdit}
-              className="px-4 py-2 text-sm font-medium text-white rounded-lg shadow-sm transition bg-indigo-600 hover:bg-indigo-700 cursor-pointer"
+              className="px-4 py-2 text-sm font-semibold text-white rounded-lg shadow-sm transition bg-[#0f1f5c] hover:bg-[#0a1540] cursor-pointer"
             >
               {isCreateOpen ? "Simpan Penugasan" : "Simpan Perubahan"}
             </button>

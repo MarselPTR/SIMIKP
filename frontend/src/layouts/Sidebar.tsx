@@ -53,11 +53,12 @@ const Sidebar = () => {
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
-                `w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all ${
-                  isActive ? "font-semibold" : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
+                `w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm transition-all duration-200 ${
+                  isActive
+                    ? "font-semibold text-white bg-[#0f1f5c] shadow-xs"
+                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                 }`
               }
-              style={({ isActive }) => (isActive ? { backgroundColor: `${NAVY}15`, color: NAVY } : {})}
             >
               <Icon className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={2} />
               <span>{item.label}</span>

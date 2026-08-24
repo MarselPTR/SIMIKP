@@ -59,13 +59,102 @@ const BANK_KONTEN_CARD: StatCard = {
   path: "/bank-konten",
 };
 
-// Satu warna biru muda seragam untuk semua stat card (bukan gradasi lagi).
+// Warna dasar stat card: putih bersih, dengan dynamic bright blue spotlight saat cursor diarahkan.
 const STAT_CARD_TONE = {
-  bg: "#eff6ff",
-  iconBg: "#e2e8f5",
+  bg: "#ffffff",
+  iconBg: "#f0f4f8",
   icon: "#0f1f5c",
   value: "#0f1f5c",
-  label: "#6b7ba8",
+  label: "#64748b",
+};
+
+interface SpotlightStatCardProps {
+  card: StatCard;
+  onClick: () => void;
+}
+
+const SpotlightStatCard = ({ card, onClick }: SpotlightStatCardProps) => {
+  const [mousePos, setMousePos] = useState({ x: 100, y: 75, distFromCenter: 0.5 });
+  const [isHovered, setIsHovered] = useState(false);
+  const Icon = card.icon;
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const width = rect.width || 1;
+    // 0 = tepat di tengah, 1 = di tepi paling kiri atau kanan
+    const distFromCenter = Math.min(1, Math.max(0, Math.abs(x - width / 2) / (width / 2)));
+    setMousePos({ x, y, distFromCenter });
+  };
+
+  // Warna biru tua lebih tebal di sisi tepi kiri/kanan (distFromCenter mendekati 1)
+  // dan lebih dominan putih/terang di area tengah (distFromCenter mendekati 0)
+  const navyOpacity = 0.12 + mousePos.distFromCenter * 0.32;
+  const whiteOpacity = Math.max(0.15, (1 - mousePos.distFromCenter) * 0.75);
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={() => setIsHovered(false)}
+      className="group relative text-left w-full min-h-[150px] rounded-2xl p-5 bg-white border border-gray-200/90 shadow-2xs overflow-hidden transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-md hover:border-[#0f1f5c] active:translate-y-0 active:shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1f5c] focus-visible:ring-offset-2 cursor-pointer flex flex-col justify-between"
+      aria-label={`Buka ${card.label}`}
+    >
+      {/* ── Dynamic Navy Glow (Tebal di Sisi Kiri & Kanan mengikuti kursor) ── */}
+      <div
+        className="pointer-events-none absolute -inset-px rounded-2xl transition-opacity duration-200 ease-out"
+        style={{
+          opacity: isHovered ? 1 : 0,
+          background: `radial-gradient(
+            220px circle at ${mousePos.x}px ${mousePos.y}px,
+            rgba(15, 31, 92, ${navyOpacity.toFixed(2)}),
+            rgba(15, 31, 92, ${(navyOpacity * 0.45).toFixed(2)}) 50%,
+            transparent 80%
+          )`,
+        }}
+      />
+
+      {/* ── Dynamic White Core Light (Dominan Putih saat Kursor ke Tengah) ── */}
+      <div
+        className="pointer-events-none absolute inset-0 rounded-2xl transition-opacity duration-200 ease-out"
+        style={{
+          opacity: isHovered ? 1 : 0,
+          background: `radial-gradient(
+            150px circle at ${mousePos.x}px ${mousePos.y}px,
+            rgba(255, 255, 255, ${whiteOpacity.toFixed(2)}),
+            transparent 75%
+          )`,
+        }}
+      />
+
+      {/* ── Card Content (Solid, Crisp & Structured) ── */}
+      <div className="relative z-10 w-full flex flex-col justify-between h-full">
+        {/* Top: Icon container */}
+        <div className="flex items-center justify-between mb-3">
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ease-out group-hover:scale-105 bg-slate-100 group-hover:bg-[#0f1f5c] shadow-2xs"
+          >
+            <Icon className="w-5 h-5 text-[#0f1f5c] group-hover:text-white transition-colors duration-200" strokeWidth={2} />
+          </div>
+        </div>
+
+        {/* Bottom: Label & Value */}
+        <div className="space-y-1">
+          <p className="text-xs sm:text-[13px] font-semibold text-slate-600 group-hover:text-[#0f1f5c] leading-snug min-h-[2.25rem] flex items-start transition-colors">
+            {card.label}
+          </p>
+          <div className="flex items-baseline">
+            <span className="text-2xl sm:text-3xl font-extrabold text-[#0f1f5c] tracking-tight transition-colors">
+              {card.value}
+            </span>
+          </div>
+        </div>
+      </div>
+    </button>
+  );
 };
 
 /* ---------------------------------------------------------------------- */
@@ -605,37 +694,15 @@ const DashboardPage = () => {
         <p className="text-sm text-gray-400 mt-0.5">Ringkasan Kegiatan &amp; Publikasi</p>
       </div>
 
-      {/* Stat cards — satu warna biru muda seragam untuk semua kartu */}
+      {/* Stat cards — interactive cursor-following spotlight glow */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-        {statCards.map((card) => {
-          const Icon = card.icon;
-          const tone = STAT_CARD_TONE;
-          return (
-            <button
-              key={card.label}
-              type="button"
-              onClick={() => navigate(card.path)}
-              className="text-left w-full rounded-xl shadow-sm p-4 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-              style={{ backgroundColor: tone.bg }}
-              aria-label={`Buka ${card.label}`}
-            >
-              <div
-                className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 transition-transform duration-200"
-                style={{ backgroundColor: tone.iconBg }}
-              >
-                <Icon className="w-5 h-5" style={{ color: tone.icon }} strokeWidth={1.8} />
-              </div>
-              <p className="text-sm" style={{ color: tone.label }}>
-                {card.label}
-              </p>
-              <div className="flex items-end gap-2 mt-1">
-                <span className="text-2xl font-extrabold" style={{ color: tone.value }}>
-                  {card.value}
-                </span>
-              </div>
-            </button>
-          );
-        })}
+        {statCards.map((card) => (
+          <SpotlightStatCard
+            key={card.label}
+            card={card}
+            onClick={() => navigate(card.path)}
+          />
+        ))}
       </div>
 
       {/* Main grid */}
@@ -679,15 +746,17 @@ const DashboardPage = () => {
       >
         <div className="mt-1">
           {selectedEvents.length > 0 ? (
-            <div className="space-y-2 max-h-80 overflow-y-auto -mx-1 px-1">
+            <div className="space-y-2.5 max-h-80 overflow-y-auto -mx-1 px-1">
               {selectedEvents.map((ev, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-2.5 rounded-lg px-3 py-2.5"
-                  style={{ backgroundColor: `${ev.color}14` }}
+                  className="flex items-center gap-3 rounded-xl px-3.5 py-3 bg-[#0f1f5c] text-white shadow-sm transition-all hover:scale-[1.01]"
                 >
-                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: ev.color }} />
-                  <span className="text-sm font-medium" style={{ color: ev.color }}>
+                  <span
+                    className="w-2.5 h-2.5 rounded-full flex-shrink-0 ring-2 ring-white/25"
+                    style={{ backgroundColor: ev.color || "#38bdf8" }}
+                  />
+                  <span className="text-sm font-semibold text-white tracking-wide">
                     {ev.label}
                   </span>
                 </div>

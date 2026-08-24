@@ -299,7 +299,7 @@ const KegiatanPage = () => {
                 onClick={() => setFilterDate(f.key)}
                 className={`rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150 ${
                   filterDate === f.key
-                    ? "bg-indigo-600 text-white shadow-sm"
+                    ? "bg-[#0f1f5c] text-white shadow-sm"
                     : "bg-gray-50 text-gray-600 hover:bg-gray-100"
                 }`}
               >
@@ -315,7 +315,7 @@ const KegiatanPage = () => {
               onClick={() => setViewMode("table")}
               aria-label="Tampilan tabel"
               className={`p-1.5 rounded-md transition-all duration-150 ${
-                viewMode === "table" ? "bg-white shadow-sm text-indigo-600" : "text-gray-400 hover:text-gray-600"
+                viewMode === "table" ? "bg-white shadow-sm text-[#0f1f5c]" : "text-gray-400 hover:text-gray-600"
               }`}
             >
               <Rows3 className="w-4 h-4" />
@@ -325,7 +325,7 @@ const KegiatanPage = () => {
               onClick={() => setViewMode("card")}
               aria-label="Tampilan kartu"
               className={`p-1.5 rounded-md transition-all duration-150 ${
-                viewMode === "card" ? "bg-white shadow-sm text-indigo-600" : "text-gray-400 hover:text-gray-600"
+                viewMode === "card" ? "bg-white shadow-sm text-[#0f1f5c]" : "text-gray-400 hover:text-gray-600"
               }`}
             >
               <LayoutGrid className="w-4 h-4" />
@@ -339,7 +339,7 @@ const KegiatanPage = () => {
             type="button"
             onClick={() => setStatusFilter("all")}
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all duration-150 ${
-              statusFilter === "all" ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              statusFilter === "all" ? "bg-[#0f1f5c] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
           >
             Semua Status
