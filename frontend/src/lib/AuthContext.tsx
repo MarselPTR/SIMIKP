@@ -25,11 +25,34 @@ interface AuthContextValue {
   logout: () => void;
 }
 
-const AuthContext = createContext<AuthContextValue | null>(null);
+const AuthContext = ((globalThis as unknown as { __SIMIKP_AUTH_CTX__?: React.Context<AuthContextValue | null> })
+  .__SIMIKP_AUTH_CTX__ ??= createContext<AuthContextValue | null>(null));
 
-export const useAuth = () => {
+export const useAuth = (): AuthContextValue => {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  if (!ctx) {
+    try {
+      const savedUser = localStorage.getItem("simikp_user");
+      const parsedUser = savedUser ? JSON.parse(savedUser) : null;
+      return {
+        user: parsedUser,
+        loading: false,
+        isAuthenticated: parsedUser !== null,
+        login: async () => ({ success: false, error: "AuthProvider belum siap" }),
+        logout: () => {
+          localStorage.removeItem("simikp_user");
+        },
+      };
+    } catch {
+      return {
+        user: null,
+        loading: false,
+        isAuthenticated: false,
+        login: async () => ({ success: false, error: "AuthProvider belum siap" }),
+        logout: () => {},
+      };
+    }
+  }
   return ctx;
 };
 

@@ -100,29 +100,190 @@ export interface MockKegiatan {
 }
 
 export const mockKegiatan: MockKegiatan[] = [
-  { id: "k1", title: "Pembuatan Konten SEO", status: "active", progress: 75, deadline: "2026-09-15", prioritas: "Tinggi", lokasi: "Kantor Pemkot", opdPenyelenggara: "Diskominfo", outputDibutuhkan: ["Berita", "Foto"] },
-  { id: "k2", title: "Desain UI/UX Dashboard", status: "review", progress: 90, deadline: "2026-08-30", prioritas: "Sedang", lokasi: "Lab Komputer", opdPenyelenggara: "Diskominfo", outputDibutuhkan: ["Reels", "Flyer"] },
-  { id: "k3", title: "Pengembangan API Gateway", status: "done", progress: 100, deadline: "2026-08-20", prioritas: "Tinggi", lokasi: "Ruang Server", opdPenyelenggara: "Dinas Pendidikan", outputDibutuhkan: ["Foto"] },
-  { id: "k4", title: "Testing Aplikasi Mobile", status: "active", progress: 45, deadline: "2026-09-25", prioritas: "Rendah", lokasi: "Lapangan", opdPenyelenggara: "Dinas Kesehatan", outputDibutuhkan: ["Berita", "Reels"] },
-  { id: "k5", title: "Dokumentasi Proyek", status: "pending", progress: 20, deadline: "2026-10-01", prioritas: "Sedang", lokasi: "Hotel Aston", opdPenyelenggara: "Diskominfo", outputDibutuhkan: ["Foto", "Video"] },
-  { id: "k6", title: "Optimasi Database", status: "active", progress: 60, deadline: "2026-09-10", prioritas: "Tinggi", lokasi: "Balaikota", opdPenyelenggara: "Dispendik", outputDibutuhkan: ["Berita"] },
+  {
+    id: "k1",
+    title: "Upacara Hari Jadi Kota",
+    status: "active",
+    progress: 60,
+    deadline: "2026-08-24",
+    prioritas: "Tinggi",
+    lokasi: "Balaikota Among Tani",
+    opdPenyelenggara: "Bagian Umum & Protokol",
+    outputDibutuhkan: ["Foto", "Naskah Berita", "Video"],
+  },
+  {
+    id: "k2",
+    title: "Peresmian Taman Kota",
+    status: "done",
+    progress: 100,
+    deadline: "2026-08-25",
+    prioritas: "Sedang",
+    lokasi: "Taman Kota Kec. Bumiaji",
+    opdPenyelenggara: "Dinas Lingkungan Hidup",
+    outputDibutuhkan: ["Naskah Berita", "Foto"],
+  },
+  {
+    id: "k3",
+    title: "Rapat Koordinasi",
+    status: "pending",
+    progress: 25,
+    deadline: "2026-08-26",
+    prioritas: "Tinggi",
+    lokasi: "Ruang Rapat Utama Lt. 2",
+    opdPenyelenggara: "Bappeda Kota Batu",
+    outputDibutuhkan: ["Flyer/Infografis", "Naskah Berita"],
+  },
+  {
+    id: "k4",
+    title: "Rapat Evaluasi Mingguan",
+    status: "active",
+    progress: 40,
+    deadline: "2026-08-24",
+    prioritas: "Sedang",
+    lokasi: "Ruang Rapat Diskominfo",
+    opdPenyelenggara: "Diskominfo Kota Batu",
+    outputDibutuhkan: ["Review Konten", "Foto"],
+  },
+  {
+    id: "k5",
+    title: "Sosialisasi Pajak Daerah",
+    status: "active",
+    progress: 50,
+    deadline: "2026-08-27",
+    prioritas: "Sedang",
+    lokasi: "Aula Bapenda Kota Batu",
+    opdPenyelenggara: "Bapenda Kota Batu",
+    outputDibutuhkan: ["Video Liputan", "Flyer/Infografis"],
+  },
+  {
+    id: "k6",
+    title: "Festival Kuliner Nusantara",
+    status: "pending",
+    progress: 15,
+    deadline: "2026-08-28",
+    prioritas: "Tinggi",
+    lokasi: "Plaza Alun-Alun Batu",
+    opdPenyelenggara: "Dinas Pariwisata Kota Batu",
+    outputDibutuhkan: ["Reels / TikTok", "Foto"],
+  },
 ];
 
 export interface MockPenugasan {
   id: string;
   kegiatanTerkait: string;
+  tanggalKegiatan?: string;
   jenisKonten: string;
   pic: string;
+  picAvatar?: string;
   jamMulai: string;
   jamSelesai: string;
-  status: "in-progress" | "done" | "pending";
+  waktuSubtitle?: string;
+  status: "in-progress" | "done" | "pending" | "conflict";
+  hasConflict?: boolean;
+  conflictMessage?: string;
+  lokasi?: string;
+  deadline?: string;
+  catatan?: string;
 }
 
 export const mockPenugasan: MockPenugasan[] = [
-  { id: "p1", kegiatanTerkait: "Upacara Hari Jadi Kota", jenisKonten: "Foto", pic: "Budi Fotografer", jamMulai: "08:00", jamSelesai: "10:00", status: "in-progress" },
-  { id: "p2", kegiatanTerkait: "Peresmian Taman Kota", jenisKonten: "Naskah Berita", pic: "Andi Prahum", jamMulai: "10:00", jamSelesai: "12:00", status: "done" },
-  { id: "p3", kegiatanTerkait: "Rapat Koordinasi", jenisKonten: "Flyer/Infografis", pic: "Citra Desainer", jamMulai: "13:00", jamSelesai: "15:00", status: "pending" },
-  { id: "p4", kegiatanTerkait: "Sosialisasi Pajak", jenisKonten: "Video", pic: "Budi Fotografer", jamMulai: "09:00", jamSelesai: "11:00", status: "in-progress" },
+  {
+    id: "p1",
+    kegiatanTerkait: "Upacara Hari Jadi Kota",
+    tanggalKegiatan: "Senin, 24 Agustus 2026",
+    jenisKonten: "Foto",
+    pic: "Budi Fotografer",
+    picAvatar: "BF",
+    jamMulai: "08:00",
+    jamSelesai: "10:00",
+    waktuSubtitle: "(Senin, 24/8)",
+    status: "in-progress",
+    hasConflict: false,
+    lokasi: "Balaikota Among Tani",
+    deadline: "2026-08-24 12:00",
+    catatan: "Dokumentasi seremoni pembukaan dan kehadiran pimpinan Forkopimda.",
+  },
+  {
+    id: "p2",
+    kegiatanTerkait: "Peresmian Taman Kota",
+    tanggalKegiatan: "Selasa, 25 Agustus 2026",
+    jenisKonten: "Naskah Berita",
+    pic: "Andi Prahum",
+    picAvatar: "AP",
+    jamMulai: "10:00",
+    jamSelesai: "12:00",
+    waktuSubtitle: "(Selasa, 25/8)",
+    status: "done",
+    hasConflict: false,
+    lokasi: "Taman Kota Kec. Bumiaji",
+    deadline: "2026-08-25 15:00",
+    catatan: "Penulisan rilis berita lengkap untuk publikasi portal Pemkot.",
+  },
+  {
+    id: "p3",
+    kegiatanTerkait: "Rapat Koordinasi",
+    tanggalKegiatan: "Rabu, 26 Agustus 2026",
+    jenisKonten: "Flyer/Infografis",
+    pic: "Citra Desainer",
+    picAvatar: "CD",
+    jamMulai: "13:00",
+    jamSelesai: "15:00",
+    waktuSubtitle: "(Rabu, 26/8)",
+    status: "pending",
+    hasConflict: false,
+    lokasi: "Ruang Rapat Utama Lt. 2",
+    deadline: "2026-08-26 17:00",
+    catatan: "Pembuatan materi flyer edukasi hasil keputusan rapat koordinasi.",
+  },
+  {
+    id: "p4",
+    kegiatanTerkait: "Rapat Evaluasi Mingguan",
+    tanggalKegiatan: "Senin, 24 Agustus 2026",
+    jenisKonten: "Review Konten",
+    pic: "Budi Fotografer",
+    picAvatar: "BF",
+    jamMulai: "09:30",
+    jamSelesai: "10:30",
+    waktuSubtitle: "(Senin, 24/8)",
+    status: "conflict",
+    hasConflict: true,
+    conflictMessage: "Budi Fotografer sudah memiliki jadwal di 'Upacara Hari Jadi Kota' (08:00 - 10:00). Terjadi bentrok jadwal selama 30 menit.",
+    lokasi: "Ruang Rapat Diskominfo",
+    deadline: "2026-08-24 11:30",
+    catatan: "Evaluasi capaian publikasi mingguan dan review aset liputan.",
+  },
+  {
+    id: "p5",
+    kegiatanTerkait: "Sosialisasi Pajak Daerah",
+    tanggalKegiatan: "Kamis, 27 Agustus 2026",
+    jenisKonten: "Video Liputan",
+    pic: "Dinda Amelia",
+    picAvatar: "DA",
+    jamMulai: "09:00",
+    jamSelesai: "11:30",
+    waktuSubtitle: "(Kamis, 27/8)",
+    status: "in-progress",
+    hasConflict: false,
+    lokasi: "Aula Bapenda Kota Batu",
+    deadline: "2026-08-27 16:00",
+    catatan: "Pengambilan footage testimoni wajib pajak dan doorstop kepala badan.",
+  },
+  {
+    id: "p6",
+    kegiatanTerkait: "Festival Kuliner Nusantara",
+    tanggalKegiatan: "Jumat, 28 Agustus 2026",
+    jenisKonten: "Reels / TikTok",
+    pic: "Fajar Nugroho",
+    picAvatar: "FN",
+    jamMulai: "14:00",
+    jamSelesai: "16:30",
+    waktuSubtitle: "(Jumat, 28/8)",
+    status: "pending",
+    hasConflict: false,
+    lokasi: "Plaza Alun-Alun Batu",
+    deadline: "2026-08-28 19:00",
+    catatan: "Konten video pendek vertikal format 9:16 untuk media sosial resmi.",
+  },
 ];
 
 export interface MockProduksi {

@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import {
   Search,
   LayoutGrid,
@@ -12,9 +13,13 @@ import {
   Inbox,
   X,
   CalendarDays,
+  Users,
+  UserPlus,
+  AlertTriangle,
+  ExternalLink,
 } from "lucide-react";
 import { mockApi } from "../../lib/mock-api";
-import type { MockKegiatan } from "../../lib/mock-data";
+import type { MockKegiatan, MockPenugasan } from "../../lib/mock-data";
 import Badge from "../../components/ui/Badge";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
@@ -74,10 +79,22 @@ const formatTanggal = (iso: string) => {
 };
 
 const KegiatanPage = () => {
+  const navigate = useNavigate();
   const { data: kegiatanData, isLoading, error, refetch } = useQuery({
     queryKey: ["kegiatan"],
     queryFn: mockApi.kegiatan.getAll,
   });
+
+  // Query Penugasan Data for real-time synchronization
+  const { data: penugasanList = [] } = useQuery({
+    queryKey: ["penugasan"],
+    queryFn: mockApi.penugasan.getAll,
+  });
+
+  // Helper get assigned tasks for a kegiatan
+  const getAssignedTasks = (title: string): MockPenugasan[] => {
+    return penugasanList.filter((p) => p.kegiatanTerkait.toLowerCase() === title.toLowerCase());
+  };
 
   // Salinan lokal yang bisa ditambah/diubah dari kalender/dialog — mock API
   // tidak punya endpoint create/update, jadi disimpan di state komponen ini.
@@ -365,136 +382,259 @@ const KegiatanPage = () => {
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs font-medium uppercase text-gray-500">
+              <thead className="bg-gray-900 text-xs font-semibold uppercase text-white">
                 <tr>
-                  <th className="px-4 py-3 text-left">Judul Kegiatan</th>
-                  <th className="px-4 py-3 text-left">OPD Penyelenggara</th>
-                  <th className="px-4 py-3 text-left">Output</th>
-                  <th className="px-4 py-3 text-left">Prioritas</th>
-                  <th className="px-4 py-3 text-left">Lokasi</th>
-                  <th className="px-4 py-3 text-left">Tanggal</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-right">Aksi</th>
+                  <th className="px-4 py-3 text-left text-white">Judul Kegiatan</th>
+                  <th className="px-4 py-3 text-left text-white">OPD Penyelenggara</th>
+                  <th className="px-4 py-3 text-left text-white">Output</th>
+                  <th className="px-4 py-3 text-left text-white">Prioritas</th>
+                  <th className="px-4 py-3 text-left text-white">Lokasi</th>
+                  <th className="px-4 py-3 text-left text-white">Tanggal</th>
+                  <th className="px-4 py-3 text-left text-white">Petugas Tim</th>
+                  <th className="px-4 py-3 text-left text-white">Status</th>
+                  <th className="px-4 py-3 text-right text-white">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filtered.map((row) => (
-                  <tr
-                    key={row.id}
-                    onClick={() => openEditDialog(row)}
-                    className="group cursor-pointer transition-colors duration-150 hover:bg-blue-50/40"
-                  >
-                    <td className="px-4 py-3 text-gray-800 font-medium">{row.title}</td>
-                    <td className="px-4 py-3 text-gray-600">{row.opdPenyelenggara || "—"}</td>
-                    <td className="px-4 py-3 text-gray-600">{row.outputDibutuhkan?.join(", ") || "—"}</td>
-                    <td className="px-4 py-3">
-                      <Badge variant={PRIORITAS_BADGE_VARIANT[row.prioritas]}>{row.prioritas}</Badge>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">{row.lokasi || "—"}</td>
-                    <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{formatTanggal(row.deadline)}</td>
-                    <td className="px-4 py-3">
-                      <Badge variant={STATUS_BADGE_VARIANT[row.status]}>{STATUS_LABELS[row.status]}</Badge>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openEditDialog(row);
-                          }}
-                          className="p-1.5 rounded-md text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors duration-150"
-                          aria-label={`Edit ${row.title}`}
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => handleDelete(row.id, e)}
-                          className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors duration-150"
-                          aria-label={`Hapus ${row.title}`}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {filtered.map((row) => {
+                  const assignedTasks = getAssignedTasks(row.title);
+                  const hasConflict = assignedTasks.some((t) => t.status === "conflict" || t.hasConflict);
+
+                  return (
+                    <tr
+                      key={row.id}
+                      onClick={() => openEditDialog(row)}
+                      className="group cursor-pointer transition-colors duration-150 hover:bg-blue-50/40"
+                    >
+                      <td className="px-4 py-3 text-gray-800 font-medium">{row.title}</td>
+                      <td className="px-4 py-3 text-gray-600">{row.opdPenyelenggara || "—"}</td>
+                      <td className="px-4 py-3 text-gray-600">{row.outputDibutuhkan?.join(", ") || "—"}</td>
+                      <td className="px-4 py-3">
+                        <Badge variant={PRIORITAS_BADGE_VARIANT[row.prioritas]}>{row.prioritas}</Badge>
+                      </td>
+                      <td className="px-4 py-3 text-gray-600">{row.lokasi || "—"}</td>
+                      <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{formatTanggal(row.deadline)}</td>
+
+                      {/* Kolom Petugas Tim (Sinkron dari Penugasan) */}
+                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                        {assignedTasks.length > 0 ? (
+                          <div className="flex items-center gap-1.5">
+                            <div className="flex -space-x-1.5 overflow-hidden">
+                              {assignedTasks.slice(0, 3).map((task, idx) => (
+                                <div
+                                  key={task.id ?? idx}
+                                  title={`${task.pic} (${task.jenisKonten}) - ${task.jamMulai} - ${task.jamSelesai}`}
+                                  className="relative inline-flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 font-bold text-[10px] ring-2 ring-white"
+                                >
+                                  {task.picAvatar ?? task.pic.slice(0, 2).toUpperCase()}
+                                  {(task.hasConflict || task.status === "conflict") && (
+                                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-600 rounded-full ring-1 ring-white" />
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/penugasan?search=${encodeURIComponent(row.title)}`)}
+                              className="text-[11px] text-indigo-600 hover:text-indigo-800 font-medium hover:underline flex items-center gap-0.5"
+                            >
+                              <span>{assignedTasks.length} PIC</span>
+                              {hasConflict && <AlertTriangle className="w-3 h-3 text-rose-500" />}
+                            </button>
+                            <button
+                              type="button"
+                              title="Tambah Penugasan untuk Kegiatan ini"
+                              onClick={() =>
+                                navigate(`/penugasan?kegiatan=${encodeURIComponent(row.title)}&action=create`)
+                              }
+                              className="p-1 rounded text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              navigate(`/penugasan?kegiatan=${encodeURIComponent(row.title)}&action=create`)
+                            }
+                            className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium text-indigo-600 bg-indigo-50/80 hover:bg-indigo-100 rounded-md transition"
+                          >
+                            <UserPlus className="w-3 h-3" />
+                            <span>+ Tugaskan</span>
+                          </button>
+                        )}
+                      </td>
+
+                      <td className="px-4 py-3">
+                        <Badge variant={STATUS_BADGE_VARIANT[row.status]}>{STATUS_LABELS[row.status]}</Badge>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                          <button
+                            type="button"
+                            title="Tugaskan Tim"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/penugasan?kegiatan=${encodeURIComponent(row.title)}&action=create`);
+                            }}
+                            className="p-1.5 rounded-md text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors duration-150"
+                            aria-label={`Tugaskan Tim untuk ${row.title}`}
+                          >
+                            <UserPlus className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEditDialog(row);
+                            }}
+                            className="p-1.5 rounded-md text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors duration-150"
+                            aria-label={`Edit ${row.title}`}
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => handleDelete(row.id, e)}
+                            className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors duration-150"
+                            aria-label={`Hapus ${row.title}`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map((row) => (
-            <div
-              key={row.id}
-              onClick={() => openEditDialog(row)}
-              className="group relative bg-white rounded-xl border border-gray-200 shadow-sm p-4 cursor-pointer transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md hover:border-blue-200"
-            >
-              <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openEditDialog(row);
-                  }}
-                  className="p-1.5 rounded-md text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors duration-150"
-                  aria-label={`Edit ${row.title}`}
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => handleDelete(row.id, e)}
-                  className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors duration-150"
-                  aria-label={`Hapus ${row.title}`}
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
+          {filtered.map((row) => {
+            const assignedTasks = getAssignedTasks(row.title);
 
-              <div className="pr-14">
-                <Badge variant={PRIORITAS_BADGE_VARIANT[row.prioritas]}>{row.prioritas}</Badge>
-              </div>
-              <h4 className="mt-2 text-sm font-semibold text-gray-900 leading-snug line-clamp-2">{row.title}</h4>
+            return (
+              <div
+                key={row.id}
+                onClick={() => openEditDialog(row)}
+                className="group relative bg-white rounded-xl border border-gray-200 shadow-sm p-4 cursor-pointer transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md hover:border-blue-200"
+              >
+                <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openEditDialog(row);
+                    }}
+                    className="p-1.5 rounded-md text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors duration-150"
+                    aria-label={`Edit ${row.title}`}
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => handleDelete(row.id, e)}
+                    className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors duration-150"
+                    aria-label={`Hapus ${row.title}`}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
 
-              <div className="mt-3 space-y-1.5 text-xs text-gray-500">
-                {row.opdPenyelenggara && (
+                <div className="pr-14">
+                  <Badge variant={PRIORITAS_BADGE_VARIANT[row.prioritas]}>{row.prioritas}</Badge>
+                </div>
+                <h4 className="mt-2 text-sm font-semibold text-gray-900 leading-snug line-clamp-2">{row.title}</h4>
+
+                <div className="mt-3 space-y-1.5 text-xs text-gray-500">
+                  {row.opdPenyelenggara && (
+                    <div className="flex items-center gap-1.5">
+                      <Building2 className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
+                      <span className="truncate">{row.opdPenyelenggara}</span>
+                    </div>
+                  )}
+                  {row.lokasi && (
+                    <div className="flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
+                      <span className="truncate">{row.lokasi}</span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-1.5">
-                    <Building2 className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
-                    <span className="truncate">{row.opdPenyelenggara}</span>
+                    <CalendarDays className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
+                    <span>{formatTanggal(row.deadline)}</span>
+                  </div>
+                </div>
+
+                {row.outputDibutuhkan && row.outputDibutuhkan.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1">
+                    {row.outputDibutuhkan.map((o) => (
+                      <span key={o} className="text-[10px] font-medium text-gray-500 bg-gray-50 rounded px-1.5 py-0.5">
+                        {o}
+                      </span>
+                    ))}
                   </div>
                 )}
-                {row.lokasi && (
+
+                {/* Petugas Tim Ditugaskan (Sinkron dari Penugasan) */}
+                <div className="mt-3 pt-2.5 border-t border-gray-100 flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
-                    <span className="truncate">{row.lokasi}</span>
+                    {assignedTasks.length > 0 ? (
+                      <>
+                        <div className="flex -space-x-1.5 overflow-hidden">
+                          {assignedTasks.slice(0, 3).map((task, idx) => (
+                            <div
+                              key={task.id ?? idx}
+                              title={`${task.pic} (${task.jenisKonten})`}
+                              className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 font-bold text-[9px] flex items-center justify-center ring-1 ring-white"
+                            >
+                              {task.picAvatar ?? task.pic.slice(0, 2).toUpperCase()}
+                            </div>
+                          ))}
+                        </div>
+                        <span className="text-[11px] text-gray-600 font-medium">
+                          {assignedTasks.length} Petugas
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-[11px] text-gray-400 italic">Belum ada penugasan PIC</span>
+                    )}
                   </div>
-                )}
-                <div className="flex items-center gap-1.5">
-                  <CalendarDays className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
-                  <span>{formatTanggal(row.deadline)}</span>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/penugasan?kegiatan=${encodeURIComponent(row.title)}&action=create`);
+                    }}
+                    className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-0.5"
+                  >
+                    <UserPlus className="w-3 h-3" />
+                    <span>+ Tugaskan</span>
+                  </button>
+                </div>
+
+                <div className="mt-3 pt-2 border-t border-gray-50 flex items-center justify-between">
+                  <Badge variant={STATUS_BADGE_VARIANT[row.status]}>{STATUS_LABELS[row.status]}</Badge>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/penugasan?search=${encodeURIComponent(row.title)}`);
+                    }}
+                    className="text-[11px] text-gray-400 hover:text-gray-600 flex items-center gap-1"
+                  >
+                    <span>Lihat Penugasan</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </button>
                 </div>
               </div>
-
-              {row.outputDibutuhkan && row.outputDibutuhkan.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-1">
-                  {row.outputDibutuhkan.map((o) => (
-                    <span key={o} className="text-[10px] font-medium text-gray-500 bg-gray-50 rounded px-1.5 py-0.5">
-                      {o}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              <div className="mt-3 pt-3 border-t border-gray-50">
-                <Badge variant={STATUS_BADGE_VARIANT[row.status]}>{STATUS_LABELS[row.status]}</Badge>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
-      )}
+    )}
 
       <Dialog open={isModalOpen} onClose={closeDialog} title={editingId ? "Edit Kegiatan" : "Tambah Kegiatan Baru"}>
         <div className="space-y-4 mt-4">
@@ -571,6 +711,53 @@ const KegiatanPage = () => {
               ))}
             </div>
           </div>
+
+          {/* If Editing, display Assigned Team preview */}
+          {editingId && (
+            <div className="bg-gray-50 rounded-xl p-3.5 border border-gray-100 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  👥 Penugasan Tim Terkait ({getAssignedTasks(form.title).length})
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeDialog();
+                    navigate(`/penugasan?kegiatan=${encodeURIComponent(form.title)}&action=create`);
+                  }}
+                  className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 hover:underline"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>+ Tambah Penugasan</span>
+                </button>
+              </div>
+
+              {getAssignedTasks(form.title).length === 0 ? (
+                <p className="text-xs text-gray-400 italic">Belum ada staf yang ditugaskan untuk kegiatan ini.</p>
+              ) : (
+                <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                  {getAssignedTasks(form.title).map((t) => (
+                    <div
+                      key={t.id}
+                      className="bg-white rounded-lg p-2 text-xs flex items-center justify-between border border-gray-100"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-indigo-50 text-indigo-700 font-bold text-[9px] flex items-center justify-center">
+                          {t.picAvatar ?? t.pic.slice(0, 2).toUpperCase()}
+                        </span>
+                        <span className="font-medium text-gray-800">{t.pic}</span>
+                        <span className="text-gray-400">({t.jenisKonten})</span>
+                      </div>
+                      <span className="text-[11px] text-gray-500 font-mono">
+                        {t.jamMulai} - {t.jamSelesai}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="pt-4 flex justify-end gap-2">
             <Button variant="outline" onClick={closeDialog}>Batal</Button>
             <Button variant="default" disabled={!form.title.trim() || !form.deadline} onClick={handleSave}>
