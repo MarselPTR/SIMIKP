@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { mockApi } from "../../lib/mock-api";
-import type { MockPenugasan, MockKegiatan } from "../../lib/mock-data";
+import type { MockPenugasan } from "../../lib/mock-data";
 import { useToast } from "../../contexts/ToastContext";
 import Dialog from "../../components/ui/Dialog";
 import Button from "../../components/ui/Button";
@@ -17,7 +17,7 @@ import {
   User,
   ExternalLink,
 } from "lucide-react";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { StatusBadge } from "../../components/ui/status-badge";
 import {
   RiEditLine,
   RiDeleteBinLine,
@@ -244,8 +244,10 @@ export default function PenugasanPage() {
 
     // Sorting
     list = [...list].sort((a, b) => {
-      let valA = (a as Record<string, unknown>)[sortField] ?? "";
-      let valB = (b as Record<string, unknown>)[sortField] ?? "";
+      const recA = a as unknown as Record<string, unknown>;
+      const recB = b as unknown as Record<string, unknown>;
+      const valA = recA[sortField] ?? "";
+      const valB = recB[sortField] ?? "";
 
       if (typeof valA === "string" && typeof valB === "string") {
         return sortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
@@ -423,8 +425,8 @@ export default function PenugasanPage() {
       jamSelesai: formData.jamSelesai,
       waktuSubtitle: formData.waktuSubtitle,
       status: formData.status,
-      hasConflict: formData.status === "conflict",
-      conflictMessage: formData.status === "conflict" ? (formConflict ?? selectedItem.conflictMessage) : undefined,
+      hasConflict: isConflict,
+      conflictMessage: isConflict ? (formConflict ?? selectedItem.conflictMessage) : undefined,
       lokasi: formData.lokasi,
       catatan: formData.catatan,
     };
@@ -657,9 +659,9 @@ export default function PenugasanPage() {
         {/* ── 3. Table Container ── */}
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
-            {/* ── Header Tabel Biru Terang Agak Transparan (Easy to Spot) ── */}
+            {/* ── Header Tabel Biru Tua Solid (Easy to Spot & Bold) ── */}
             <thead>
-              <tr className="bg-sky-500/15 border-b-2 border-sky-200/90 text-sky-950 text-xs font-bold uppercase tracking-wider">
+              <tr className="bg-[#0f1f5c] border-b border-[#0a1540] text-white text-xs font-bold uppercase tracking-wider shadow-xs">
                 {/* Select All Checkbox */}
                 <th className="py-3.5 px-4 w-10">
                   <input
@@ -669,67 +671,67 @@ export default function PenugasanPage() {
                       if (el) el.indeterminate = isSomeSelected;
                     }}
                     onChange={handleSelectAll}
-                    className="w-4 h-4 rounded border-sky-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    className="w-4 h-4 rounded border-blue-300/60 bg-white/20 text-blue-500 focus:ring-offset-[#0f1f5c] focus:ring-white cursor-pointer"
                   />
                 </th>
 
                 {/* Kolom Kegiatan & Tanggal dengan Sort */}
                 <th
                   onClick={() => toggleSort("kegiatanTerkait")}
-                  className="py-3.5 px-4 cursor-pointer hover:bg-sky-500/25 transition-colors select-none group"
+                  className="py-3.5 px-4 cursor-pointer hover:bg-[#162a75] transition-colors select-none group"
                 >
-                  <div className="flex items-center gap-1.5 text-sky-900 group-hover:text-sky-950 font-bold">
+                  <div className="flex items-center gap-1.5 text-white group-hover:text-blue-100 font-bold">
                     <span>Kegiatan & Tanggal</span>
-                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-sky-600 group-hover:text-sky-800" />
+                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-blue-200 group-hover:text-white" />
                   </div>
                 </th>
 
                 {/* Kolom Output dengan Sort */}
                 <th
                   onClick={() => toggleSort("jenisKonten")}
-                  className="py-3.5 px-4 cursor-pointer hover:bg-sky-500/25 transition-colors select-none group"
+                  className="py-3.5 px-4 cursor-pointer hover:bg-[#162a75] transition-colors select-none group"
                 >
-                  <div className="flex items-center gap-1.5 text-sky-900 group-hover:text-sky-950 font-bold">
+                  <div className="flex items-center gap-1.5 text-white group-hover:text-blue-100 font-bold">
                     <span>Output</span>
-                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-sky-600 group-hover:text-sky-800" />
+                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-blue-200 group-hover:text-white" />
                   </div>
                 </th>
 
                 {/* Kolom PIC dengan Sort */}
                 <th
                   onClick={() => toggleSort("pic")}
-                  className="py-3.5 px-4 cursor-pointer hover:bg-sky-500/25 transition-colors select-none group"
+                  className="py-3.5 px-4 cursor-pointer hover:bg-[#162a75] transition-colors select-none group"
                 >
-                  <div className="flex items-center gap-1.5 text-sky-900 group-hover:text-sky-950 font-bold">
+                  <div className="flex items-center gap-1.5 text-white group-hover:text-blue-100 font-bold">
                     <span>PIC</span>
-                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-sky-600 group-hover:text-sky-800" />
+                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-blue-200 group-hover:text-white" />
                   </div>
                 </th>
 
                 {/* Kolom Waktu Penugasan dengan Sort */}
                 <th
                   onClick={() => toggleSort("jamMulai")}
-                  className="py-3.5 px-4 cursor-pointer hover:bg-sky-500/25 transition-colors select-none group"
+                  className="py-3.5 px-4 cursor-pointer hover:bg-[#162a75] transition-colors select-none group"
                 >
-                  <div className="flex items-center gap-1.5 text-sky-900 group-hover:text-sky-950 font-bold">
+                  <div className="flex items-center gap-1.5 text-white group-hover:text-blue-100 font-bold">
                     <span>Waktu Penugasan</span>
-                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-sky-600 group-hover:text-sky-800" />
+                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-blue-200 group-hover:text-white" />
                   </div>
                 </th>
 
                 {/* Kolom Status dengan Sort */}
                 <th
                   onClick={() => toggleSort("status")}
-                  className="py-3.5 px-4 cursor-pointer hover:bg-sky-500/25 transition-colors select-none group"
+                  className="py-3.5 px-4 cursor-pointer hover:bg-[#162a75] transition-colors select-none group"
                 >
-                  <div className="flex items-center gap-1.5 text-sky-900 group-hover:text-sky-950 font-bold">
+                  <div className="flex items-center gap-1.5 text-white group-hover:text-blue-100 font-bold">
                     <span>Status</span>
-                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-sky-600 group-hover:text-sky-800" />
+                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-blue-200 group-hover:text-white" />
                   </div>
                 </th>
 
                 {/* Kolom Aksi */}
-                <th className="py-3.5 px-4 text-center text-sky-900 font-bold">
+                <th className="py-3.5 px-4 text-center text-white font-bold">
                   <span>Aksi</span>
                 </th>
               </tr>

@@ -22,7 +22,7 @@ const AppLayout = () => {
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <Sidebar />
+        <Sidebar onClose={() => setMobileMenuOpen(false)} />
       </div>
 
       {/* Main content — always offset by sidebar width on desktop with min-w-0 to prevent layout overflow */}
