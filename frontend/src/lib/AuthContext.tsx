@@ -2,15 +2,6 @@ import { createContext, useContext, useState } from "react";
 import type { ReactNode } from "react";
 import { mockAuthLogin } from "./mock-api";
 
-// TODO(Dev 2): begitu POST /api/v1/auth/login, POST /api/v1/auth/logout, dan
-// GET /api/v1/auth/me sudah nyata di backend (server-side session + HTTP-only
-// cookie, bukan token), ganti login()/logout() di bawah untuk memanggil
-// api-client.ts, dan tambahkan pengecekan sesi lewat GET /me saat app pertama
-// kali dimuat. Sengaja TIDAK memakai localStorage untuk menyimpan user/token —
-// pada arsitektur asli, cookie HTTP-only otomatis dikirim browser tanpa kode
-// client yang menyimpannya sendiri, jadi user akan "hilang" saat refresh
-// sampai pengecekan sesi lewat GET /me itu ada.
-
 export interface AuthUser {
   id: string;
   name: string;
@@ -43,14 +34,16 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  // Inisialisasi user dari localStorage agar sesi tidak hilang saat browser di-refresh
   const [user, setUser] = useState<AuthUser | null>(() => {
     try {
-      const saved = localStorage.getItem("simikp_user");
-      return saved ? JSON.parse(saved) : null;
+      const savedUser = localStorage.getItem("simikp_user");
+      return savedUser ? JSON.parse(savedUser) : null;
     } catch {
       return null;
     }
   });
+
   const [loading, setLoading] = useState(false);
 
   const login = async (email: string, password: string): Promise<LoginResult> => {
@@ -86,4 +79,3 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     </AuthContext.Provider>
   );
 };
-

@@ -48,11 +48,14 @@ server.setErrorHandler((err: unknown, request, reply) => {
 import { authRoutes } from "./modules/auth/auth.routes";
 import { assignmentRoutes } from "./modules/assignments/assignments.routes";
 import { dashboardRoutes } from "./modules/dashboard/dashboard.routes";
+import { reportsRoutes } from "./modules/reports/reports.routes";
 
 // Register routes
 server.register(authRoutes, { prefix: "/api/v1/auth" });
 server.register(assignmentRoutes, { prefix: "/api/v1/assignments" });
 server.register(dashboardRoutes, { prefix: "/api/v1/dashboard" });
+server.register(reportsRoutes, { prefix: "/api/v1/reports" });
+
 const start = async () => {
   try {
     const port = parseInt(process.env.PORT || "3000");
