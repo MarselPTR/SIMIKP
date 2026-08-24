@@ -228,6 +228,8 @@ export interface MockBankKontenFile {
   id: string;
   name: string;
   jenisKonten: "foto" | "video";
+  size?: string;
+  thumbnailUrl?: string;
 }
 
 export interface MockBankKontenFolder {
@@ -235,36 +237,97 @@ export interface MockBankKontenFolder {
   title: string;
   tanggal: string;
   petugas: string;
+  kategori?: string;
+  strakomNumber?: string;
+  thumbnailUrl?: string;
   files: MockBankKontenFile[];
 }
 
-const filesOf = (prefix: string, ext: string, jenisKonten: "foto" | "video", count: number): MockBankKontenFile[] =>
+const filesOf = (prefix: string, ext: string, jenisKonten: "foto" | "video", count: number, thumbBase?: string): MockBankKontenFile[] =>
   Array.from({ length: count }, (_, i) => ({
     id: `${prefix}-${jenisKonten}-f${i + 1}`,
-    name: `${prefix} ${i + 1}.${ext}`,
+    name: `${prefix} Dokumentasi ${i + 1}.${ext}`,
     jenisKonten,
+    size: jenisKonten === "video" ? `${(15 + (i * 7.5)).toFixed(1)} MB` : `${(2.1 + (i * 0.8)).toFixed(1)} MB`,
+    thumbnailUrl: thumbBase,
   }));
 
 export const mockBankKontenFolders: MockBankKontenFolder[] = [
   {
     id: "bk1",
-    title: "Upacara Agustusan",
+    title: "Upacara Detik-Detik Proklamasi HUT ke-81 RI",
     tanggal: "2026-08-17",
     petugas: "Rizky F.",
-    files: [...filesOf("Video", "mp4", "video", 4), ...filesOf("Foto", "jpg", "foto", 3)],
+    kategori: "SOSIAL",
+    strakomNumber: "STR/0817/2026",
+    thumbnailUrl: "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=600&auto=format&fit=crop&q=80",
+    files: [
+      ...filesOf("Video_HUT81", "mp4", "video", 4, "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=400&auto=format&fit=crop&q=80"),
+      ...filesOf("Foto_Upacara", "jpg", "foto", 6, "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=400&auto=format&fit=crop&q=80"),
+    ],
   },
   {
     id: "bk2",
-    title: "Peresmian Jembatan",
+    title: "Peresmian Jembatan & Akses Wisata Kota Batu",
     tanggal: "2026-08-20",
     petugas: "Dinda A.",
-    files: [...filesOf("Foto", "jpg", "foto", 6), ...filesOf("Video", "mp4", "video", 2)],
+    kategori: "EKONOMI",
+    strakomNumber: "STR/0820/2026",
+    thumbnailUrl: "https://images.unsplash.com/photo-1545558014-8692077e9b5c?w=600&auto=format&fit=crop&q=80",
+    files: [
+      ...filesOf("Foto_Peresmian", "jpg", "foto", 8, "https://images.unsplash.com/photo-1545558014-8692077e9b5c?w=400&auto=format&fit=crop&q=80"),
+      ...filesOf("Video_Liputan", "mp4", "video", 2, "https://images.unsplash.com/photo-1545558014-8692077e9b5c?w=400&auto=format&fit=crop&q=80"),
+    ],
   },
   {
     id: "bk3",
-    title: "Rapat Koordinasi",
+    title: "Rapat Koordinasi Penanganan Inflasi Daerah",
     tanggal: "2026-08-15",
-    petugas: "Rizky F.",
-    files: filesOf("Foto", "jpg", "foto", 5),
+    petugas: "Andi Prahum",
+    kategori: "EKONOMI",
+    strakomNumber: "STR/0815/2026",
+    thumbnailUrl: "https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=600&auto=format&fit=crop&q=80",
+    files: filesOf("Foto_Rakor", "jpg", "foto", 5, "https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=400&auto=format&fit=crop&q=80"),
+  },
+  {
+    id: "bk4",
+    title: "Pameran Inovasi Lingkungan Hidup & Daur Ulang",
+    tanggal: "2026-08-22",
+    petugas: "Budi Fotografer",
+    kategori: "LINGKUNGAN",
+    strakomNumber: "STR/0822/2026",
+    thumbnailUrl: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=600&auto=format&fit=crop&q=80",
+    files: [
+      ...filesOf("Foto_Pameran", "jpg", "foto", 9, "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=400&auto=format&fit=crop&q=80"),
+      ...filesOf("Video_Inovasi", "mp4", "video", 3, "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=400&auto=format&fit=crop&q=80"),
+    ],
+  },
+  {
+    id: "bk5",
+    title: "Festival Wisata & Kuliner Nusantara 2026",
+    tanggal: "2026-08-10",
+    petugas: "Citra Desainer",
+    kategori: "EKONOMI",
+    strakomNumber: "STR/0810/2026",
+    thumbnailUrl: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&auto=format&fit=crop&q=80",
+    files: [
+      ...filesOf("Video_Festival", "mp4", "video", 5, "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&auto=format&fit=crop&q=80"),
+      ...filesOf("Foto_Kuliner", "jpg", "foto", 12, "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&auto=format&fit=crop&q=80"),
+    ],
+  },
+  {
+    id: "bk6",
+    title: "Evaluasi SPBE & Pelayanan Digital Kominfo",
+    tanggal: "2026-08-24",
+    petugas: "Dinda A.",
+    kategori: "SOSIAL",
+    strakomNumber: "STR/0824/2026",
+    thumbnailUrl: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&auto=format&fit=crop&q=80",
+    files: [
+      ...filesOf("Foto_SPBE", "jpg", "foto", 4, "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400&auto=format&fit=crop&q=80"),
+      ...filesOf("Video_Presentasi", "mp4", "video", 1, "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400&auto=format&fit=crop&q=80"),
+    ],
   },
 ];
+
+
