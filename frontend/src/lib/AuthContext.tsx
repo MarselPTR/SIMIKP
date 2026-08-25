@@ -1,23 +1,13 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import type { ReactNode } from "react";
-import { mockAuthLogin } from "./mock-api";
-
-// TODO(Dev 2): begitu POST /api/v1/auth/login, POST /api/v1/auth/logout, dan
-// GET /api/v1/auth/me sudah nyata di backend (server-side session + HTTP-only
-// cookie, bukan token), ganti login()/logout() di bawah untuk memanggil
-// api-client.ts, dan tambahkan pengecekan sesi lewat GET /me saat app pertama
-// kali dimuat. Sengaja TIDAK memakai localStorage untuk menyimpan user/token —
-// pada arsitektur asli, cookie HTTP-only otomatis dikirim browser tanpa kode
-// client yang menyimpannya sendiri, jadi user akan "hilang" saat refresh
-// sampai pengecekan sesi lewat GET /me itu ada.
+import { apiFetch } from "./api-client";
 
 export interface AuthUser {
   id: string;
   name: string;
-  email: string;
+  username: string;
   role: string;
-  // Hanya diisi untuk role petugas — dipakai untuk filter tugas lapangan per bidang.
-  bidang?: string;
+  staffType?: string | null;
 }
 
 interface LoginResult {
@@ -30,8 +20,8 @@ interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<LoginResult>;
-  logout: () => void;
+  login: (username: string, password: string) => Promise<LoginResult>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -44,23 +34,46 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // start loading true for /me check
 
-  const login = async (email: string, password: string): Promise<LoginResult> => {
+  useEffect(() => {
+    // Check session on mount
+    apiFetch<{ success: boolean; user: AuthUser }>("/auth/me")
+      .then((res) => {
+        if (res.success) setUser(res.user);
+      })
+      .catch(() => {
+        setUser(null);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
+
+  const login = async (username: string, password: string): Promise<LoginResult> => {
     setLoading(true);
     try {
-      const loggedInUser = await mockAuthLogin(email, password);
-      setUser(loggedInUser);
-      return { success: true, user: loggedInUser };
-    } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : "Login gagal" };
+      const res = await apiFetch<{ success: boolean; user: AuthUser }>("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ username, password }),
+      });
+      setUser(res.user);
+      return { success: true, user: res.user };
+    } catch (err: any) {
+      return { success: false, error: err.message || "Login gagal" };
     } finally {
       setLoading(false);
     }
   };
 
-  const logout = () => {
-    setUser(null);
+  const logout = async () => {
+    try {
+      await apiFetch("/auth/logout", { method: "POST" });
+    } catch (err) {
+      console.error("Logout error", err);
+    } finally {
+      setUser(null);
+    }
   };
 
   return (

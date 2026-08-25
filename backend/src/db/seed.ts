@@ -1,16 +1,26 @@
 import { db } from "./index";
 import { roles, users, userRoles, opds, contentTypes, activities, assignments, activityRequiredContents } from "./schema";
+import { productionItems, productionVersions } from "./schema/production";
 import crypto from "crypto";
 import { sql } from "drizzle-orm";
 
 async function runSeed() {
-  console.log("Seeding database with realistic data (GAP #10)...");
+  console.log("Menyemai database dengan data presentasi Kominfo...");
 
   try {
     // Clean up existing data
-    console.log("Cleaning up existing data...");
+    console.log("Membersihkan data lama...");
+    await db.execute(sql`SET FOREIGN_KEY_CHECKS = 0;`);
+    
+    await db.delete(productionVersions);
+    await db.delete(productionItems);
     await db.delete(assignments);
     await db.delete(activityRequiredContents);
+    try { await db.execute(sql`DELETE FROM activity_strategic_issues;`); } catch(e) {}
+    try { await db.execute(sql`DELETE FROM activity_keywords;`); } catch(e) {}
+    try { await db.execute(sql`DELETE FROM production_reviews;`); } catch(e) {}
+    try { await db.execute(sql`DELETE FROM productions;`); } catch(e) {}
+    
     await db.delete(activities);
     await db.delete(userRoles);
     await db.delete(users);
@@ -18,8 +28,10 @@ async function runSeed() {
     await db.delete(opds);
     await db.delete(contentTypes);
 
+    await db.execute(sql`SET FOREIGN_KEY_CHECKS = 1;`);
+
     // 1. Create Roles
-    console.log("Inserting roles...");
+    console.log("Memasukkan role...");
     const roleAdminId = crypto.randomUUID();
     const rolePetugasId = crypto.randomUUID();
     
@@ -28,8 +40,8 @@ async function runSeed() {
       { id: rolePetugasId, name: "PETUGAS" },
     ]);
 
-    // 2. Create Users (Admin + 3 Petugas)
-    console.log("Inserting users...");
+    // 2. Create Users
+    console.log("Memasukkan user (Admin & Petugas)...");
     const adminId = crypto.randomUUID();
     const userAndiId = crypto.randomUUID();
     const userBudiId = crypto.randomUUID();
@@ -40,7 +52,7 @@ async function runSeed() {
         id: adminId,
         username: "admin",
         passwordHash: "$2a$10$xyz", // Mock hash
-        name: "Super Administrator",
+        name: "Admin Diskominfo",
         staffType: null,
       },
       {
@@ -67,7 +79,6 @@ async function runSeed() {
     ]);
 
     // 3. Attach Roles
-    console.log("Attaching roles...");
     await db.insert(userRoles).values([
       { userId: adminId, roleId: roleAdminId },
       { userId: userAndiId, roleId: rolePetugasId },
@@ -76,7 +87,7 @@ async function runSeed() {
     ]);
 
     // 4. Create OPDs
-    console.log("Inserting OPDs...");
+    console.log("Memasukkan OPD...");
     const opdKominfoId = crypto.randomUUID();
     const opdPendidikanId = crypto.randomUUID();
     const opdKesehatanId = crypto.randomUUID();
@@ -88,74 +99,200 @@ async function runSeed() {
     ]);
 
     // 5. Create Content Types
-    console.log("Inserting content types...");
+    console.log("Memasukkan Master Tipe Konten...");
     const ctFoto = crypto.randomUUID();
     const ctVideo = crypto.randomUUID();
     const ctNaskah = crypto.randomUUID();
-    const ctCaption = crypto.randomUUID();
-    const ctReels = crypto.randomUUID();
-    const ctFlyer = crypto.randomUUID();
-    const ctAudio = crypto.randomUUID();
-    const ctBumper = crypto.randomUUID();
+    const ctInfografis = crypto.randomUUID();
 
     await db.insert(contentTypes).values([
       { id: ctFoto, name: "Foto" },
       { id: ctVideo, name: "Video" },
       { id: ctNaskah, name: "Naskah Berita" },
-      { id: ctCaption, name: "Caption" },
-      { id: ctReels, name: "Reels" },
-      { id: ctFlyer, name: "Flyer/Infografis" },
-      { id: ctAudio, name: "Audio" },
-      { id: ctBumper, name: "Bumper" },
+      { id: ctInfografis, name: "Infografis" },
     ]);
 
-    // 6. Create Dummy Activity & Assignments
-    console.log("Inserting dummy activities and assignments...");
-    const activityId = crypto.randomUUID();
-    await db.insert(activities).values({
-      id: activityId,
-      activityCode: "ACT-001",
-      title: "Upacara Hari Jadi Kota",
-      activityDate: new Date("2026-10-17"),
-      opdId: opdKominfoId,
-      status: "DRAFT",
-      createdBy: adminId,
-    });
+    // 6. Create Kegiatan (Activities)
+    console.log("Memasukkan Kegiatan...");
+    const act1Id = crypto.randomUUID();
+    const act2Id = crypto.randomUUID();
+    const act3Id = crypto.randomUUID();
+    
+    // Future Date for ASSIGNED / IN_PROGRESS
+    const nextWeek = new Date();
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    
+    // Past Date for COMPLETED
+    const lastWeek = new Date();
+    lastWeek.setDate(lastWeek.getDate() - 7);
 
-    // Required Contents for Activity
-    await db.insert(activityRequiredContents).values([
-      { activityId: activityId, contentTypeId: ctFoto },
-      { activityId: activityId, contentTypeId: ctNaskah },
-      { activityId: activityId, contentTypeId: ctReels },
-    ]);
-
-    // Assignments
-    await db.insert(assignments).values([
+    await db.insert(activities).values([
       {
-        id: crypto.randomUUID(),
-        activityId: activityId,
-        userId: userAndiId, // Prahum handles Naskah
-        contentTypeId: ctNaskah,
-        startTime: "07:00:00",
-        endTime: "10:00:00",
-        deadline: new Date("2026-10-17T12:00:00Z"),
-        status: "ASSIGNED",
+        id: act1Id,
+        activityCode: "ACT-001",
+        title: "Sosialisasi SPBE Tingkat Kota 2026",
+        activityDate: nextWeek,
+        activityTime: "08:00",
+        opdId: opdKominfoId,
+        priority: "Tinggi",
+        status: "active",
+        description: "Sosialisasi SPBE untuk seluruh Kepala OPD dan Camat se-Kota Batu.",
         createdBy: adminId,
       },
       {
-        id: crypto.randomUUID(),
-        activityId: activityId,
-        userId: userBudiId, // Foto Video handles Foto & Reels
-        contentTypeId: ctFoto,
-        startTime: "07:00:00",
-        endTime: "10:00:00",
-        deadline: new Date("2026-10-17T15:00:00Z"),
-        status: "ASSIGNED",
+        id: act2Id,
+        activityCode: "ACT-002",
+        title: "Kunjungan Kerja Kemenkes RI ke Posyandu",
+        activityDate: nextWeek,
+        activityTime: "10:00",
+        opdId: opdKesehatanId,
+        priority: "Tinggi",
+        status: "active",
+        description: "Kunker Menteri Kesehatan meninjau fasilitas Posyandu unggulan.",
+        createdBy: adminId,
+      },
+      {
+        id: act3Id,
+        activityCode: "ACT-003",
+        title: "Peluncuran Portal Berita Daerah",
+        activityDate: lastWeek,
+        activityTime: "09:00",
+        opdId: opdKominfoId,
+        priority: "Sedang",
+        status: "done",
+        description: "Peluncuran portal berita resmi untuk publikasi pemerintah.",
         createdBy: adminId,
       }
     ]);
 
-    console.log("Seeding completed successfully!");
+    // 7. Insert Required Contents
+    await db.insert(activityRequiredContents).values([
+      { activityId: act1Id, contentTypeId: ctFoto },
+      { activityId: act1Id, contentTypeId: ctNaskah },
+      { activityId: act2Id, contentTypeId: ctVideo },
+      { activityId: act2Id, contentTypeId: ctNaskah },
+      { activityId: act3Id, contentTypeId: ctFoto },
+      { activityId: act3Id, contentTypeId: ctInfografis },
+    ]);
+
+    // 8. Assignments (Penugasan)
+    console.log("Memasukkan Penugasan Logis...");
+    
+    const assignAct3_Foto = crypto.randomUUID();
+    const assignAct3_Info = crypto.randomUUID();
+
+    await db.insert(assignments).values([
+      // ACT 1: Sosialisasi SPBE (Assigned to Andi & Budi)
+      {
+        id: crypto.randomUUID(),
+        activityId: act1Id,
+        userId: userAndiId, // Andi (Prahum) -> Naskah
+        contentTypeId: ctNaskah,
+        startTime: "08:00:00",
+        endTime: "12:00:00",
+        status: "ASSIGNED",
+        instruction: "Liput pembukaan oleh Wali Kota dan wawancara Kepala Diskominfo.",
+        createdBy: adminId,
+      },
+      {
+        id: crypto.randomUUID(),
+        activityId: act1Id,
+        userId: userBudiId, // Budi (Foto) -> Foto
+        contentTypeId: ctFoto,
+        startTime: "08:00:00",
+        endTime: "12:00:00",
+        status: "ASSIGNED",
+        instruction: "Ambil dokumentasi seluruh peserta dan angle wide angle saat paparan.",
+        createdBy: adminId,
+      },
+      // ACT 2: Kunker Kemenkes (In Progress by Andi & Budi)
+      {
+        id: crypto.randomUUID(),
+        activityId: act2Id,
+        userId: userAndiId, // Andi (Prahum) -> Naskah
+        contentTypeId: ctNaskah,
+        startTime: "10:00:00",
+        endTime: "13:00:00",
+        status: "IN_PROGRESS",
+        instruction: "Fokus pada statement Menteri terkait angka stunting.",
+        createdBy: adminId,
+      },
+      {
+        id: crypto.randomUUID(),
+        activityId: act2Id,
+        userId: userBudiId, // Budi (Video) -> Video
+        contentTypeId: ctVideo,
+        startTime: "10:00:00",
+        endTime: "13:00:00",
+        status: "ASSIGNED",
+        instruction: "Buat video highlight (b-roll) kunker durasi 1 menit.",
+        createdBy: adminId,
+      },
+      // ACT 3: Peluncuran Portal (COMPLETED by Budi & Citra)
+      {
+        id: assignAct3_Foto,
+        activityId: act3Id,
+        userId: userBudiId, // Budi -> Foto
+        contentTypeId: ctFoto,
+        startTime: "09:00:00",
+        endTime: "11:00:00",
+        status: "COMPLETED",
+        instruction: "Dokumentasi pemotongan pita.",
+        createdBy: adminId,
+      },
+      {
+        id: assignAct3_Info,
+        activityId: act3Id,
+        userId: userCitraId, // Citra -> Infografis
+        contentTypeId: ctInfografis,
+        startTime: "13:00:00",
+        endTime: "16:00:00",
+        status: "COMPLETED",
+        instruction: "Buat infografis cara akses portal berita untuk diposting di IG.",
+        createdBy: adminId,
+      }
+    ]);
+
+    // 9. Productions (Hasil Kerja Tersubmit untuk ACT 3)
+    console.log("Memasukkan Data Produksi Selesai (Bank Konten)...");
+    const prodItem1 = crypto.randomUUID();
+    const prodItem2 = crypto.randomUUID();
+
+    await db.insert(productionItems).values([
+      {
+        id: prodItem1,
+        assignmentId: assignAct3_Foto,
+        title: "[Foto] Peluncuran Portal Berita Daerah",
+        status: "COMPLETED",
+        productionDate: lastWeek,
+      },
+      {
+        id: prodItem2,
+        assignmentId: assignAct3_Info,
+        title: "[Infografis] Peluncuran Portal Berita Daerah",
+        status: "COMPLETED",
+        productionDate: lastWeek,
+      }
+    ]);
+
+    await db.insert(productionVersions).values([
+      {
+        id: crypto.randomUUID(),
+        productionItemId: prodItem1,
+        versionNumber: 1,
+        workLink: "https://drive.google.com/drive/folders/contoh-foto-peluncuran-portal",
+        isCurrent: true,
+      },
+      {
+        id: crypto.randomUUID(),
+        productionItemId: prodItem2,
+        versionNumber: 1,
+        workLink: "https://drive.google.com/drive/folders/contoh-infografis-portal",
+        isCurrent: true,
+      }
+    ]);
+
+    console.log("Data presentasi berhasil disemai dengan bersih dan logis! 🎉");
     process.exit(0);
   } catch (error) {
     console.error("Error during seeding:", error);

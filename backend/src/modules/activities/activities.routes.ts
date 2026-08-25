@@ -1,11 +1,7 @@
 import { FastifyInstance } from "fastify";
+import { ActivitiesController } from "./activities.controller";
 
 export default async function activitiesRoutes(server: FastifyInstance) {
-  server.get("/", async (request, reply) => {
-    return { message: "Activities list placeholder" };
-  });
-
-  server.post("/", async (request, reply) => {
-    return { message: "Activities create placeholder" };
-  });
+  server.get("/", ActivitiesController.getAll);
+  server.post("/", ActivitiesController.create);
 }

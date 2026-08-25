@@ -91,9 +91,18 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     try {
       const decodedSession = Buffer.from(cookieSession, "base64").toString("utf-8");
-      const user = JSON.parse(decodedSession);
-      return reply.send({ success: true, user });
+      const sessionUser = JSON.parse(decodedSession);
+      
+      // Verify user actually still exists in database (handles database resets)
+      const foundUsers = await db.select({ id: users.id }).from(users).where(eq(users.id, sessionUser.id)).limit(1);
+      if (foundUsers.length === 0) {
+        reply.clearCookie("simikp_session", { path: "/" });
+        return reply.status(401).send({ error: "Invalid session user" });
+      }
+
+      return reply.send({ success: true, user: sessionUser });
     } catch (err) {
+      reply.clearCookie("simikp_session", { path: "/" });
       return reply.status(401).send({ error: "Invalid session" });
     }
   });

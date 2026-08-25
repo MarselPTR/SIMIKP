@@ -1,204 +1,199 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import { Folder, Image as ImageIcon, FileVideo, ExternalLink, ChevronRight, Search, LayoutGrid, List } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { mockApi } from "../../lib/mock-api";
-import type { MockBankKontenFolder } from "../../lib/mock-data";
-import Input from "../../components/ui/Input";
-import Select from "../../components/ui/Select";
-import Button from "../../components/ui/Button";
-import Dialog from "../../components/ui/Dialog";
-import { LoadingSpinner, ErrorState, EmptyState } from "../../components/shared/StateComponents";
+import { apiFetch } from "../../lib/api-client";
+import { LoadingSpinner, ErrorState } from "../../components/shared/StateComponents";
 
-const jenisKontenOptions = [
-  { value: "video", label: "Video" },
-  { value: "foto", label: "Foto" },
-];
+const NAVY = "#0f1f5c";
 
-const urutanOptions = [
-  { value: "terbaru", label: "Terbaru dulu" },
-  { value: "terlama", label: "Terlama dulu" },
-];
+interface BankKontenFile {
+  id: string;
+  name: string;
+  jenisKonten: "foto" | "video";
+  workLink: string;
+}
 
-const VideoIcon = ({ className = "w-8 h-8" }: { className?: string }) => (
-  <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.55-2.6A1 1 0 0121 8.27v7.46a1 1 0 01-1.45.87L15 14M5 6h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z" />
-  </svg>
-);
-
-const PhotoIcon = ({ className = "w-8 h-8" }: { className?: string }) => (
-  <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M4 6h16a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V7a1 1 0 011-1z" />
-    <circle cx="8" cy="9" r="1.5" />
-  </svg>
-);
-
-const formatTanggal = (iso: string) =>
-  new Date(iso).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
-
-const summarizeJenis = (folder: MockBankKontenFolder) => {
-  const jumlahFoto = folder.files.filter((f) => f.jenisKonten === "foto").length;
-  const jumlahVideo = folder.files.filter((f) => f.jenisKonten === "video").length;
-  const parts: string[] = [];
-  if (jumlahVideo > 0) parts.push(`${jumlahVideo} Video`);
-  if (jumlahFoto > 0) parts.push(`${jumlahFoto} Foto`);
-  return { label: parts.join(" · "), jumlahFoto, jumlahVideo, mixed: jumlahFoto > 0 && jumlahVideo > 0 };
-};
+interface BankKontenFolder {
+  id: string;
+  title: string;
+  tanggal: string;
+  petugas: string;
+  files: BankKontenFile[];
+}
 
 const BankKontenPage = () => {
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+
   const { data: folders, isLoading, error, refetch } = useQuery({
-    queryKey: ["bankKonten"],
-    queryFn: mockApi.bankKonten.getAll,
+    queryKey: ["bank-konten"],
+    queryFn: async () => {
+      const res = await apiFetch<{ success: boolean; data: BankKontenFolder[] }>("/productions/bank-konten");
+      return res.data;
+    },
   });
-
-  const [search, setSearch] = useState("");
-  const [tahun, setTahun] = useState("");
-  const [urutan, setUrutan] = useState("terbaru");
-  const [selectedFolder, setSelectedFolder] = useState<MockBankKontenFolder | null>(null);
-  const [dialogJenisKonten, setDialogJenisKonten] = useState("");
-
-  const openFolder = (folder: MockBankKontenFolder) => {
-    setSelectedFolder(folder);
-    setDialogJenisKonten("");
-  };
-
-  const tahunOptions = useMemo(() => {
-    if (!folders) return [];
-    const years = new Set(folders.map((f) => new Date(f.tanggal).getFullYear()));
-    return [...years]
-      .sort((a, b) => b - a)
-      .map((y) => ({ value: String(y), label: String(y) }));
-  }, [folders]);
-
-  const filtered = useMemo(() => {
-    if (!folders) return [];
-    let result = folders;
-    if (search) {
-      result = result.filter((f) => f.title.toLowerCase().includes(search.toLowerCase()));
-    }
-    if (tahun) {
-      result = result.filter((f) => String(new Date(f.tanggal).getFullYear()) === tahun);
-    }
-    result = [...result].sort((a, b) =>
-      urutan === "terbaru"
-        ? new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime()
-        : new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime(),
-    );
-    return result;
-  }, [folders, search, tahun, urutan]);
-
-  const dialogFiles = useMemo(() => {
-    if (!selectedFolder) return [];
-    if (!dialogJenisKonten) return selectedFolder.files;
-    return selectedFolder.files.filter((f) => f.jenisKonten === dialogJenisKonten);
-  }, [selectedFolder, dialogJenisKonten]);
 
   if (isLoading) return <LoadingSpinner />;
   if (error) return <ErrorState message={error.message} onRetry={refetch} />;
 
+  const allFolders = folders || [];
+  const filteredFolders = allFolders.filter(
+    (f) => f.title.toLowerCase().includes(searchTerm.toLowerCase()) || f.petugas.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const activeFolderData = allFolders.find((f) => f.id === selectedFolder);
+
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="space-y-6">
+      {/* Header & Controls */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Bank Konten</h2>
-          <p className="text-sm text-gray-500">Arsip hasil produksi per kegiatan</p>
+          <h1 className="text-xl font-bold" style={{ color: NAVY }}>
+            Bank Konten
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">Gudang penyimpanan aset digital produksi SIMIKP.</p>
         </div>
-        <Button variant="outline">📤 Upload</Button>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            <input
+              type="text"
+              placeholder="Cari folder kegiatan..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full md:w-64 transition-all"
+            />
+          </div>
+          <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200">
+            <button
+              onClick={() => setViewMode("grid")}
+              className={`p-1.5 rounded-md transition-colors ${viewMode === "grid" ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-900"}`}
+            >
+              <LayoutGrid size={16} />
+            </button>
+            <button
+              onClick={() => setViewMode("list")}
+              className={`p-1.5 rounded-md transition-colors ${viewMode === "list" ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-900"}`}
+            >
+              <List size={16} />
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <Input
-          placeholder="Cari kegiatan, lokasi, tokoh, keyword"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 min-w-[220px]"
-        />
-        <div className="w-32 flex-shrink-0">
-          <Select
-            options={tahunOptions}
-            placeholder="Tahun"
-            value={tahun}
-            onChange={(e) => setTahun(e.target.value)}
-          />
-        </div>
-        <div className="w-44 flex-shrink-0">
-          <Select options={urutanOptions} value={urutan} onChange={(e) => setUrutan(e.target.value)} />
-        </div>
-      </div>
-
-      {filtered.length === 0 ? (
-        <EmptyState title="Belum ada konten" description="Tidak ada kegiatan yang cocok dengan pencarian." />
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((folder) => {
-            const summary = summarizeJenis(folder);
-            return (
-              <button
-                key={folder.id}
-                onClick={() => openFolder(folder)}
-                className="text-left bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:border-gray-300 transition"
-              >
-                <div className="h-32 bg-gray-100 flex items-center justify-center text-gray-400 gap-2">
-                  {summary.mixed ? (
-                    <>
-                      <VideoIcon className="w-7 h-7" />
-                      <PhotoIcon className="w-7 h-7" />
-                    </>
-                  ) : summary.jumlahVideo > 0 ? (
-                    <VideoIcon />
-                  ) : (
-                    <PhotoIcon />
-                  )}
-                </div>
-                <div className="px-4 py-3">
-                  <p className="text-sm font-semibold text-gray-900 truncate">{folder.title}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {formatTanggal(folder.tanggal)} · {summary.label}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">Petugas: {folder.petugas}</p>
-                </div>
-              </button>
-            );
-          })}
+      {/* Breadcrumb Navigation */}
+      {selectedFolder && activeFolderData && (
+        <div className="flex items-center gap-2 text-sm">
+          <button onClick={() => setSelectedFolder(null)} className="text-gray-500 hover:text-gray-900 font-medium">
+            Root
+          </button>
+          <ChevronRight size={16} className="text-gray-400" />
+          <span className="font-bold text-gray-900">{activeFolderData.title}</span>
         </div>
       )}
 
-      <Dialog
-        open={selectedFolder !== null}
-        onClose={() => setSelectedFolder(null)}
-        title={selectedFolder?.title}
-        size="lg"
-      >
-        {selectedFolder && (
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm text-gray-500">
-                {formatTanggal(selectedFolder.tanggal)} · Petugas: {selectedFolder.petugas}
-              </p>
-              <div className="w-40 flex-shrink-0">
-                <Select
-                  options={jenisKontenOptions}
-                  placeholder="Semua jenis"
-                  value={dialogJenisKonten}
-                  onChange={(e) => setDialogJenisKonten(e.target.value)}
-                />
-              </div>
-            </div>
-            {dialogFiles.length === 0 ? (
-              <EmptyState title="Tidak ada file" description="Tidak ada file dengan jenis konten ini." />
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {dialogFiles.map((file) => (
-                  <div key={file.id} className="rounded-lg border border-gray-200 overflow-hidden">
-                    <div className="h-20 bg-gray-100 flex items-center justify-center text-gray-400">
-                      {file.jenisKonten === "video" ? <VideoIcon /> : <PhotoIcon />}
-                    </div>
-                    <p className="px-2 py-1.5 text-xs text-gray-600 truncate">{file.name}</p>
+      {/* Content Area */}
+      {!selectedFolder ? (
+        /* FOLDER VIEW */
+        filteredFolders.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-xl border border-dashed border-gray-300">
+            <Folder size={48} className="mx-auto text-gray-300 mb-3" />
+            <p className="text-gray-500 font-medium">Belum ada folder bank konten tersedia.</p>
+          </div>
+        ) : viewMode === "grid" ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {filteredFolders.map((folder) => (
+              <div
+                key={folder.id}
+                onClick={() => setSelectedFolder(folder.id)}
+                className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-300 cursor-pointer transition-all group"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
+                    <Folder fill="currentColor" size={24} className="opacity-80" />
                   </div>
+                  <span className="text-xs font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded-md">
+                    {folder.files.length} Item
+                  </span>
+                </div>
+                <h3 className="font-bold text-gray-900 text-sm line-clamp-2 mb-1 group-hover:text-blue-700 transition-colors">
+                  {folder.title}
+                </h3>
+                <p className="text-xs text-gray-500">
+                  {folder.tanggal} • Oleh {folder.petugas}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-gray-50 text-gray-500 uppercase text-xs font-bold border-b border-gray-100">
+                <tr>
+                  <th className="px-6 py-4">Nama Folder (Kegiatan)</th>
+                  <th className="px-6 py-4">Tanggal</th>
+                  <th className="px-6 py-4">Petugas</th>
+                  <th className="px-6 py-4 text-center">Jumlah Item</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {filteredFolders.map((folder) => (
+                  <tr
+                    key={folder.id}
+                    onClick={() => setSelectedFolder(folder.id)}
+                    className="hover:bg-blue-50 cursor-pointer transition-colors"
+                  >
+                    <td className="px-6 py-4 font-semibold text-gray-900 flex items-center gap-3">
+                      <Folder size={18} className="text-blue-500 fill-blue-500" />
+                      {folder.title}
+                    </td>
+                    <td className="px-6 py-4 text-gray-600">{folder.tanggal}</td>
+                    <td className="px-6 py-4 text-gray-600">{folder.petugas}</td>
+                    <td className="px-6 py-4 text-center text-gray-900 font-bold">{folder.files.length}</td>
+                  </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      ) : (
+        /* FILE VIEW (INSIDE FOLDER) */
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+          <div className="mb-6 border-b border-gray-100 pb-4">
+            <h2 className="text-lg font-bold text-gray-900">{activeFolderData?.title}</h2>
+            <p className="text-sm text-gray-500 mt-1">Daftar tautan luaran kerja untuk kegiatan ini.</p>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {activeFolderData?.files.map((file) => (
+              <div key={file.id} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors group">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${file.jenisKonten === "video" ? "bg-red-50 text-red-500" : "bg-emerald-50 text-emerald-500"}`}>
+                  {file.jenisKonten === "video" ? <FileVideo size={20} /> : <ImageIcon size={20} />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-gray-900 truncate">{file.name}</p>
+                  <p className="text-xs text-gray-500 uppercase">{file.jenisKonten}</p>
+                </div>
+                <a
+                  href={file.workLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-blue-100 hover:text-blue-600 transition-colors shrink-0"
+                  title="Buka Link"
+                >
+                  <ExternalLink size={14} />
+                </a>
+              </div>
+            ))}
+            {activeFolderData?.files.length === 0 && (
+              <div className="col-span-full py-10 text-center text-gray-500">
+                Belum ada file di dalam folder ini.
               </div>
             )}
           </div>
-        )}
-      </Dialog>
+        </div>
+      )}
     </div>
   );
 };

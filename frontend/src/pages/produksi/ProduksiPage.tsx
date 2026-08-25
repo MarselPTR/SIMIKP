@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { mockApi } from "../../lib/mock-api";
-import type { MockProduksi } from "../../lib/mock-data";
+import { apiFetch } from "../../lib/api-client";
 import Card from "../../components/ui/Card";
 import Table from "../../components/ui/Table";
 import type { TableColumn } from "../../components/ui/Table";
@@ -8,13 +7,26 @@ import Badge from "../../components/ui/Badge";
 import Button from "../../components/ui/Button";
 import { LoadingSpinner, ErrorState } from "../../components/shared/StateComponents";
 
+interface ProduksiRow {
+  id: string;
+  kegiatan: string;
+  bidangPekerjaan: string;
+  workLink?: string;
+  startDate?: string;
+  endDate?: string;
+  status: string;
+}
+
 const ProduksiPage = () => {
   const { data: produksi, isLoading, error, refetch } = useQuery({
     queryKey: ["produksi"],
-    queryFn: mockApi.produksi.getAll,
+    queryFn: async () => {
+      const res = await apiFetch<{ success: boolean; data: ProduksiRow[] }>("/productions");
+      return res.data;
+    },
   });
 
-  const columns: TableColumn<MockProduksi>[] = [
+  const columns: TableColumn<ProduksiRow>[] = [
     { key: "kegiatan", label: "Kegiatan" },
     { key: "bidangPekerjaan", label: "Bidang" },
     { key: "workLink", label: "Link Kerja", render: (val) => val ? <a href={val as string} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline">Buka Link</a> : "—" },
