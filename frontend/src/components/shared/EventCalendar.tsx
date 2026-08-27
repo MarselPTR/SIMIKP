@@ -180,6 +180,7 @@ const EventCalendar = ({
         {cells.map((day, idx) => {
           const dateKey = day ? dateKeyOf(year, month, day) : null;
           const dayEvents = dateKey ? events[dateKey] ?? [] : [];
+          const hasEvents = dayEvents.length > 0;
           const isToday = isCurrentMonth && day === today.getDate();
           const isSelected = !!dateKey && dateKey === selectedDateKey;
           const isWeekend = idx % 7 === 0 || idx % 7 === 6;
@@ -191,9 +192,11 @@ const EventCalendar = ({
 
           let cellClass = "bg-white border-gray-200/90 shadow-2xs";
           if (isSelected) {
-            cellClass = "bg-white border-blue-600 ring-2 ring-blue-500/25 shadow-md";
+            cellClass = "bg-blue-50/40 border-[#0f1f5c] ring-2 ring-[#0f1f5c]/25 shadow-md";
+          } else if (hasEvents) {
+            cellClass = "bg-blue-50/20 border-blue-300/80 hover:border-[#0f1f5c] shadow-xs";
           } else if (isToday) {
-            cellClass = "bg-white border-[#0f1f5c] ring-2 ring-[#0f1f5c]/20 shadow-sm";
+            cellClass = "bg-white border-gray-200";
           } else if (isWeekend) {
             cellClass = "bg-white border-gray-200/90";
           }
@@ -213,18 +216,18 @@ const EventCalendar = ({
                   className={`text-[12px] font-semibold inline-flex items-center justify-center w-[22px] h-[22px] rounded-full transition-all duration-150 ${
                     isSelected
                       ? "text-white shadow-sm"
+                      : hasEvents
+                      ? "text-white shadow-2xs bg-[#0f1f5c] font-bold"
                       : isToday
-                        ? "text-white shadow-sm"
-                        : isWeekend
-                          ? "text-rose-500 font-bold"
-                          : "text-gray-800"
+                      ? "text-[#0f1f5c] font-extrabold ring-1.5 ring-[#0f1f5c]/40 bg-blue-50/80"
+                      : isWeekend
+                      ? "text-rose-500 font-bold"
+                      : "text-gray-800"
                   }`}
                   style={
                     isSelected
                       ? { background: "linear-gradient(135deg, #3b82f6, #2563eb)" }
-                      : isToday
-                        ? { background: `linear-gradient(135deg, ${NAVY}, #24399e)` }
-                        : undefined
+                      : undefined
                   }
                 >
                   {day}
