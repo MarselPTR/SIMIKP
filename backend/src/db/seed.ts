@@ -1,16 +1,21 @@
 import { db } from "./index";
+import { sql } from "drizzle-orm";
 import {
   roles, users, userRoles, opds, contentTypes, strategicIssues,
   activities, activityStrategicIssues, assignments, activityRequiredContents
 } from "./schema";
+import { productionItems, productionVersions } from "./schema/production";
 import crypto from "crypto";
 
 async function runSeed() {
-  console.log("Seeding SIMIKP database with comprehensive report data for 2025 and 2026...");
+  console.log("Seeding SIMIKP database with comprehensive test & presentation data...");
 
   try {
-    // 1. Clean up existing tables
     console.log("Cleaning up existing data...");
+    await db.execute(sql`SET FOREIGN_KEY_CHECKS = 0;`);
+    
+    await db.delete(productionVersions);
+    await db.delete(productionItems);
     await db.delete(assignments);
     await db.delete(activityRequiredContents);
     await db.delete(activityStrategicIssues);
@@ -21,8 +26,10 @@ async function runSeed() {
     await db.delete(opds);
     await db.delete(contentTypes);
     await db.delete(strategicIssues);
+    
+    await db.execute(sql`SET FOREIGN_KEY_CHECKS = 1;`);
 
-    // 2. Roles
+    // 1. Roles
     console.log("Inserting roles...");
     const roleAdminId = crypto.randomUUID();
     const rolePetugasId = crypto.randomUUID();
@@ -31,18 +38,42 @@ async function runSeed() {
       { id: rolePetugasId, name: "PETUGAS" },
     ]);
 
-    // 3. Users
-    console.log("Inserting users...");
+    // 2. Users
+    console.log("Inserting users (Admin & Petugas)...");
     const adminId = crypto.randomUUID();
     const userAndiId = crypto.randomUUID();
     const userBudiId = crypto.randomUUID();
     const userCitraId = crypto.randomUUID();
 
     await db.insert(users).values([
-      { id: adminId, username: "admin", passwordHash: "$2a$10$xyz", name: "Super Administrator", staffType: null },
-      { id: userAndiId, username: "andi", passwordHash: "$2a$10$xyz", name: "Andi Prahum", staffType: "PRAHUM" },
-      { id: userBudiId, username: "budi", passwordHash: "$2a$10$xyz", name: "Budi Fotografer", staffType: "FOTO_VIDEO" },
-      { id: userCitraId, username: "citra", passwordHash: "$2a$10$xyz", name: "Citra Desainer", staffType: "DESAINER_EDITOR" },
+      {
+        id: adminId,
+        username: "admin",
+        passwordHash: "$2a$10$xyz",
+        name: "Admin Diskominfo",
+        staffType: null,
+      },
+      {
+        id: userAndiId,
+        username: "andi",
+        passwordHash: "$2a$10$xyz",
+        name: "Andi Prahum",
+        staffType: "PRAHUM",
+      },
+      {
+        id: userBudiId,
+        username: "budi",
+        passwordHash: "$2a$10$xyz",
+        name: "Budi Fotografer",
+        staffType: "FOTO_VIDEO",
+      },
+      {
+        id: userCitraId,
+        username: "citra",
+        passwordHash: "$2a$10$xyz",
+        name: "Citra Desainer",
+        staffType: "DESAINER_EDITOR",
+      }
     ]);
 
     await db.insert(userRoles).values([
@@ -52,7 +83,7 @@ async function runSeed() {
       { userId: userCitraId, roleId: rolePetugasId },
     ]);
 
-    // 4. OPDs
+    // 3. OPDs
     console.log("Inserting OPDs...");
     const opdKominfoId = crypto.randomUUID();
     const opdPendidikanId = crypto.randomUUID();
@@ -64,7 +95,7 @@ async function runSeed() {
       { id: opdKesehatanId, name: "Dinas Kesehatan", singkatan: "Dinkes" },
     ]);
 
-    // 5. Strategic Issues
+    // 4. Strategic Issues
     console.log("Inserting strategic issues...");
     const issueSosialId = crypto.randomUUID();
     const issueEkonomiId = crypto.randomUUID();
@@ -76,7 +107,7 @@ async function runSeed() {
       { id: issueLingkunganId, name: "LINGKUNGAN" },
     ]);
 
-    // 6. Content Types
+    // 5. Content Types
     console.log("Inserting content types...");
     const ctInfografis = crypto.randomUUID();
     const ctAudio = crypto.randomUUID();
@@ -94,11 +125,11 @@ async function runSeed() {
       { id: ctNaskah, name: "NASKAH BERITA" },
     ]);
 
-    // 7. Seed Activities (Agustus 2026, Januari 2026, Januari 2025)
+    // 6. Seed Activities
     console.log("Inserting activities & assignments...");
 
     const sampleActivities = [
-      // --- AGUSTUS 2026 (Current Active Month) ---
+      // Current active month activities
       {
         code: "ACT-2026-0801",
         title: "Pembukaan Bulan Kemerdekaan RI ke-81 Kota Batu",
@@ -147,99 +178,9 @@ async function runSeed() {
         issueId: issueSosialId,
         contentTypes: [ctInfografis, ctNaskah],
       },
-
-      // --- JANUARI 2026 ---
-      {
-        code: "ACT-2026-001",
-        title: "Peringatan Tahun Baru 2026 Kota Batu",
-        strakom: "STR/001/2026",
-        date: new Date("2026-01-01"),
-        issueId: issueSosialId,
-        contentTypes: [ctInfografis, ctFoto],
-      },
-      {
-        code: "ACT-2026-002",
-        title: "Peluncuran Program Digitalisasi UMKM 2026",
-        strakom: "STR/002/2026",
-        date: new Date("2026-01-10"),
-        issueId: issueEkonomiId,
-        contentTypes: [ctInfografis, ctVideo, ctNaskah],
-      },
-      {
-        code: "ACT-2026-003",
-        title: "Aksi Bersih Sungai & Konservasi Sumber Mata Air",
-        strakom: "STR/003/2026",
-        date: new Date("2026-01-15"),
-        issueId: issueLingkunganId,
-        contentTypes: [ctFoto, ctAudio, ctBumper],
-      },
-
-      // --- JANUARI 2025 ---
-      {
-        code: "ACT-2025-001",
-        title: "Peringatan Tahun Baru 2025",
-        strakom: "STR/001/2025",
-        date: new Date("2025-01-01"),
-        issueId: issueSosialId,
-        contentTypes: [ctInfografis],
-      },
-      {
-        code: "ACT-2025-002",
-        title: "Press Conference bersama Forkopimda Kota Batu, Evaluasi 2024",
-        strakom: "STR/002/2025",
-        date: new Date("2025-01-02"),
-        issueId: issueSosialId,
-        contentTypes: [ctNaskah, ctFoto],
-      },
-      {
-        code: "ACT-2025-003",
-        title: "Selamat Memperingati Hari Amal Bhakti ke-79",
-        strakom: "STR/003/2025",
-        date: new Date("2025-01-02"),
-        issueId: issueSosialId,
-        contentTypes: [ctInfografis],
-      },
-      {
-        code: "ACT-2025-004",
-        title: "Apel Pagi Pertama 2025 Pemkot Batu",
-        strakom: "STR/004/2025",
-        date: new Date("2025-01-03"),
-        issueId: issueSosialId,
-        contentTypes: [ctNaskah, ctVideo],
-      },
-      {
-        code: "ACT-2025-005",
-        title: "Kota Batu Meraih SPBE Sangat Baik",
-        strakom: "STR/005/2025",
-        date: new Date("2025-01-03"),
-        issueId: issueSosialId,
-        contentTypes: [ctInfografis],
-      },
-      {
-        code: "ACT-2025-006",
-        title: "9 Tahun Balai Kota Among Tani Kota Batu",
-        strakom: "STR/006/2025",
-        date: new Date("2025-01-04"),
-        issueId: issueSosialId,
-        contentTypes: [ctInfografis, ctBumper],
-      },
-      {
-        code: "ACT-2025-007",
-        title: "Pasar Murah & Pemberdayaan UMKM Kota Batu",
-        strakom: "STR/007/2025",
-        date: new Date("2025-01-08"),
-        issueId: issueEkonomiId,
-        contentTypes: [ctInfografis, ctFoto, ctNaskah],
-      },
-      {
-        code: "ACT-2025-008",
-        title: "Gerakan Penghijauan Hutan & Kebersihan Lingkungan",
-        strakom: "STR/008/2025",
-        date: new Date("2025-01-12"),
-        issueId: issueLingkunganId,
-        contentTypes: [ctFoto, ctVideo, ctBumper],
-      },
     ];
+
+    const seededAssignments = [];
 
     for (const act of sampleActivities) {
       const actId = crypto.randomUUID();
@@ -250,30 +191,67 @@ async function runSeed() {
         strakomNumber: act.strakom,
         activityDate: act.date,
         opdId: opdKominfoId,
-        status: "PUBLISHED",
+        priority: "Tinggi",
+        status: "active",
+        description: `Kegiatan liputan dan publikasi ${act.title}`,
         createdBy: adminId,
       });
 
-      // Insert issue relation
       await db.insert(activityStrategicIssues).values({
         activityId: actId,
         issueId: act.issueId,
       });
 
-      // Insert assignments for each content type
       for (const ctId of act.contentTypes) {
-        await db.insert(assignments).values({
-          id: crypto.randomUUID(),
+        await db.insert(activityRequiredContents).values({
           activityId: actId,
-          userId: userAndiId,
           contentTypeId: ctId,
-          status: "COMPLETED",
+        });
+
+        // Determine user based on content type
+        let targetUser = userAndiId;
+        if (ctId === ctFoto || ctId === ctVideo) targetUser = userBudiId;
+        if (ctId === ctInfografis || ctId === ctBumper) targetUser = userCitraId;
+
+        const asgnId = crypto.randomUUID();
+        await db.insert(assignments).values({
+          id: asgnId,
+          activityId: actId,
+          userId: targetUser,
+          contentTypeId: ctId,
+          startTime: "08:00:00",
+          endTime: "12:00:00",
+          status: "ASSIGNED",
+          instruction: `Liput dan dokumentasikan ${act.title}`,
           createdBy: adminId,
         });
+
+        seededAssignments.push({ id: asgnId, title: act.title });
       }
     }
 
-    console.log("Seeding completed successfully!");
+    // 7. Seed sample productions for Bank Konten demo
+    if (seededAssignments.length > 0) {
+      console.log("Seeding sample completed productions for Bank Konten...");
+      const prod1 = crypto.randomUUID();
+      await db.insert(productionItems).values({
+        id: prod1,
+        assignmentId: seededAssignments[0].id,
+        title: `Hasil Produksi: ${seededAssignments[0].title}`,
+        status: "COMPLETED",
+        productionDate: new Date(),
+      });
+
+      await db.insert(productionVersions).values({
+        id: crypto.randomUUID(),
+        productionItemId: prod1,
+        versionNumber: 1,
+        workLink: "https://drive.google.com/sample-work",
+        isCurrent: true,
+      });
+    }
+
+    console.log("Seeding completed successfully! 🎉");
     process.exit(0);
   } catch (error) {
     console.error("Error seeding database:", error);

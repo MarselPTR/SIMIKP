@@ -1,14 +1,13 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import type { ReactNode } from "react";
-import { mockAuthLogin } from "./mock-api";
+import { apiFetch } from "./api-client";
 
 export interface AuthUser {
   id: string;
   name: string;
-  email: string;
+  username: string;
   role: string;
-  // Hanya diisi untuk role petugas — dipakai untuk filter tugas lapangan per bidang.
-  bidang?: string;
+  staffType?: string | null;
 }
 
 interface LoginResult {
@@ -21,8 +20,8 @@ interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<LoginResult>;
-  logout: () => void;
+  login: (username: string, password: string) => Promise<LoginResult>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = ((globalThis as unknown as { __SIMIKP_AUTH_CTX__?: React.Context<AuthContextValue | null> })
@@ -39,7 +38,7 @@ export const useAuth = (): AuthContextValue => {
         loading: false,
         isAuthenticated: parsedUser !== null,
         login: async () => ({ success: false, error: "AuthProvider belum siap" }),
-        logout: () => {
+        logout: async () => {
           localStorage.removeItem("simikp_user");
         },
       };
@@ -49,7 +48,7 @@ export const useAuth = (): AuthContextValue => {
         loading: false,
         isAuthenticated: false,
         login: async () => ({ success: false, error: "AuthProvider belum siap" }),
-        logout: () => {},
+        logout: async () => {},
       };
     }
   }
@@ -57,7 +56,7 @@ export const useAuth = (): AuthContextValue => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  // Inisialisasi user dari localStorage agar sesi tidak hilang saat browser di-refresh
+  // Inisialisasi user dari localStorage agar UI cepat tampil jika ada cache
   const [user, setUser] = useState<AuthUser | null>(() => {
     try {
       const savedUser = localStorage.getItem("simikp_user");
@@ -67,32 +66,52 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   });
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const login = async (email: string, password: string): Promise<LoginResult> => {
+  useEffect(() => {
+    // Check session on mount via API /auth/me
+    apiFetch<{ success: boolean; user: AuthUser }>("/auth/me")
+      .then((res) => {
+        if (res.success && res.user) {
+          setUser(res.user);
+          localStorage.setItem("simikp_user", JSON.stringify(res.user));
+        }
+      })
+      .catch(() => {
+        // If server says unauthorized, clear user
+        setUser(null);
+        localStorage.removeItem("simikp_user");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
+
+  const login = async (username: string, password: string): Promise<LoginResult> => {
     setLoading(true);
     try {
-      const loggedInUser = await mockAuthLogin(email, password);
-      setUser(loggedInUser);
-      try {
-        localStorage.setItem("simikp_user", JSON.stringify(loggedInUser));
-      } catch (err) {
-        console.error("Failed to save user to localStorage", err);
-      }
-      return { success: true, user: loggedInUser };
-    } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : "Login gagal" };
+      const res = await apiFetch<{ success: boolean; user: AuthUser }>("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ username, password }),
+      });
+      setUser(res.user);
+      localStorage.setItem("simikp_user", JSON.stringify(res.user));
+      return { success: true, user: res.user };
+    } catch (err: any) {
+      return { success: false, error: err.message || "Login gagal" };
     } finally {
       setLoading(false);
     }
   };
 
-  const logout = () => {
-    setUser(null);
+  const logout = async () => {
     try {
-      localStorage.removeItem("simikp_user");
+      await apiFetch("/auth/logout", { method: "POST" });
     } catch (err) {
-      console.error("Failed to remove user from localStorage", err);
+      console.error("Logout error", err);
+    } finally {
+      setUser(null);
+      localStorage.removeItem("simikp_user");
     }
   };
 

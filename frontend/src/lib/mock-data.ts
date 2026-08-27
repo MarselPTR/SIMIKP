@@ -2,11 +2,11 @@
 // Ganti pemakaian file ini dengan panggilan lib/api-client.ts begitu endpoint asli siap.
 
 export const Role = {
-  ADMIN: "admin",
-  MANAGER: "manager",
-  STAFF: "staff",
-  REVIEWER: "reviewer",
-  PETUGAS: "petugas",
+  ADMIN: "SUPER_ADMIN",
+  MANAGER: "manager", // legacy/unused
+  STAFF: "staff", // legacy/unused
+  REVIEWER: "reviewer", // legacy/unused
+  PETUGAS: "PETUGAS",
 } as const;
 
 export interface MockUser {

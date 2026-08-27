@@ -15,6 +15,7 @@ import {
   Camera,
 } from "lucide-react";
 import { mockApi } from "../../lib/mock-api";
+import { apiFetch } from "../../lib/api-client";
 import { KEGIATAN_STATUS_COLORS, KEGIATAN_STATUS_LABELS } from "../../lib/mock-data";
 import type { MockKegiatan } from "../../lib/mock-data";
 import EventCalendar, { dateKeyOf } from "../../components/shared/EventCalendar";
@@ -35,9 +36,6 @@ interface StatCard {
   path: string;
 }
 
-// Angka dihitung langsung dari data kegiatan yang sama dengan Manajemen
-// Kegiatan (lihat computeStatCards di bawah) — bukan dummy statis, supaya
-// kedua halaman selalu menampilkan jumlah yang sinkron.
 interface StatCardMeta {
   key: "totalBulanIni" | "tugasDalamProses" | "kontenSiapReview" | "publikasiSukses";
   label: string;
@@ -59,15 +57,6 @@ const BANK_KONTEN_CARD: StatCard = {
   path: "/bank-konten",
 };
 
-// Warna dasar stat card: putih bersih, dengan dynamic bright blue spotlight saat cursor diarahkan.
-const STAT_CARD_TONE = {
-  bg: "#ffffff",
-  iconBg: "#f0f4f8",
-  icon: "#0f1f5c",
-  value: "#0f1f5c",
-  label: "#64748b",
-};
-
 interface SpotlightStatCardProps {
   card: StatCard;
   onClick: () => void;
@@ -83,13 +72,10 @@ const SpotlightStatCard = ({ card, onClick }: SpotlightStatCardProps) => {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     const width = rect.width || 1;
-    // 0 = tepat di tengah, 1 = di tepi paling kiri atau kanan
     const distFromCenter = Math.min(1, Math.max(0, Math.abs(x - width / 2) / (width / 2)));
     setMousePos({ x, y, distFromCenter });
   };
 
-  // Warna biru tua lebih tebal di sisi tepi kiri/kanan (distFromCenter mendekati 1)
-  // dan lebih dominan putih/terang di area tengah (distFromCenter mendekati 0)
   const navyOpacity = 0.12 + mousePos.distFromCenter * 0.32;
   const whiteOpacity = Math.max(0.15, (1 - mousePos.distFromCenter) * 0.75);
 
@@ -98,59 +84,42 @@ const SpotlightStatCard = ({ card, onClick }: SpotlightStatCardProps) => {
       type="button"
       onClick={onClick}
       onMouseEnter={() => setIsHovered(true)}
-      onMouseMove={handleMouseMove}
       onMouseLeave={() => setIsHovered(false)}
-      className="group relative text-left w-full min-h-[150px] rounded-2xl p-5 bg-white border border-gray-200/90 shadow-2xs overflow-hidden transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-md hover:border-[#0f1f5c] active:translate-y-0 active:shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1f5c] focus-visible:ring-offset-2 cursor-pointer flex flex-col justify-between"
+      onMouseMove={handleMouseMove}
+      className="relative text-left w-full rounded-2xl p-5 overflow-hidden transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl active:translate-y-0 active:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1f5c] focus-visible:ring-offset-2 border border-slate-100/80 group"
+      style={{
+        backgroundColor: "#ffffff",
+        boxShadow: isHovered
+          ? "0 20px 25px -5px rgba(15, 31, 92, 0.12), 0 8px 10px -6px rgba(15, 31, 92, 0.08)"
+          : "0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05)",
+      }}
       aria-label={`Buka ${card.label}`}
     >
-      {/* ── Dynamic Navy Glow (Tebal di Sisi Kiri & Kanan mengikuti kursor) ── */}
       <div
-        className="pointer-events-none absolute -inset-px rounded-2xl transition-opacity duration-200 ease-out"
+        className="pointer-events-none absolute inset-0 transition-opacity duration-300"
         style={{
           opacity: isHovered ? 1 : 0,
-          background: `radial-gradient(
-            220px circle at ${mousePos.x}px ${mousePos.y}px,
-            rgba(15, 31, 92, ${navyOpacity.toFixed(2)}),
-            rgba(15, 31, 92, ${(navyOpacity * 0.45).toFixed(2)}) 50%,
-            transparent 80%
-          )`,
+          background: `radial-gradient(190px circle at ${mousePos.x}px ${mousePos.y}px, rgba(15, 31, 92, ${navyOpacity}) 0%, rgba(56, 189, 248, ${navyOpacity * 0.6}) 45%, rgba(255, 255, 255, ${whiteOpacity}) 78%, transparent 100%)`,
         }}
       />
-
-      {/* ── Dynamic White Core Light (Dominan Putih saat Kursor ke Tengah) ── */}
       <div
-        className="pointer-events-none absolute inset-0 rounded-2xl transition-opacity duration-200 ease-out"
+        className="pointer-events-none absolute inset-0 rounded-2xl transition-opacity duration-300"
         style={{
           opacity: isHovered ? 1 : 0,
-          background: `radial-gradient(
-            150px circle at ${mousePos.x}px ${mousePos.y}px,
-            rgba(255, 255, 255, ${whiteOpacity.toFixed(2)}),
-            transparent 75%
-          )`,
+          boxShadow: "inset 0 0 0 1px rgba(15, 31, 92, 0.15)",
         }}
       />
-
-      {/* ── Card Content (Solid, Crisp & Structured) ── */}
-      <div className="relative z-10 w-full flex flex-col justify-between h-full">
-        {/* Top: Icon container */}
-        <div className="flex items-center justify-between mb-3">
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ease-out group-hover:scale-105 bg-slate-100 group-hover:bg-[#0f1f5c] shadow-2xs"
-          >
-            <Icon className="w-5 h-5 text-[#0f1f5c] group-hover:text-white transition-colors duration-200" strokeWidth={2} />
-          </div>
+      <div className="relative z-10">
+        <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-3.5 transition-all duration-300 bg-[#0f1f5c]/5 group-hover:bg-[#0f1f5c] group-hover:scale-105 shadow-2xs">
+          <Icon className="w-5 h-5 text-[#0f1f5c] group-hover:text-white transition-colors duration-300" strokeWidth={2} />
         </div>
-
-        {/* Bottom: Label & Value */}
-        <div className="space-y-1">
-          <p className="text-xs sm:text-[13px] font-semibold text-slate-600 group-hover:text-[#0f1f5c] leading-snug min-h-[2.25rem] flex items-start transition-colors">
-            {card.label}
-          </p>
-          <div className="flex items-baseline">
-            <span className="text-2xl sm:text-3xl font-extrabold text-[#0f1f5c] tracking-tight transition-colors">
-              {card.value}
-            </span>
-          </div>
+        <p className="text-xs font-semibold text-slate-500 tracking-tight group-hover:text-slate-700 transition-colors">
+          {card.label}
+        </p>
+        <div className="flex items-end gap-2 mt-1">
+          <span className="text-3xl font-black text-[#0f1f5c] tracking-tight group-hover:scale-102 transition-transform duration-200">
+            {card.value}
+          </span>
         </div>
       </div>
     </button>
@@ -158,8 +127,7 @@ const SpotlightStatCard = ({ card, onClick }: SpotlightStatCardProps) => {
 };
 
 /* ---------------------------------------------------------------------- */
-/* Kalender Kegiatan — bersumber dari data kegiatan yang sama dipakai      */
-/* halaman Manajemen Kegiatan (lib/mock-data.ts), bukan dummy terpisah.    */
+/* Kalender Kegiatan & Utilities                                          */
 /* ---------------------------------------------------------------------- */
 
 const dashboardCalendarLegend = (Object.keys(KEGIATAN_STATUS_LABELS) as MockKegiatan["status"][]).map((status) => ({
@@ -187,13 +155,6 @@ const todayDateKey = () => {
   return dateKeyOf(d.getFullYear(), d.getMonth(), d.getDate());
 };
 
-/* ---------------------------------------------------------------------- */
-/* Tugas Terbaru & Deadline Mendekati                                      */
-/* ---------------------------------------------------------------------- */
-
-// Model MockKegiatan tidak menyimpan petugas yang ditugaskan — dipetakan
-// dari jenis output yang dibutuhkan supaya tetap masuk akal (naskah -> tim
-// Prahum, foto/video -> tim Foto-Video, selain itu -> tim Desainer).
 const petugasForOutput = (outputs?: string[]) => {
   const first = outputs?.[0];
   if (first === "Naskah Berita") return "Rizky Fadillah";
@@ -214,7 +175,7 @@ const TugasTerbaruTable = ({ items }: { items: MockKegiatan[] }) => {
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden transition-shadow duration-200 hover:shadow-md">
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-        <h3 className="text-base font-semibold text-gray-900">Tugas Terbaru & Deadline Mendekati</h3>
+        <h3 className="text-base font-semibold text-gray-900">Tugas Terbaru &amp; Deadline Mendekati</h3>
         <button
           type="button"
           onClick={() => navigate("/kegiatan")}
@@ -298,7 +259,7 @@ const TugasTerbaruTable = ({ items }: { items: MockKegiatan[] }) => {
 };
 
 /* ---------------------------------------------------------------------- */
-/* Status Alur Kerja Produksi — PRAHUM (workflow proportion bar)           */
+/* Status Alur Kerja Produksi Panels                                       */
 /* ---------------------------------------------------------------------- */
 
 const prahumStages = [
@@ -330,7 +291,6 @@ const PrahumPanel = () => {
         </span>
       </div>
 
-      {/* Proportional workflow bar — jujur ke data: lebar segmen = porsi tugas, bukan funnel yang menyiratkan penyusutan bertahap */}
       <div className="flex w-full h-3 rounded-full overflow-hidden bg-gray-100 gap-[2px]">
         {prahumStages.map((stage, i) => (
           <button
@@ -352,7 +312,6 @@ const PrahumPanel = () => {
         ))}
       </div>
 
-      {/* Stat chips per tahap */}
       <div className="grid grid-cols-4 gap-1.5 mt-3">
         {prahumStages.map((stage, i) => {
           const Icon = stage.icon;
@@ -380,10 +339,6 @@ const PrahumPanel = () => {
     </PanelShell>
   );
 };
-
-/* ---------------------------------------------------------------------- */
-/* Status Alur Kerja Produksi — FOTO (donut, SVG interaktif)               */
-/* ---------------------------------------------------------------------- */
 
 const fotoData = [
   { label: "BELUM", value: 3, color: "#9ca3af" },
@@ -475,10 +430,6 @@ const FotoPanel = () => {
   );
 };
 
-/* ---------------------------------------------------------------------- */
-/* Status Alur Kerja Produksi — VIDEO (bullet-style horizontal bars)       */
-/* ---------------------------------------------------------------------- */
-
 const videoSegmentColors = { belum: "#9ca3af", liputan: "#f59e0b", siapTayang: "#3b82f6", finis: "#22c55e" };
 const videoSegmentLabels: Record<keyof typeof videoSegmentColors, string> = {
   belum: "Belum",
@@ -507,7 +458,6 @@ const VideoPanel = () => {
 
   return (
     <PanelShell title="VIDEO" onMoreClick={() => navigate("/produksi")}>
-      {/* Bullet-style: satu baris per kategori, panjang bar = proporsi terhadap kategori terbesar */}
       <div className="mt-3 space-y-3">
         {videoBars.map((bar, i) => {
           const total = bar.segments.reduce((s, seg) => s + seg.v, 0);
@@ -563,10 +513,6 @@ const VideoPanel = () => {
   );
 };
 
-/* ---------------------------------------------------------------------- */
-/* Status Alur Kerja Produksi — DESAINER (kanban)                          */
-/* ---------------------------------------------------------------------- */
-
 const desainerColumns = [
   { label: "ANTREAN", count: 14, color: "#9ca3af", bg: "bg-gray-100", text: "text-gray-700", items: ["Banner HUT Kota", "Infografis APBD"] },
   { label: "DIPROSES", count: 12, color: "#f59e0b", bg: "bg-amber-100", text: "text-amber-700", items: ["Feeds Instagram", "Revisi Layout"] },
@@ -602,10 +548,6 @@ const DesainerPanel = () => {
   );
 };
 
-/* ---------------------------------------------------------------------- */
-/* Shared panel shell                                                      */
-/* ---------------------------------------------------------------------- */
-
 const PanelShell = ({
   title,
   children,
@@ -632,13 +574,38 @@ const PanelShell = ({
 );
 
 /* ---------------------------------------------------------------------- */
-/* Page                                                                     */
+/* Page Main Component                                                     */
 /* ---------------------------------------------------------------------- */
+
+interface DashboardStats {
+  totalKegiatan: number;
+  aktifKegiatan: number;
+  totalPenugasan: number;
+  produksiRunning: number;
+  reviewPending: number;
+  publikasiPublished: number;
+  opdProduction: Array<{ name: string; singkatan: string; count: number }>;
+  pegawaiProduction: Array<{ id: string; name: string; staffType: string; count: number }>;
+}
 
 const DashboardPage = () => {
   const navigate = useNavigate();
+
+  // Fetch real activities and real stats
   const { data: kegiatanData } = useQuery({ queryKey: ["kegiatan"], queryFn: mockApi.kegiatan.getAll });
   const kegiatanList = kegiatanData ?? [];
+
+  const { data: stats } = useQuery({
+    queryKey: ["dashboardStatsReal"],
+    queryFn: async () => {
+      try {
+        const res = await apiFetch<{ success: boolean; data: DashboardStats }>("/dashboard/stats");
+        return res.data;
+      } catch {
+        return null;
+      }
+    },
+  });
 
   const now = new Date();
   const [calYear, setCalYear] = useState(now.getFullYear());
@@ -666,10 +633,10 @@ const DashboardPage = () => {
   const statCards: StatCard[] = useMemo(() => {
     const monthPrefix = `${calYear}-${String(calMonth + 1).padStart(2, "0")}`;
     const values: Record<StatCardMeta["key"], number> = {
-      totalBulanIni: kegiatanList.filter((k) => k.deadline.startsWith(monthPrefix)).length,
-      tugasDalamProses: kegiatanList.filter((k) => k.status === "active").length,
-      kontenSiapReview: kegiatanList.filter((k) => k.status === "review").length,
-      publikasiSukses: kegiatanList.filter((k) => k.status === "done").length,
+      totalBulanIni: stats?.totalKegiatan ?? kegiatanList.filter((k) => k.deadline.startsWith(monthPrefix)).length,
+      tugasDalamProses: stats?.produksiRunning ?? kegiatanList.filter((k) => k.status === "active").length,
+      kontenSiapReview: stats?.reviewPending ?? kegiatanList.filter((k) => k.status === "review").length,
+      publikasiSukses: stats?.publikasiPublished ?? kegiatanList.filter((k) => k.status === "done").length,
     };
     return [
       ...STAT_CARD_META.map((meta) => ({
@@ -680,18 +647,19 @@ const DashboardPage = () => {
       })),
       BANK_KONTEN_CARD,
     ];
-  }, [kegiatanList, calYear, calMonth]);
+  }, [kegiatanList, calYear, calMonth, stats]);
 
   const selectedEvents = selectedDateKey ? dashboardCalendarEvents[selectedDateKey] ?? [] : [];
+  const maxOpdCount = Math.max(...(stats?.opdProduction?.map((o) => o.count) ?? [1]), 1);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* Page header */}
       <div>
         <h1 className="text-2xl font-bold" style={{ color: NAVY }}>
           Dashboard
         </h1>
-        <p className="text-sm text-gray-400 mt-0.5">Ringkasan Kegiatan &amp; Publikasi</p>
+        <p className="text-sm text-gray-400 mt-0.5">Ringkasan Kegiatan &amp; Publikasi Real-Time</p>
       </div>
 
       {/* Stat cards — interactive cursor-following spotlight glow */}
@@ -727,7 +695,7 @@ const DashboardPage = () => {
         </div>
 
         {/* Right: status alur kerja produksi */}
-        <div className="lg:col-span-6 space-y-3">
+        <div className="lg:col-span-6 space-y-4">
           <h3 className="text-base font-semibold text-gray-900">Status Alur Kerja Produksi</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <PrahumPanel />
@@ -735,6 +703,29 @@ const DashboardPage = () => {
             <VideoPanel />
             <DesainerPanel />
           </div>
+
+          {/* OPD Volume & Leaderboard (if stats available) */}
+          {stats?.opdProduction && stats.opdProduction.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mt-4">
+              <h4 className="text-sm font-bold text-gray-800 mb-3">Volume Kegiatan per OPD</h4>
+              <div className="space-y-2.5">
+                {stats.opdProduction.map((opd) => {
+                  const pct = (opd.count / maxOpdCount) * 100;
+                  return (
+                    <div key={opd.name}>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="font-medium text-gray-700">{opd.singkatan || opd.name}</span>
+                        <span className="font-bold text-gray-900">{opd.count}</span>
+                      </div>
+                      <div className="w-full bg-gray-100 rounded-full h-1.5">
+                        <div className="bg-indigo-600 h-1.5 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

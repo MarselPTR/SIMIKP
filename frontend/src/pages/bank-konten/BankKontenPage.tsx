@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { mockApi } from "../../lib/mock-api";
+import { apiFetch } from "../../lib/api-client";
 import type { MockBankKontenFolder, MockBankKontenFile } from "../../lib/mock-data";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
@@ -10,14 +11,9 @@ import { LoadingSpinner, ErrorState, EmptyState } from "../../components/shared/
 import {
   Folder, Image as ImageIcon, Video, Calendar, User,
   Download, Eye, ArrowUpRight, Tag, UploadCloud, HardDrive,
-  FileCheck, Sparkles, Filter
+  FileCheck, Sparkles, Filter, Search
 } from "lucide-react";
 import { useToast } from "../../contexts/ToastContext";
-
-const urutanOptions = [
-  { value: "terbaru", label: "Terbaru dulu" },
-  { value: "terlama", label: "Terlama dulu" },
-];
 
 const formatTanggal = (iso: string) =>
   new Date(iso).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
@@ -49,8 +45,18 @@ const BankKontenPage = () => {
   const { addToast } = useToast();
 
   const { data: folders, isLoading, error, refetch } = useQuery({
-    queryKey: ["bankKonten"],
-    queryFn: mockApi.bankKonten.getAll,
+    queryKey: ["bank-konten"],
+    queryFn: async () => {
+      try {
+        const res = await apiFetch<{ success: boolean; data: any[] }>("/productions/bank-konten");
+        if (res.data && res.data.length > 0) {
+          return res.data as MockBankKontenFolder[];
+        }
+        return mockApi.bankKonten.getAll();
+      } catch {
+        return mockApi.bankKonten.getAll();
+      }
+    },
   });
 
   const [search, setSearch] = useState("");
@@ -110,14 +116,12 @@ const BankKontenPage = () => {
       result = result.filter((f) => f.kategori?.toUpperCase() === selectedCategory);
     }
     if (tahun) {
-      result = result.filter((f) => String(new Date(f.tanggal).getFullYear()) === tahun);
+      result = result.filter((f) => new Date(f.tanggal).getFullYear() === Number(tahun));
     }
-    result = [...result].sort((a, b) =>
-      urutan === "terbaru"
-        ? new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime()
-        : new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime()
-    );
-    return result;
+    return [...result].sort((a, b) => {
+      const diff = new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime();
+      return urutan === "terbaru" ? diff : -diff;
+    });
   }, [folders, search, selectedCategory, tahun, urutan]);
 
   const dialogFiles = useMemo(() => {
@@ -127,245 +131,234 @@ const BankKontenPage = () => {
       files = files.filter((f) => f.jenisKonten === dialogJenisKonten);
     }
     if (dialogSearch.trim()) {
-      files = files.filter((f) => f.name.toLowerCase().includes(dialogSearch.toLowerCase()));
+      const q = dialogSearch.toLowerCase();
+      files = files.filter((f) => f.name.toLowerCase().includes(q));
     }
     return files;
   }, [selectedFolder, dialogJenisKonten, dialogSearch]);
 
   const handleDownloadSingle = (file: MockBankKontenFile) => {
-    addToast(`Mengunduh file: ${file.name}`, "info");
+    addToast(`Memulai unduhan file "${file.name}"...`, "success");
+    const link = document.createElement("a");
+    link.href = file.workLink;
+    link.target = "_blank";
+    link.download = file.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleDownloadAllFolder = () => {
-    if (selectedFolder) {
-      addToast(`Menyiapkan arsip ZIP untuk "${selectedFolder.title}"...`, "success");
-    }
+    if (!selectedFolder) return;
+    addToast(
+      `Memulai pengunduhan ${selectedFolder.files.length} arsip kegiatan ${selectedFolder.title}...`,
+      "success"
+    );
   };
 
   if (isLoading) return <LoadingSpinner />;
   if (error) return <ErrorState message={error.message} onRetry={refetch} />;
 
   return (
-    <div className="space-y-6 max-w-full min-w-0 pb-16">
-      {/* Header & Upload Action */}
+    <div className="space-y-6 pb-12">
+      {/* Header Title Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Bank Konten</h2>
-            <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-indigo-500" />
+          <h1 className="text-2xl font-extrabold text-[#0f1f5c] tracking-tight flex items-center gap-2">
+            <span>Bank Konten</span>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100/80 text-[#0f1f5c] border border-blue-200/60">
               Arsip Digital
             </span>
-          </div>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            Pusat penyimpanan & pencarian arsip hasil produksi media per agenda kegiatan.
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Pusat penyimpanan &amp; penemuan kembali aset dokumentasi liputan IKP Diskominfo.
           </p>
         </div>
 
-        <Button
-          variant="default"
-          size="sm"
-          className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium flex items-center gap-1.5 shadow-sm"
-          onClick={() => addToast("Fitur upload file arsip baru segera hadir.", "info")}
-        >
-          <UploadCloud className="w-4 h-4" />
-          <span>Upload Arsip</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="default"
+            size="sm"
+            className="bg-[#0f1f5c] hover:bg-[#162a7a] text-white shadow-xs flex items-center gap-1.5"
+            onClick={() => addToast("Silakan unggah luaran melalui menu Produksi.", "info")}
+          >
+            <UploadCloud className="w-4 h-4" />
+            <span>Unggah Berkas Baru</span>
+          </Button>
+        </div>
       </div>
 
-      {/* Summary KPI Badges */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-white p-3.5 rounded-xl border border-gray-200 shadow-xs flex items-center gap-3">
-          <div className="p-2.5 rounded-lg bg-indigo-50 text-indigo-600">
+      {/* Modern Metric Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white rounded-2xl border border-gray-200/80 p-4 shadow-xs flex items-center justify-between">
+          <div>
+            <p className="text-xs font-medium text-gray-400">Total Folder Kegiatan</p>
+            <p className="text-2xl font-black text-gray-900 mt-0.5">{stats.totalFolders}</p>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
             <Folder className="w-5 h-5" />
           </div>
-          <div>
-            <p className="text-[11px] font-medium text-gray-500">Folder Kegiatan</p>
-            <p className="text-lg font-bold text-gray-900">{stats.totalFolders}</p>
-          </div>
         </div>
 
-        <div className="bg-white p-3.5 rounded-xl border border-gray-200 shadow-xs flex items-center gap-3">
-          <div className="p-2.5 rounded-lg bg-blue-50 text-blue-600">
-            <Video className="w-5 h-5" />
-          </div>
+        <div className="bg-white rounded-2xl border border-gray-200/80 p-4 shadow-xs flex items-center justify-between">
           <div>
-            <p className="text-[11px] font-medium text-gray-500">Total Video</p>
-            <p className="text-lg font-bold text-gray-900">{stats.totalVideo}</p>
+            <p className="text-xs font-medium text-gray-400">Total Arsip Foto</p>
+            <p className="text-2xl font-black text-emerald-600 mt-0.5">{stats.totalFoto}</p>
           </div>
-        </div>
-
-        <div className="bg-white p-3.5 rounded-xl border border-gray-200 shadow-xs flex items-center gap-3">
-          <div className="p-2.5 rounded-lg bg-emerald-50 text-emerald-600">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
             <ImageIcon className="w-5 h-5" />
           </div>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-gray-200/80 p-4 shadow-xs flex items-center justify-between">
           <div>
-            <p className="text-[11px] font-medium text-gray-500">Total Foto</p>
-            <p className="text-lg font-bold text-gray-900">{stats.totalFoto}</p>
+            <p className="text-xs font-medium text-gray-400">Total Arsip Video</p>
+            <p className="text-2xl font-black text-blue-600 mt-0.5">{stats.totalVideo}</p>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+            <Video className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="bg-white p-3.5 rounded-xl border border-gray-200 shadow-xs flex items-center gap-3">
-          <div className="p-2.5 rounded-lg bg-purple-50 text-purple-600">
-            <HardDrive className="w-5 h-5" />
-          </div>
+        <div className="bg-white rounded-2xl border border-gray-200/80 p-4 shadow-xs flex items-center justify-between">
           <div>
-            <p className="text-[11px] font-medium text-gray-500">Total File Media</p>
-            <p className="text-lg font-bold text-gray-900">{stats.totalFiles} Item</p>
+            <p className="text-xs font-medium text-gray-400">Kapasitas Terpakai</p>
+            <p className="text-2xl font-black text-gray-900 mt-0.5">1.2 TB</p>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center">
+            <HardDrive className="w-5 h-5" />
           </div>
         </div>
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-xs space-y-3">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          <div className="flex-1 min-w-[240px]">
+      <div className="bg-white rounded-2xl border border-gray-200/80 p-4 shadow-xs space-y-3">
+        <div className="flex flex-col md:flex-row gap-3 items-center">
+          <div className="relative flex-1 w-full">
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
             <Input
-              placeholder="Cari judul kegiatan, petugas, no strakom, atau isu..."
+              placeholder="Cari berdasarkan nama kegiatan, nomor strakom, atau petugas..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full text-xs"
+              className="pl-9.5 w-full text-xs sm:text-sm py-2"
             />
           </div>
 
-          <div className="w-full sm:w-36 shrink-0">
+          <div className="flex items-center gap-2 w-full md:w-auto">
             <Select
               options={[{ value: "", label: "Semua Tahun" }, ...tahunOptions]}
-              placeholder="Tahun"
               value={tahun}
               onChange={(e) => setTahun(e.target.value)}
+              className="w-full md:w-36 text-xs"
             />
-          </div>
-
-          <div className="w-full sm:w-44 shrink-0">
             <Select
-              options={urutanOptions}
+              options={[
+                { value: "terbaru", label: "Terbaru" },
+                { value: "terlama", label: "Terlama" },
+              ]}
               value={urutan}
               onChange={(e) => setUrutan(e.target.value)}
+              className="w-full md:w-32 text-xs"
             />
           </div>
         </div>
 
-        {/* Category Pills Filter */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pt-1 border-t border-gray-100 text-xs">
-          <span className="text-[11px] font-medium text-gray-400 mr-1 flex items-center gap-1 shrink-0">
-            <Filter className="w-3 h-3" />
-            Isu:
+        {/* Category Pill Filters */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+          <span className="text-gray-400 font-semibold text-[11px] uppercase mr-1 flex items-center gap-1 shrink-0">
+            <Filter className="w-3 h-3" /> Isu:
           </span>
           {["ALL", "SOSIAL", "EKONOMI", "LINGKUNGAN"].map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-3 py-1 rounded-full text-xs font-semibold transition-all shrink-0 ${
+              className={`px-3 py-1 rounded-full font-medium transition-all shrink-0 ${
                 selectedCategory === cat
-                  ? "bg-indigo-600 text-white shadow-xs"
+                  ? "bg-[#0f1f5c] text-white shadow-xs"
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
-              {cat === "ALL" ? "Semua Isu" : cat}
+              {cat === "ALL" ? "Semua Kategori" : cat}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Modern Card Grid */}
+      {/* Folders Grid */}
       {filtered.length === 0 ? (
         <EmptyState
-          title="Tidak ada arsip ditemukan"
-          description="Coba ubah kata kunci pencarian atau ganti filter tahun/isu di atas."
+          title="Tidak ada folder kegiatan"
+          description="Tidak ada arsip kegiatan yang sesuai dengan kriteria filter."
         />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {filtered.map((folder) => {
             const summary = summarizeJenis(folder);
+            const initial = folder.petugas.slice(0, 2).toUpperCase();
             const coverGradient = getCoverGradient(folder);
-            const initial = folder.petugas ? folder.petugas.slice(0, 2).toUpperCase() : "PT";
 
             return (
               <div
                 key={folder.id}
                 onClick={() => openFolder(folder)}
-                className="group relative bg-white rounded-2xl border border-gray-200/90 shadow-xs hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 overflow-hidden flex flex-col justify-between cursor-pointer"
+                className="group bg-white rounded-2xl border border-gray-200/80 hover:border-indigo-300 hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden flex flex-col justify-between"
               >
-                {/* 1. TOP MEDIA COVER (HERO BANNER) — SUPPORTS THUMBNAILS OR GRADIENT FALLBACK */}
-                <div className="relative h-40 bg-gray-900 border-b border-gray-100 flex items-center justify-center overflow-hidden">
-                  {folder.thumbnailUrl ? (
-                    <>
-                      <img
-                        src={folder.thumbnailUrl}
-                        alt={folder.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                      {/* Dark gradient overlay for crystal clear badges */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/40 pointer-events-none" />
-                    </>
-                  ) : (
-                    <div className={`w-full h-full bg-gradient-to-br ${coverGradient} flex items-center justify-center`}>
-                      <div className="absolute -top-6 -right-6 w-24 h-24 bg-white/40 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-500" />
-                      <div className="w-16 h-16 rounded-2xl bg-white/90 shadow-md backdrop-blur-md border border-white/80 flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-all duration-300">
-                        <Folder className="w-8 h-8 text-indigo-600 fill-indigo-50" />
-                      </div>
-                    </div>
-                  )}
+                {/* 1. VISUAL COVER BANNER WITH GLASSMORPHISM BADGES */}
+                <div className={`h-36 bg-gradient-to-br ${coverGradient} relative p-4 flex flex-col justify-between border-b border-gray-100/80 overflow-hidden`}>
+                  {/* Top Metadata Badges */}
+                  <div className="flex items-center justify-between gap-2 z-10">
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-white/80 backdrop-blur-md text-gray-700 border border-white/40 shadow-2xs">
+                      {folder.strakomNumber || "ARSIP"}
+                    </span>
 
-                  {/* Top-Left: Category Pill */}
-                  {folder.kategori && (
-                    <div className="absolute top-3 left-3 z-10">
-                      <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full border shadow-sm backdrop-blur-md ${
-                        folder.thumbnailUrl
-                          ? "bg-black/50 text-white border-white/20"
-                          : getCategoryBadgeColor(folder.kategori)
-                      }`}>
-                        <Tag className="w-2.5 h-2.5" />
+                    {folder.kategori && (
+                      <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border shadow-2xs backdrop-blur-md ${getCategoryBadgeColor(folder.kategori)}`}>
                         {folder.kategori}
                       </span>
-                    </div>
-                  )}
+                    )}
+                  </div>
 
-                  {/* Top-Right: Glassmorphism Media Count Pill */}
-                  <div className="absolute top-3 right-3 z-10">
-                    <div className="bg-black/60 backdrop-blur-md text-white text-[10px] font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-2 shadow-sm border border-white/20">
-                      {summary.jumlahVideo > 0 && (
-                        <span className="flex items-center gap-0.5 text-blue-200">
-                          <Video className="w-3 h-3" />
-                          {summary.jumlahVideo}
-                        </span>
-                      )}
+                  {/* Center Folder Glow Icon */}
+                  <div className="self-center transform group-hover:scale-110 transition-transform duration-300">
+                    <div className="w-12 h-12 rounded-2xl bg-white/90 shadow-md backdrop-blur-md flex items-center justify-center text-indigo-700">
+                      <Folder className="w-6 h-6 fill-indigo-600/20" />
+                    </div>
+                  </div>
+
+                  {/* Bottom Type Pills */}
+                  <div className="flex items-center justify-between text-[11px] text-gray-500 z-10">
+                    <div className="flex items-center gap-1.5">
                       {summary.jumlahFoto > 0 && (
-                        <span className="flex items-center gap-0.5 text-emerald-200">
-                          <ImageIcon className="w-3 h-3" />
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/80 backdrop-blur-md text-emerald-800 font-semibold border border-white/40">
+                          <ImageIcon className="w-3 h-3 text-emerald-600" />
                           {summary.jumlahFoto}
                         </span>
                       )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* 2. CARD CONTENT BODY */}
-                <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
-                  <div>
-                    {/* Strakom & Date row */}
-                    <div className="flex items-center justify-between text-[11px] text-gray-400 mb-1.5">
-                      <span className="flex items-center gap-1 font-medium text-gray-500">
-                        <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                        {formatTanggal(folder.tanggal)}
-                      </span>
-                      {folder.strakomNumber && (
-                        <span className="font-mono text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200">
-                          {folder.strakomNumber}
+                      {summary.jumlahVideo > 0 && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/80 backdrop-blur-md text-blue-800 font-semibold border border-white/40">
+                          <Video className="w-3 h-3 text-blue-600" />
+                          {summary.jumlahVideo}
                         </span>
                       )}
                     </div>
 
-                    {/* Title */}
-                    <h3 className="text-sm font-bold text-gray-900 group-hover:text-indigo-600 transition-colors line-clamp-2 leading-snug">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-600 bg-white/80 backdrop-blur-md px-2 py-0.5 rounded-md">
+                      <Calendar className="w-3 h-3 text-gray-400" />
+                      {formatTanggal(folder.tanggal)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 2. CARD CONTENT INFO */}
+                <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
+                  <div>
+                    <h3 className="font-bold text-gray-900 text-sm group-hover:text-indigo-600 transition-colors line-clamp-2 leading-snug">
                       {folder.title}
                     </h3>
                   </div>
 
                   {/* Petugas & Content breakdown */}
                   <div className="pt-2 border-t border-gray-100 flex items-center justify-between gap-2">
-                    {/* Petugas Info */}
                     <div className="flex items-center gap-2 truncate">
                       <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 text-white font-bold text-[10px] flex items-center justify-center shrink-0 shadow-2xs">
                         {initial}
@@ -377,7 +370,6 @@ const BankKontenPage = () => {
                       </div>
                     </div>
 
-                    {/* Total file badge */}
                     <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100/60 shrink-0">
                       {summary.totalFiles} File
                     </span>
@@ -400,7 +392,6 @@ const BankKontenPage = () => {
         open={selectedFolder !== null}
         onClose={() => setSelectedFolder(null)}
         title={selectedFolder?.title || "Galeri Arsip Kegiatan"}
-        size="lg"
       >
         {selectedFolder && (
           <div className="space-y-5">
@@ -440,7 +431,6 @@ const BankKontenPage = () => {
 
             {/* Filter Tabs & Search inside Dialog */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              {/* Type Switcher */}
               <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-lg text-xs self-start">
                 <button
                   onClick={() => setDialogJenisKonten("ALL")}
@@ -476,7 +466,6 @@ const BankKontenPage = () => {
                 </button>
               </div>
 
-              {/* Search file in dialog */}
               <div className="w-full sm:w-48">
                 <Input
                   placeholder="Cari file..."
@@ -503,7 +492,6 @@ const BankKontenPage = () => {
                       key={file.id}
                       className="group relative rounded-xl border border-gray-200/90 bg-white hover:border-indigo-300 hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col justify-between"
                     >
-                      {/* Media Thumbnail with dynamic Image / Video Support */}
                       <div className="h-28 bg-gray-900 flex flex-col items-center justify-center text-gray-400 relative overflow-hidden">
                         {file.thumbnailUrl ? (
                           <>
@@ -528,13 +516,11 @@ const BankKontenPage = () => {
                           </div>
                         )}
 
-                        {/* Format extension tag */}
                         <span className="absolute bottom-2 right-2 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-md text-white border border-white/20">
                           {isVideo ? "MP4" : "JPG"}
                         </span>
                       </div>
 
-                      {/* File Details & Actions */}
                       <div className="p-2.5 space-y-1.5">
                         <p className="text-xs font-semibold text-gray-900 truncate" title={file.name}>
                           {file.name}
@@ -546,7 +532,6 @@ const BankKontenPage = () => {
                           </span>
                         </div>
 
-                        {/* Hover Quick Action Buttons */}
                         <div className="pt-1.5 flex items-center gap-1.5 border-t border-gray-100">
                           <button
                             onClick={() => addToast(`Membuka pratinjau ${file.name}`, "info")}
