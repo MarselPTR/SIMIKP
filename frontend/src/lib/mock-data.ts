@@ -332,6 +332,7 @@ export interface MockBankKontenFile {
   jenisKonten: "foto" | "video";
   size?: string;
   thumbnailUrl?: string;
+  workLink?: string;
 }
 
 export interface MockBankKontenFolder {

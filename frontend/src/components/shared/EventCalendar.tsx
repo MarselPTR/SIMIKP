@@ -1,4 +1,3 @@
-import type { CSSProperties } from "react";
 import { ChevronLeft, ChevronRight, CalendarDays, Plus } from "lucide-react";
 
 const NAVY = "#0f1f5c";

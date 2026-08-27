@@ -9,87 +9,18 @@ import {
   ChevronRight,
   ArrowUpRight,
   AlertTriangle,
-  CalendarDays,
   Upload,
   FileText,
 } from "lucide-react";
 import { useAuth } from "../../lib/AuthContext";
-import { usePetugasTasksStore } from "../../lib/petugas-store";
+import { usePetugasTasksStore, type PetugasTaskItem } from "../../lib/petugas-store";
 import EventCalendar, { dateKeyOf } from "../../components/shared/EventCalendar";
 import type { CalendarEvent } from "../../components/shared/EventCalendar";
 import Dialog from "../../components/ui/Dialog";
 import Button from "../../components/ui/Button";
 import { WORKFLOWS } from "../../lib/mock-data";
 
-const NAVY = "#0f1f5c";
 
-interface PetugasTask {
-  id: string;
-  kegiatan: string;
-  lokasi: string;
-  deadline: string;
-  status: string;
-  jenisPekerjaan: string;
-  instruksi: string;
-  bidang?: string;
-  workLink?: string;
-  hasConflict?: boolean;
-}
-
-const fallbackTasks: PetugasTask[] = [
-  {
-    id: "t1",
-    kegiatan: "Liputan Peresmian Taman Kota Kec. Selatan",
-    lokasi: "Taman Kota Kec. Selatan",
-    jenisPekerjaan: "Penulisan Rilis & Berita",
-    deadline: "24 Agustus 2026 15:00",
-    bidang: "PRAHUM",
-    status: "LIPUTAN",
-    instruksi: "Fokus pada wawancara Walikota dan dampaknya bagi UMKM lokal sekitar taman.",
-    hasConflict: true,
-  },
-  {
-    id: "t2",
-    kegiatan: "Rapat Koordinasi Publikasi OPD & Media Massa",
-    lokasi: "Studio Media SIMIKP",
-    jenisPekerjaan: "Press Release & Live Tweeting",
-    deadline: "25 Agustus 2026 16:00",
-    bidang: "PRAHUM",
-    status: "MENULIS",
-    instruksi: "Rangkum 5 poin kesepakatan media relations untuk tayang di portal resmi.",
-  },
-  {
-    id: "t3",
-    kegiatan: "Dokumentasi Upacara Peringatan Hari Kemerdekaan",
-    lokasi: "Balaikota Among Tani",
-    jenisPekerjaan: "Foto & Video Liputan",
-    deadline: "26 Agustus 2026 12:00",
-    bidang: "FOTO_VIDEO",
-    status: "SIAP_TAYANG",
-    instruksi: "Ambil minimal 30 foto resolusi tinggi dan highlight video 60 detik.",
-    workLink: "https://drive.google.com/drive/folders/1upacara-foto-batu",
-  },
-  {
-    id: "t4",
-    kegiatan: "Desain Banner Media Sosial HUT Kota Batu Ke-25",
-    lokasi: "Kantor Diskominfo",
-    jenisPekerjaan: "Desain Grafis / Feeds Instagram",
-    deadline: "27 Agustus 2026 14:00",
-    bidang: "DESAINER_EDITOR",
-    status: "DESAIN",
-    instruksi: "Gunakan palet warna resmi Pemkot dan sertakan logo OPD terbaru.",
-  },
-  {
-    id: "t5",
-    kegiatan: "Sidang Paripurna Pandangan Fraksi DPRD",
-    lokasi: "Gedung DPRD Kota Batu",
-    jenisPekerjaan: "Notulensi & Transkrip Pidato",
-    deadline: "28 Agustus 2026 17:00",
-    bidang: "PRAHUM",
-    status: "BELUM",
-    instruksi: "Dokumentasikan poin pandangan seluruh 6 fraksi secara lengkap.",
-  },
-];
 
 /* ---------------------------------------------------------------------- */
 /* Spotlight Stat Card Component (Mirip Admin Dashboard)                  */
@@ -234,7 +165,7 @@ const PetugasDashboardPage = () => {
   const prosesCount = tasks.filter(
     (t) => t.status !== "COMPLETED" && t.status !== "SELESAI" && t.status !== "BELUM"
   ).length;
-  const belumCount = tasks.filter((t) => t.status === "BELUM" || t.status === "ASSIGNED").length;
+
   const berkasCount = tasks.filter((t) => Boolean(t.workLink)).length;
 
   /* ---------------------------------------------------------------------- */

@@ -17,106 +17,6 @@ import { usePetugasTasksStore, getStoredPetugasTasks, saveStoredPetugasTasks } f
 import { WORKFLOWS } from "../../lib/mock-data";
 import { useToast } from "../../contexts/ToastContext";
 
-const DARK_BLUE = "#0a1647"; // Biru Gelap (Midnight Navy)
-
-interface TaskItem {
-  id: string;
-  kegiatan: string;
-  lokasi: string;
-  jenisPekerjaan: string;
-  deadline: string;
-  bidang: string;
-  status: string;
-  instruksi: string;
-  kategori: "upacara" | "rapat" | "peresmian" | "sidang";
-  hasConflict?: boolean;
-  conflictMessage?: string;
-  workLink?: string;
-}
-
-const defaultTasks: TaskItem[] = [
-  {
-    id: "t1",
-    kegiatan: "Liputan Peresmian Taman Kota Kec. Selatan",
-    lokasi: "Taman Kota Kec. Selatan",
-    jenisPekerjaan: "Penulisan Rilis & Berita",
-    deadline: "24 Agustus 2026 15:00",
-    bidang: "PRAHUM",
-    status: "LIPUTAN",
-    kategori: "peresmian",
-    instruksi: "Fokus pada wawancara Walikota dan dampaknya bagi UMKM lokal sekitar taman.",
-    hasConflict: true,
-    conflictMessage: "Budi sudah memiliki jadwal kegiatan lain pada pukul 09.00–11.00 WIB.",
-  },
-  {
-    id: "t2",
-    kegiatan: "Rapat Koordinasi Publikasi OPD & Media Massa",
-    lokasi: "Studio Media SIMIKP",
-    jenisPekerjaan: "Press Release & Live Tweeting",
-    deadline: "25 Agustus 2026 16:00",
-    bidang: "PRAHUM",
-    status: "MENULIS",
-    kategori: "rapat",
-    instruksi: "Rangkum 5 poin kesepakatan media relations untuk tayang di portal resmi.",
-  },
-  {
-    id: "t3",
-    kegiatan: "Dokumentasi Upacara Peringatan Hari Kemerdekaan",
-    lokasi: "Balaikota Among Tani",
-    jenisPekerjaan: "Foto & Video Liputan",
-    deadline: "26 Agustus 2026 12:00",
-    bidang: "FOTO_VIDEO",
-    status: "SIAP_TAYANG",
-    kategori: "upacara",
-    instruksi: "Ambil minimal 30 foto resolusi tinggi dan highlight video 60 detik.",
-    workLink: "https://drive.google.com/drive/folders/1upacara-foto-batu",
-  },
-  {
-    id: "t4",
-    kegiatan: "Desain Banner Media Sosial HUT Kota Batu Ke-25",
-    lokasi: "Kantor Diskominfo",
-    jenisPekerjaan: "Desain Grafis / Feeds Instagram",
-    deadline: "27 Agustus 2026 14:00",
-    bidang: "DESAINER_EDITOR",
-    status: "DESAIN",
-    kategori: "peresmian",
-    instruksi: "Gunakan palet warna resmi Pemkot dan sertakan logo OPD terbaru.",
-  },
-  {
-    id: "t5",
-    kegiatan: "Sidang Paripurna Pandangan Fraksi DPRD",
-    lokasi: "Gedung DPRD Kota Batu",
-    jenisPekerjaan: "Notulensi & Transkrip Pidato",
-    deadline: "28 Agustus 2026 17:00",
-    bidang: "PRAHUM",
-    status: "BELUM",
-    kategori: "sidang",
-    instruksi: "Dokumentasikan poin pandangan seluruh 6 fraksi secara lengkap.",
-  },
-  {
-    id: "t6",
-    kegiatan: "Produksi Video Profil Desa Wisata Bumiaji",
-    lokasi: "Kecamatan Bumiaji",
-    jenisPekerjaan: "Video Dokumenter 4K",
-    deadline: "29 Agustus 2026 16:00",
-    bidang: "FOTO_VIDEO",
-    status: "LIPUTAN",
-    kategori: "peresmian",
-    instruksi: "Pengambilan video lanskap perkebunan apel dan wawancara pengelola wisata.",
-  },
-  {
-    id: "t7",
-    kegiatan: "Infografis Realisasi Anggaran APBD Triwulan II",
-    lokasi: "Kantor Diskominfo",
-    jenisPekerjaan: "Desain Infografis Publik",
-    deadline: "30 Agustus 2026 12:00",
-    bidang: "DESAINER_EDITOR",
-    status: "REVISI",
-    kategori: "rapat",
-    instruksi: "Perbaiki kontras warna pada diagram sektor pendidikan dan kesehatan.",
-  },
-];
-
 const categoryLabels: Record<string, string> = {
   upacara: "Upacara",
   rapat: "Rapat",
@@ -153,16 +53,6 @@ const PetugasPenugasanPage = () => {
     addToast(`Status tugas diperbarui ke: ${status.replace("_", " ")}`, "success");
   };
 
-  const handleSaveWorkLink = async () => {
-    if (!selectedTask) return;
-    if (!uploadLink.trim()) {
-      addToast("Tautan luaran tidak boleh kosong.", "warning");
-      return;
-    }
-    await storeSubmitWork(selectedTask.id, uploadLink.trim());
-    addToast("Tautan hasil kerja berhasil disimpan ke database!", "success");
-  };
-
   const filteredTasks = useMemo(() => {
     return userTasks.filter((t) => {
       if (categoryFilter !== "ALL" && t.kategori !== categoryFilter) return false;
@@ -182,8 +72,6 @@ const PetugasPenugasanPage = () => {
     });
   }, [userTasks, categoryFilter, statusFilter, searchQuery]);
 
-  const activeWorkflow = userBidang ? WORKFLOWS[userBidang] ?? [] : WORKFLOWS["PRAHUM"];
-
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -199,7 +87,6 @@ const PetugasPenugasanPage = () => {
 
   return (
     <div className="space-y-6 pb-10 bg-white min-h-screen">
-      {/* 1. Header Title (Biru Gelap & Putih) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-[#0a1647]">
@@ -216,9 +103,7 @@ const PetugasPenugasanPage = () => {
         </div>
       </div>
 
-      {/* 2. Main Content Area */}
       {selectedTask ? (
-        /* DETAIL WORKSPACE VIEW (Konsep 1: Stepper Timeline + 2 Kolom Terorganisir) */
         (() => {
           const taskWorkflow = WORKFLOWS[selectedTask.bidang || userBidang || "PRAHUM"] || WORKFLOWS["PRAHUM"];
           const rawStatus = selectedTask.status === "COMPLETED" ? "SELESAI" : selectedTask.status === "ASSIGNED" ? "BELUM" : selectedTask.status;
@@ -230,7 +115,6 @@ const PetugasPenugasanPage = () => {
 
           return (
             <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-8 shadow-xs space-y-6">
-              {/* 1. Header Navigation & Status Badge */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
                 <button
                   onClick={() => setSelectedId(null)}
@@ -256,7 +140,6 @@ const PetugasPenugasanPage = () => {
                 </div>
               </div>
 
-              {/* Conflict Alert Banner if detected */}
               {selectedTask.hasConflict && (
                 <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 flex items-start gap-3 shadow-xs">
                   <AlertTriangle size={18} className="text-rose-600 shrink-0 mt-0.5" />
@@ -271,7 +154,6 @@ const PetugasPenugasanPage = () => {
                 </div>
               )}
 
-              {/* ⚠️ Catatan Revisi dari Admin Diskominfo (Two-Way Feedback Loop) */}
               {(selectedTask.status === "REVISI" || selectedTask.revisionNotes) && (
                 <div className="bg-amber-50/90 border border-amber-300/80 rounded-2xl p-5 shadow-xs space-y-2">
                   <div className="flex items-center justify-between gap-2 border-b border-amber-200/60 pb-2.5">
@@ -294,7 +176,6 @@ const PetugasPenugasanPage = () => {
                 </div>
               )}
 
-              {/* 2. Agenda Title & Meta Info */}
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="px-2.5 py-0.5 text-xs font-bold rounded-md bg-slate-50 border border-slate-200 text-slate-700">
@@ -315,7 +196,6 @@ const PetugasPenugasanPage = () => {
                 </div>
               </div>
 
-              {/* 3. Stepper Dot Connected Timeline Interaktif (Sesuai Konsep 1 dengan SOP Validation) */}
               <div className="p-5 rounded-2xl border border-gray-200/90 bg-slate-50/60 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -332,9 +212,7 @@ const PetugasPenugasanPage = () => {
                 </div>
 
                 <div className="relative flex items-center justify-between px-3 sm:px-6 pt-2 pb-1">
-                  {/* Background Connecting Track */}
                   <div className="absolute left-6 right-6 top-5 h-0.5 bg-gray-200 z-0" />
-                  {/* Active Progress Track */}
                   <div
                     className={`absolute left-6 top-5 h-0.5 transition-all duration-500 z-0 ${
                       isCompleted ? "bg-emerald-500" : "bg-[#0a1647]"
@@ -344,14 +222,12 @@ const PetugasPenugasanPage = () => {
                     }}
                   />
 
-                  {/* Step Nodes */}
                   {taskWorkflow.map((step, idx) => {
                     const isDone = isCompleted || idx < stepIndex;
                     const isCurrent = !isCompleted && idx === stepIndex;
                     const isRevisionStep = step === "REVISI";
 
                     const handleNodeClick = () => {
-                      // SOP validation: if current stage requires upload and no link is provided, block jumping ahead
                       const isUploadRequired = rawStatus === "DESAIN" || rawStatus === "REVISI";
                       if (idx > stepIndex && isUploadRequired && !uploadLink.trim() && !selectedTask.workLink) {
                         addToast(
@@ -371,7 +247,6 @@ const PetugasPenugasanPage = () => {
                         className="relative z-10 flex flex-col items-center cursor-pointer group focus:outline-none"
                         title={`Klik untuk ubah status ke ${step.replace("_", " ")}`}
                       >
-                        {/* Node Circle */}
                         <div
                           className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200 ${
                             isDone
@@ -390,7 +265,6 @@ const PetugasPenugasanPage = () => {
                           )}
                         </div>
 
-                        {/* Node Label */}
                         <span
                           className={`mt-2 text-[11px] font-semibold tracking-tight transition-colors select-none text-center whitespace-nowrap ${
                             isDone
@@ -410,7 +284,6 @@ const PetugasPenugasanPage = () => {
                 </div>
               </div>
 
-              {/* 4. Two-Column Grid: Kiri Lembar Instruksi, Kanan Action Box Dinamis */}
               {(() => {
                 const nextStepName = stepIndex < totalSteps - 1 ? taskWorkflow[stepIndex + 1] : null;
                 const isDesain = rawStatus === "DESAIN";
@@ -418,7 +291,6 @@ const PetugasPenugasanPage = () => {
                 const isSiapTayang = rawStatus === "SIAP_TAYANG";
                 const isBelum = rawStatus === "BELUM";
 
-                // Stage configuration for contextual action box
                 let formTitle = `Tahap ${stepIndex + 1}: Pengumpulan Luaran Kerja`;
                 let formBadge = "Proses Kerja";
                 let formBadgeStyle = "bg-blue-50 text-[#0a1647] border-[#0a1647]/30";
@@ -500,28 +372,23 @@ const PetugasPenugasanPage = () => {
 
                 return (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
-                    {/* Kolom Kiri: Lembar Instruksi Tugas */}
                     <div className="bg-slate-50/80 rounded-2xl border border-slate-200 p-5 sm:p-6 space-y-3 flex flex-col justify-between">
                       <div className="space-y-3">
                         <div className="flex items-center gap-2 text-[#0a1647] font-bold text-xs uppercase tracking-wider border-b border-slate-200/80 pb-3">
                           <FileText size={16} />
                           <span>Lembar Instruksi Penugasan</span>
                         </div>
-
                         <div className="bg-white rounded-xl p-4 border border-slate-200/80 space-y-2">
                           <p className="text-xs text-gray-700 leading-relaxed">
                             {selectedTask.instruksi || "Lakukan liputan dan dokumentasi secara menyeluruh sesuai standar operasional penugasan Kominfo."}
                           </p>
                         </div>
                       </div>
-
                       <div className="pt-3 border-t border-slate-200/60 flex flex-wrap items-center justify-between text-[11px] text-gray-500 gap-2">
                         <span>Penanggung Jawab: <strong>Admin Diskominfo</strong></span>
                         <span>Prioritas: <strong>Tinggi</strong></span>
                       </div>
                     </div>
-
-                    {/* Kolom Kanan: Dynamic Contextual Action Box */}
                     <div className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-6 space-y-4 shadow-2xs flex flex-col justify-between">
                       <div className="space-y-3">
                         <div className="flex items-center justify-between border-b border-gray-100 pb-3 gap-2">
@@ -533,11 +400,9 @@ const PetugasPenugasanPage = () => {
                             {formBadge}
                           </span>
                         </div>
-
                         <p className="text-xs text-gray-600 leading-relaxed">
                           {formDesc}
                         </p>
-
                         {!isCompleted && !isBelum && (
                           <div className="space-y-1.5">
                             <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider">
@@ -552,7 +417,6 @@ const PetugasPenugasanPage = () => {
                             />
                           </div>
                         )}
-
                         {!isCompleted && (
                           <button
                             type="button"
@@ -564,7 +428,6 @@ const PetugasPenugasanPage = () => {
                           </button>
                         )}
                       </div>
-
                       {selectedTask.workLink && (
                         <div className="pt-3 border-t border-gray-100 flex items-center justify-between gap-2 text-xs">
                           <span className="font-semibold text-emerald-700 flex items-center gap-1">
@@ -590,11 +453,8 @@ const PetugasPenugasanPage = () => {
           );
         })()
       ) : (
-        /* TASK LIST VIEW */
         <div className="space-y-4">
-          {/* Top Search Bar & Status Filter Bar */}
           <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
-            {/* Search Input */}
             <div className="relative flex-1 max-w-md">
               <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               <input
@@ -605,8 +465,6 @@ const PetugasPenugasanPage = () => {
                 className="w-full pl-10 pr-4 py-2 text-xs sm:text-sm bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0a1647]/20 focus:border-[#0a1647] transition placeholder:text-gray-400"
               />
             </div>
-
-            {/* Status Segmented Tabs */}
             <div className="inline-flex rounded-lg border border-[#0a1647]/30 bg-white p-0.5 shadow-2xs self-start md:self-auto overflow-x-auto">
               <button
                 onClick={() => setStatusFilter("ALL")}
@@ -640,63 +498,23 @@ const PetugasPenugasanPage = () => {
               </button>
             </div>
           </div>
-
-          {/* Category Filter Pills (Biru Gelap) */}
           <div className="flex flex-wrap items-center gap-2 pt-0.5">
             <span className="text-xs font-semibold text-gray-500 mr-1">Kategori:</span>
-            <button
-              onClick={() => setCategoryFilter("ALL")}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                categoryFilter === "ALL"
-                  ? "bg-[#0a1647] text-white border border-[#0a1647] shadow-xs"
-                  : "bg-white text-[#0a1647] border border-[#0a1647]/30 hover:bg-[#0a1647]/5 hover:border-[#0a1647] active:bg-[#0a1647] active:text-white"
-              }`}
-            >
-              Semua
-            </button>
-            <button
-              onClick={() => setCategoryFilter("upacara")}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                categoryFilter === "upacara"
-                  ? "bg-[#0a1647] text-white border border-[#0a1647] shadow-xs"
-                  : "bg-white text-[#0a1647] border border-[#0a1647]/30 hover:bg-[#0a1647]/5 hover:border-[#0a1647] active:bg-[#0a1647] active:text-white"
-              }`}
-            >
-              Upacara
-            </button>
-            <button
-              onClick={() => setCategoryFilter("rapat")}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                categoryFilter === "rapat"
-                  ? "bg-[#0a1647] text-white border border-[#0a1647] shadow-xs"
-                  : "bg-white text-[#0a1647] border border-[#0a1647]/30 hover:bg-[#0a1647]/5 hover:border-[#0a1647] active:bg-[#0a1647] active:text-white"
-              }`}
-            >
-              Rapat
-            </button>
-            <button
-              onClick={() => setCategoryFilter("peresmian")}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                categoryFilter === "peresmian"
-                  ? "bg-[#0a1647] text-white border border-[#0a1647] shadow-xs"
-                  : "bg-white text-[#0a1647] border border-[#0a1647]/30 hover:bg-[#0a1647]/5 hover:border-[#0a1647] active:bg-[#0a1647] active:text-white"
-              }`}
-            >
-              Peresmian
-            </button>
-            <button
-              onClick={() => setCategoryFilter("sidang")}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                categoryFilter === "sidang"
-                  ? "bg-[#0a1647] text-white border border-[#0a1647] shadow-xs"
-                  : "bg-white text-[#0a1647] border border-[#0a1647]/30 hover:bg-[#0a1647]/5 hover:border-[#0a1647] active:bg-[#0a1647] active:text-white"
-              }`}
-            >
-              Sidang
-            </button>
+            {["ALL", "upacara", "rapat", "peresmian", "sidang"].map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setCategoryFilter(cat)}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  categoryFilter === cat
+                    ? "bg-[#0a1647] text-white border border-[#0a1647] shadow-xs"
+                    : "bg-white text-[#0a1647] border border-[#0a1647]/30 hover:bg-[#0a1647]/5 hover:border-[#0a1647] active:bg-[#0a1647] active:text-white"
+                }`}
+              >
+                {cat === "ALL" ? "Semua" : categoryLabels[cat] || cat}
+              </button>
+            ))}
           </div>
 
-          {/* Task Cards List with Spotlight Cursor Effect */}
           <div className="space-y-3 pt-2">
             {filteredTasks.length === 0 ? (
               <div className="text-center py-14 text-gray-400 bg-white rounded-2xl border border-dashed border-[#0a1647]/30 text-xs shadow-xs">
@@ -710,7 +528,6 @@ const PetugasPenugasanPage = () => {
                 const stepIndex = foundIndex >= 0 ? foundIndex : rawStatus === "SELESAI" ? taskWorkflow.length - 1 : 0;
                 const totalSteps = taskWorkflow.length;
                 const isCompleted = rawStatus === "SELESAI" || t.status === "COMPLETED";
-                const progressPercent = isCompleted ? 100 : Math.round(((stepIndex + 1) / totalSteps) * 100);
 
                 return (
                   <div

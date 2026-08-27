@@ -11,10 +11,9 @@ import {
   MoreHorizontal,
   User,
   Users,
-  Image as ImageIcon,
   Camera,
 } from "lucide-react";
-import { mockApi } from "../../lib/mock-api";
+
 import { apiFetch } from "../../lib/api-client";
 import { KEGIATAN_STATUS_COLORS, KEGIATAN_STATUS_LABELS } from "../../lib/mock-data";
 import type { MockKegiatan } from "../../lib/mock-data";

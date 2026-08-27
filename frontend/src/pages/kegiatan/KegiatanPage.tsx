@@ -9,14 +9,9 @@ import {
   MapPin,
   Building2,
   Inbox,
-  X,
   CalendarDays,
-  Users,
   UserPlus,
-  AlertTriangle,
-  ExternalLink,
 } from "lucide-react";
-import { mockApi } from "../../lib/mock-api";
 import { apiFetch } from "../../lib/api-client";
 import type { MockKegiatan, MockPenugasan } from "../../lib/mock-data";
 import { KEGIATAN_STATUS_COLORS, KEGIATAN_STATUS_LABELS } from "../../lib/mock-data";
@@ -101,17 +96,7 @@ const KegiatanPage = () => {
     },
   });
 
-  const { data: contentTypes } = useQuery({
-    queryKey: ["contentTypes"],
-    queryFn: async () => {
-      try {
-        const res = await apiFetch<{ success: boolean; data: any[] }>("/master/content-types");
-        return res.data;
-      } catch {
-        return [];
-      }
-    },
-  });
+
 
   // Query Penugasan Data for real-time synchronization
   const { data: penugasanResponse } = useQuery({
