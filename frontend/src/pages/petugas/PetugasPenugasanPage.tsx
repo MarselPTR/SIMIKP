@@ -13,7 +13,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "../../lib/AuthContext";
-import { usePetugasTasksStore } from "../../lib/petugas-store";
+import { usePetugasTasksStore, getStoredPetugasTasks, saveStoredPetugasTasks } from "../../lib/petugas-store";
 import { WORKFLOWS } from "../../lib/mock-data";
 import { useToast } from "../../contexts/ToastContext";
 
@@ -315,7 +315,7 @@ const PetugasPenugasanPage = () => {
                 </div>
               </div>
 
-              {/* 3. Stepper Dot Connected Timeline Interaktif (Sesuai Konsep 1) */}
+              {/* 3. Stepper Dot Connected Timeline Interaktif (Sesuai Konsep 1 dengan SOP Validation) */}
               <div className="p-5 rounded-2xl border border-gray-200/90 bg-slate-50/60 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -350,11 +350,24 @@ const PetugasPenugasanPage = () => {
                     const isCurrent = !isCompleted && idx === stepIndex;
                     const isRevisionStep = step === "REVISI";
 
+                    const handleNodeClick = () => {
+                      // SOP validation: if current stage requires upload and no link is provided, block jumping ahead
+                      const isUploadRequired = rawStatus === "DESAIN" || rawStatus === "REVISI";
+                      if (idx > stepIndex && isUploadRequired && !uploadLink.trim() && !selectedTask.workLink) {
+                        addToast(
+                          `Anda wajib memasukkan tautan draf desain pada tahap "${rawStatus}" terlebih dahulu sebelum melangkah ke tahap berikutnya!`,
+                          "warning"
+                        );
+                        return;
+                      }
+                      updateStatus(selectedTask.id, step);
+                    };
+
                     return (
                       <button
                         key={step}
                         type="button"
-                        onClick={() => updateStatus(selectedTask.id, step)}
+                        onClick={handleNodeClick}
                         className="relative z-10 flex flex-col items-center cursor-pointer group focus:outline-none"
                         title={`Klik untuk ubah status ke ${step.replace("_", " ")}`}
                       >
@@ -397,89 +410,182 @@ const PetugasPenugasanPage = () => {
                 </div>
               </div>
 
-              {/* 4. Two-Column Grid: Kiri Lembar Instruksi, Kanan Pengumpulan Luaran */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
-                {/* Kolom Kiri: Lembar Instruksi Tugas */}
-                <div className="bg-slate-50/80 rounded-2xl border border-slate-200 p-5 sm:p-6 space-y-3 flex flex-col justify-between">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-[#0a1647] font-bold text-xs uppercase tracking-wider border-b border-slate-200/80 pb-3">
-                      <FileText size={16} />
-                      <span>Lembar Instruksi Penugasan</span>
+              {/* 4. Two-Column Grid: Kiri Lembar Instruksi, Kanan Action Box Dinamis */}
+              {(() => {
+                const nextStepName = stepIndex < totalSteps - 1 ? taskWorkflow[stepIndex + 1] : null;
+                const isDesain = rawStatus === "DESAIN";
+                const isRevisi = rawStatus === "REVISI";
+                const isSiapTayang = rawStatus === "SIAP_TAYANG";
+                const isBelum = rawStatus === "BELUM";
+
+                // Stage configuration for contextual action box
+                let formTitle = `Tahap ${stepIndex + 1}: Pengumpulan Luaran Kerja`;
+                let formBadge = "Proses Kerja";
+                let formBadgeStyle = "bg-blue-50 text-[#0a1647] border-[#0a1647]/30";
+                let formDesc = "Masukkan tautan Google Drive / Cloud storage berkas hasil kerja Anda.";
+                let formButtonText = nextStepName ? `Lanjut ke Tahap ${nextStepName.replace("_", " ")} ➔` : "Simpan Progres";
+                let formButtonColor = "bg-[#0a1647] hover:bg-[#122368]";
+                let isUploadMandatory = false;
+                let placeholderText = "https://drive.google.com/drive/folders/...";
+
+                if (isBelum) {
+                  formTitle = "Tahap 1: Mulai Pengerjaan Agenda";
+                  formBadge = "Tahap Awal";
+                  formBadgeStyle = "bg-slate-100 text-slate-700 border-slate-300";
+                  formDesc = "Pelajari lembar instruksi penugasan di sebelah kiri. Bila siap, klik tombol di bawah untuk memulai tahapan aktif.";
+                  formButtonText = userBidang === "DESAINER_EDITOR" ? "▶️ Mulai Proses Desain Grafis" : "▶️ Mulai Liputan Lapangan";
+                  formButtonColor = "bg-[#0a1647] hover:bg-[#122368]";
+                } else if (isDesain) {
+                  formTitle = "Tahap 2: Pengunggahan Draf Desain Pertama (Wajib)";
+                  formBadge = "Wajib Unggah Draf";
+                  formBadgeStyle = "bg-amber-50 text-amber-800 border-amber-300 font-bold";
+                  formDesc = "Masukkan tautan Google Drive, Canva, atau Figma draf awal desain Anda. Tautan draf wajib disertakan sebelum Anda dapat mengajukan review ke Admin.";
+                  formButtonText = "📤 Ajukan Draf Desain untuk Review Admin ➔";
+                  formButtonColor = "bg-[#0a1647] hover:bg-[#122368]";
+                  isUploadMandatory = true;
+                  placeholderText = "https://drive.google.com/... atau https://www.canva.com/design/...";
+                } else if (isRevisi) {
+                  formTitle = "Tahap 3: Pengumpulan Hasil Revisi Desain";
+                  formBadge = "Perlu Revisi Admin";
+                  formBadgeStyle = "bg-amber-50 text-amber-800 border-amber-300 font-bold";
+                  formDesc = "Perbaiki materi desain sesuai arahan pada Catatan Revisi Admin di atas, lalu masukkan tautan file perbaikan untuk dikirim ulang.";
+                  formButtonText = "📤 Kirim Ulang Hasil Revisi (Lanjut ke Siap Tayang) ➔";
+                  formButtonColor = "bg-amber-600 hover:bg-amber-700";
+                  isUploadMandatory = true;
+                  placeholderText = "https://drive.google.com/... (Tautan Hasil Revisi Terbaru)";
+                } else if (isSiapTayang) {
+                  formTitle = `Tahap ${stepIndex + 1}: Materi Final Siap Tayang / Publikasi`;
+                  formBadge = "Siap Publikasi";
+                  formBadgeStyle = "bg-emerald-50 text-emerald-700 border-emerald-300 font-bold";
+                  formDesc = "Materi telah selesai dan disetujui. Klik tombol di bawah untuk mengonfirmasi selesai dan mengarsipkan luaran ke Bank Konten SIMIKP.";
+                  formButtonText = "✅ Selesaikan & Arsipkan ke Bank Konten ➔";
+                  formButtonColor = "bg-emerald-600 hover:bg-emerald-700";
+                  isUploadMandatory = true;
+                } else if (isCompleted) {
+                  formTitle = "Tahap 5: Tugas Selesai & Terarsip Penuh";
+                  formBadge = "100% Selesai";
+                  formBadgeStyle = "bg-emerald-50 text-emerald-700 border-emerald-300 font-bold";
+                  formDesc = "Tugas ini telah rampung seluruhnya. Seluruh berkas dokumentasi dan luaran tersimpan aman di Bank Konten.";
+                  formButtonText = "Tugas Telah Selesai Penuh";
+                  formButtonColor = "bg-gray-400 cursor-default opacity-80";
+                }
+
+                const handleDynamicActionSubmit = async () => {
+                  if (isCompleted) return;
+
+                  if (isUploadMandatory && !uploadLink.trim() && !selectedTask.workLink) {
+                    addToast("Harap masukkan tautan Google Drive / Cloud draf desain Anda sebelum melanjutkan!", "warning");
+                    return;
+                  }
+
+                  const targetLink = uploadLink.trim() || selectedTask.workLink || "";
+
+                  if (isSiapTayang || nextStepName === "SELESAI") {
+                    await storeSubmitWork(selectedTask.id, targetLink);
+                    addToast("Tugas telah selesai dan berkas berhasil diarsipkan ke Bank Konten!", "success");
+                  } else if (nextStepName) {
+                    if (targetLink) {
+                      const current = getStoredPetugasTasks();
+                      const updated = current.map((t) =>
+                        t.id === selectedTask.id ? { ...t, workLink: targetLink, status: nextStepName } : t
+                      );
+                      saveStoredPetugasTasks(updated);
+                    } else {
+                      await storeUpdateStatus(selectedTask.id, nextStepName);
+                    }
+
+                    addToast(`Status tugas berhasil diperbarui ke: ${nextStepName.replace("_", " ")}`, "success");
+                  }
+                };
+
+                return (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
+                    {/* Kolom Kiri: Lembar Instruksi Tugas */}
+                    <div className="bg-slate-50/80 rounded-2xl border border-slate-200 p-5 sm:p-6 space-y-3 flex flex-col justify-between">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 text-[#0a1647] font-bold text-xs uppercase tracking-wider border-b border-slate-200/80 pb-3">
+                          <FileText size={16} />
+                          <span>Lembar Instruksi Penugasan</span>
+                        </div>
+
+                        <div className="bg-white rounded-xl p-4 border border-slate-200/80 space-y-2">
+                          <p className="text-xs text-gray-700 leading-relaxed">
+                            {selectedTask.instruksi || "Lakukan liputan dan dokumentasi secara menyeluruh sesuai standar operasional penugasan Kominfo."}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="pt-3 border-t border-slate-200/60 flex flex-wrap items-center justify-between text-[11px] text-gray-500 gap-2">
+                        <span>Penanggung Jawab: <strong>Admin Diskominfo</strong></span>
+                        <span>Prioritas: <strong>Tinggi</strong></span>
+                      </div>
                     </div>
 
-                    <div className="bg-white rounded-xl p-4 border border-slate-200/80 space-y-2">
-                      <p className="text-xs text-gray-700 leading-relaxed">
-                        {selectedTask.instruksi || "Lakukan liputan dan dokumentasi secara menyeluruh sesuai standar operasional penugasan Kominfo."}
-                      </p>
+                    {/* Kolom Kanan: Dynamic Contextual Action Box */}
+                    <div className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-6 space-y-4 shadow-2xs flex flex-col justify-between">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between border-b border-gray-100 pb-3 gap-2">
+                          <div className="flex items-center gap-2 text-[#0a1647] font-bold text-xs uppercase tracking-wider truncate">
+                            <Upload size={16} />
+                            <span className="truncate">{formTitle}</span>
+                          </div>
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${formBadgeStyle}`}>
+                            {formBadge}
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-gray-600 leading-relaxed">
+                          {formDesc}
+                        </p>
+
+                        {!isCompleted && !isBelum && (
+                          <div className="space-y-1.5">
+                            <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider">
+                              Tautan Berkas (Google Drive / Canva / Cloud) {isUploadMandatory && <span className="text-rose-500">*Wajib</span>}:
+                            </label>
+                            <input
+                              type="url"
+                              value={uploadLink}
+                              onChange={(e) => setUploadLink(e.target.value)}
+                              placeholder={placeholderText}
+                              className="w-full px-3.5 py-2.5 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0a1647]/20 focus:border-[#0a1647] transition placeholder:text-gray-400 font-mono"
+                            />
+                          </div>
+                        )}
+
+                        {!isCompleted && (
+                          <button
+                            type="button"
+                            onClick={handleDynamicActionSubmit}
+                            className={`w-full py-2.5 rounded-lg text-xs font-bold text-white shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2 ${formButtonColor}`}
+                          >
+                            <Upload size={14} />
+                            <span>{formButtonText}</span>
+                          </button>
+                        )}
+                      </div>
+
+                      {selectedTask.workLink && (
+                        <div className="pt-3 border-t border-gray-100 flex items-center justify-between gap-2 text-xs">
+                          <span className="font-semibold text-emerald-700 flex items-center gap-1">
+                            <CheckCircle2 size={13} className="text-emerald-600" />
+                            Tautan Aktif Tersimpan
+                          </span>
+                          <a
+                            href={selectedTask.workLink}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-medium text-[#0a1647] hover:underline flex items-center gap-1 truncate max-w-[200px]"
+                          >
+                            <span className="truncate">Buka di Tab Baru</span>
+                            <ExternalLink size={12} className="shrink-0" />
+                          </a>
+                        </div>
+                      )}
                     </div>
                   </div>
-
-                  <div className="pt-3 border-t border-slate-200/60 flex flex-wrap items-center justify-between text-[11px] text-gray-500 gap-2">
-                    <span>Penanggung Jawab: <strong>Admin Diskominfo</strong></span>
-                    <span>Prioritas: <strong>Tinggi</strong></span>
-                  </div>
-                </div>
-
-                {/* Kolom Kanan: Pengumpulan Hasil Luaran Kerja */}
-                <div className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-6 space-y-4 shadow-2xs flex flex-col justify-between">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-[#0a1647] font-bold text-xs uppercase tracking-wider border-b border-gray-100 pb-3">
-                      <Upload size={16} />
-                      <span>Pengumpulan Hasil Luaran Kerja</span>
-                    </div>
-
-                    <p className="text-xs text-gray-500 leading-relaxed">
-                      {selectedTask.status === "REVISI"
-                        ? "Unggah tautan Google Drive / Cloud file desain yang sudah diperbaiki. Klik tombol di bawah untuk mengirim ulang ke Admin."
-                        : "Masukkan tautan Google Drive / cloud storage hasil liputan atau naskah final. Menyimpan tautan akan menandai tugas ini SELESAI dan mengarsipkannya otomatis ke Bank Konten."}
-                    </p>
-
-                    <div className="space-y-2">
-                      <input
-                        type="url"
-                        value={uploadLink}
-                        onChange={(e) => setUploadLink(e.target.value)}
-                        placeholder="https://drive.google.com/drive/folders/..."
-                        className="w-full px-3.5 py-2.5 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0a1647]/20 focus:border-[#0a1647] transition placeholder:text-gray-400"
-                      />
-
-                      <button
-                        onClick={handleSaveWorkLink}
-                        className={`w-full py-2.5 rounded-lg text-xs font-bold text-white shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2 ${
-                          selectedTask.status === "REVISI"
-                            ? "bg-amber-600 hover:bg-amber-700"
-                            : "bg-[#0a1647] hover:bg-[#122368]"
-                        }`}
-                      >
-                        <Upload size={14} />
-                        <span>
-                          {selectedTask.status === "REVISI"
-                            ? "Kirim Ulang Hasil Revisi (Lanjut ke Siap Tayang)"
-                            : "Simpan Tautan & Selesaikan Tugas"}
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {selectedTask.workLink && (
-                    <div className="pt-3 border-t border-gray-100 flex items-center justify-between gap-2 text-xs">
-                      <span className="font-semibold text-emerald-700 flex items-center gap-1">
-                        <CheckCircle2 size={13} className="text-emerald-600" />
-                        Tersimpan di Bank Konten
-                      </span>
-                      <a
-                        href={selectedTask.workLink}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="font-medium text-[#0a1647] hover:underline flex items-center gap-1 truncate max-w-[200px]"
-                      >
-                        <span className="truncate">Buka Link</span>
-                        <ExternalLink size={12} className="shrink-0" />
-                      </a>
-                    </div>
-                  )}
-                </div>
-              </div>
+                );
+              })()}
             </div>
           );
         })()
