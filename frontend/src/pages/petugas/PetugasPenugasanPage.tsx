@@ -468,68 +468,154 @@ const PetugasPenugasanPage = () => {
               </div>
             ) : (
               filteredTasks.map((t) => {
+                const taskWorkflow = WORKFLOWS[t.bidang || userBidang || "PRAHUM"] || WORKFLOWS["PRAHUM"];
+                const rawStatus = t.status === "COMPLETED" ? "SELESAI" : t.status === "ASSIGNED" ? "BELUM" : t.status;
+                const foundIndex = taskWorkflow.indexOf(rawStatus);
+                const stepIndex = foundIndex >= 0 ? foundIndex : rawStatus === "SELESAI" ? taskWorkflow.length - 1 : 0;
+                const totalSteps = taskWorkflow.length;
+                const isCompleted = rawStatus === "SELESAI" || t.status === "COMPLETED";
+                const progressPercent = isCompleted ? 100 : Math.round(((stepIndex + 1) / totalSteps) * 100);
+
                 return (
                   <div
                     key={t.id}
                     onMouseMove={handleMouseMove}
                     onMouseLeave={handleMouseLeave}
-                    className="relative overflow-hidden rounded-2xl p-5 sm:p-6 border border-gray-200 hover:border-slate-400 hover:shadow-sm transition-all duration-150 flex flex-col md:flex-row md:items-center justify-between gap-4"
+                    className="relative overflow-hidden rounded-2xl p-5 sm:p-6 border border-gray-200 hover:border-slate-400 hover:shadow-sm transition-all duration-150 flex flex-col justify-between gap-4 bg-white"
                     style={{
-                      background: `radial-gradient(450px circle at var(--x, -1000px) var(--y, -1000px), rgba(10, 22, 71, 0.12) 0%, rgba(148, 163, 184, 0.16) 35%, rgba(226, 232, 240, 0.30) 65%, transparent 80%) #ffffff`,
+                      background: `radial-gradient(450px circle at var(--x, -1000px) var(--y, -1000px), rgba(10, 22, 71, 0.08) 0%, rgba(148, 163, 184, 0.12) 35%, rgba(226, 232, 240, 0.20) 65%, transparent 80%) #ffffff`,
                     }}
                   >
-                    <div className="space-y-2.5 flex-1 min-w-0">
-                      {/* Uniform Pure White & Dark Blue Badges */}
-                      <div className="flex flex-wrap items-center gap-2">
-                        {/* 1. Category Badge */}
-                        <span className="px-3 py-1 text-xs font-bold rounded-lg bg-white border border-[#0a1647]/30 text-[#0a1647]">
-                          {categoryLabels[t.kategori] || t.kategori}
-                        </span>
-
-                        {/* 2. Status Badge */}
-                        <span className="px-3 py-1 text-xs font-bold rounded-lg bg-white border border-[#0a1647]/30 text-[#0a1647]">
-                          {t.status.replace("_", " ")}
-                        </span>
-
-                        {/* 3. Job Type Badge */}
-                        <span className="px-3 py-1 text-xs font-semibold rounded-lg bg-white border border-[#0a1647]/30 text-[#0a1647]">
-                          {t.jenisPekerjaan}
-                        </span>
-
-                        {/* 4. Bentrok Badge */}
-                        {t.hasConflict && (
-                          <span className="px-3 py-1 text-xs font-bold rounded-lg bg-white border border-[#0a1647]/30 text-[#0a1647] flex items-center gap-1.5">
-                            <AlertTriangle size={13} className="text-[#0a1647]" />
-                            Bentrok
+                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                      <div className="space-y-2.5 flex-1 min-w-0">
+                        {/* Uniform Pure White & Dark Blue Badges */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          {/* 1. Category Badge */}
+                          <span className="px-3 py-1 text-xs font-bold rounded-lg bg-white border border-[#0a1647]/30 text-[#0a1647]">
+                            {categoryLabels[t.kategori] || t.kategori}
                           </span>
-                        )}
 
-                        {t.workLink && (
-                          <span className="px-3 py-1 text-xs font-bold rounded-lg bg-white border border-[#0a1647]/30 text-[#0a1647] flex items-center gap-1.5">
-                            <Upload size={12} className="text-[#0a1647]" />
-                            Luaran Tersimpan
+                          {/* 2. Status Badge with Dynamic Color */}
+                          <span
+                            className={`px-3 py-1 text-xs font-bold rounded-lg border flex items-center gap-1.5 ${
+                              isCompleted
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                                : rawStatus === "BELUM"
+                                ? "bg-slate-100 text-slate-700 border-slate-300"
+                                : "bg-amber-50 text-amber-800 border-amber-300"
+                            }`}
+                          >
+                            {isCompleted && <CheckCircle2 size={13} className="text-emerald-600" />}
+                            {rawStatus.replace("_", " ")}
                           </span>
-                        )}
+
+                          {/* 3. Job Type Badge */}
+                          <span className="px-3 py-1 text-xs font-semibold rounded-lg bg-white border border-[#0a1647]/30 text-[#0a1647]">
+                            {t.jenisPekerjaan}
+                          </span>
+
+                          {/* 4. Bentrok Badge */}
+                          {t.hasConflict && (
+                            <span className="px-3 py-1 text-xs font-bold rounded-lg bg-rose-50 border border-rose-200 text-rose-700 flex items-center gap-1.5">
+                              <AlertTriangle size={13} className="text-rose-600" />
+                              Bentrok
+                            </span>
+                          )}
+
+                          {t.workLink && (
+                            <span className="px-3 py-1 text-xs font-bold rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center gap-1.5">
+                              <Upload size={12} className="text-emerald-600" />
+                              Luaran Tersimpan
+                            </span>
+                          )}
+                        </div>
+
+                        <h3 className="text-base font-bold text-gray-900">{t.kegiatan}</h3>
+
+                        <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500 pt-0.5">
+                          <span className="flex items-center gap-1.5 text-gray-600">
+                            <MapPin size={13} className="text-[#0a1647]" /> {t.lokasi}
+                          </span>
+                          <span className="flex items-center gap-1.5 text-[#0a1647] font-semibold bg-white border border-[#0a1647]/30 px-2.5 py-0.5 rounded-md">
+                            <Clock size={12} className="text-[#0a1647]" /> Deadline: {t.deadline}
+                          </span>
+                        </div>
                       </div>
 
-                      <h3 className="text-base font-bold text-gray-900">{t.kegiatan}</h3>
-
-                      <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500 pt-0.5">
-                        <span className="flex items-center gap-1.5 text-gray-600">
-                          <MapPin size={13} className="text-[#0a1647]" /> {t.lokasi}
-                        </span>
-                        <span className="flex items-center gap-1.5 text-[#0a1647] font-semibold bg-white border border-[#0a1647]/30 px-2.5 py-0.5 rounded-md">
-                          <Clock size={12} className="text-[#0a1647]" /> Deadline: {t.deadline}
-                        </span>
-                      </div>
+                      <button
+                        onClick={() => setSelectedId(t.id)}
+                        className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-white px-5 py-2.5 rounded-lg cursor-pointer self-start md:self-auto shadow-xs bg-[#0a1647] hover:bg-[#081238] transition"
+                      >
+                        Kelola Tugas <ChevronRight size={15} />
+                      </button>
                     </div>
 
-                    <button
-                      onClick={() => setSelectedId(t.id)}
-                      className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-white px-5 py-2.5 rounded-lg cursor-pointer self-start md:self-auto shadow-xs bg-[#0a1647]"
-                    >
-                      Kelola Tugas <ChevronRight size={15} />
-                    </button>
+                    {/* ── Visual Step Progress Tracker (Penanda Proses Tugas) ── */}
+                    <div className="pt-3 border-t border-gray-100 space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-gray-600">Progres Alur:</span>
+                          <span
+                            className={`font-bold px-2 py-0.5 rounded-md text-[11px] ${
+                              isCompleted
+                                ? "bg-emerald-100 text-emerald-800"
+                                : "bg-blue-100 text-[#0a1647]"
+                            }`}
+                          >
+                            {isCompleted
+                              ? "Tahap 5/5 • Selesai Penuh"
+                              : `Tahap ${stepIndex + 1} dari ${totalSteps} • ${rawStatus.replace("_", " ")}`}
+                          </span>
+                        </div>
+                        <span className="font-mono font-bold text-xs text-gray-500">
+                          {progressPercent}%
+                        </span>
+                      </div>
+
+                      {/* Progress Bar Track */}
+                      <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full transition-all duration-500 rounded-full ${
+                            isCompleted ? "bg-emerald-500" : "bg-[#0a1647]"
+                          }`}
+                          style={{ width: `${progressPercent}%` }}
+                        />
+                      </div>
+
+                      {/* Mini Steps Pipeline Pills */}
+                      <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                        {taskWorkflow.map((step, idx) => {
+                          const isDone = isCompleted || idx < stepIndex;
+                          const isCurrent = !isCompleted && idx === stepIndex;
+
+                          return (
+                            <div
+                              key={step}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all ${
+                                isDone
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                  : isCurrent
+                                  ? "bg-[#0a1647] text-white border-[#0a1647] shadow-xs font-bold"
+                                  : "bg-gray-50 text-gray-400 border-gray-200"
+                              }`}
+                            >
+                              {isDone ? (
+                                <CheckCircle2 size={12} className="text-emerald-600" />
+                              ) : (
+                                <span
+                                  className={`w-3.5 h-3.5 rounded-full text-[9px] flex items-center justify-center font-bold ${
+                                    isCurrent ? "bg-white text-[#0a1647]" : "bg-gray-200 text-gray-600"
+                                  }`}
+                                >
+                                  {idx + 1}
+                                </span>
+                              )}
+                              <span>{step.replace("_", " ")}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
                 );
               })
