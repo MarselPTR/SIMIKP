@@ -240,7 +240,7 @@ const BankKontenPage = () => {
               placeholder="Cari berdasarkan nama kegiatan, nomor strakom, atau petugas..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9.5 w-full text-xs sm:text-sm py-2"
+              className="pl-10 w-full text-xs sm:text-sm py-2"
             />
           </div>
 
