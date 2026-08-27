@@ -43,7 +43,6 @@ export default function PenugasanPage() {
       try {
         const res = await apiFetch<{ success: boolean; data: any[] }>("/assignments");
         if (res.data && res.data.length > 0) {
-          // Map to MockPenugasan format
           return res.data.map((a: any) => ({
             id: a.id,
             kegiatanTerkait: a.activityTitle || a.activity?.title || "Kegiatan",
@@ -53,7 +52,14 @@ export default function PenugasanPage() {
             jenisKonten: a.contentType || "Dokumentasi",
             jamMulai: a.startTime || "08:00",
             jamSelesai: a.endTime || "12:00",
-            status: a.status === "COMPLETED" ? "done" : a.status === "IN_PROGRESS" ? "in-progress" : a.status === "CONFLICT" ? "conflict" : "pending",
+            status:
+              a.status === "COMPLETED"
+                ? "done"
+                : a.status === "IN_PROGRESS"
+                ? "in-progress"
+                : a.status === "CONFLICT"
+                ? "conflict"
+                : "pending",
             lokasi: a.location || "Batu",
             catatan: a.instruction,
           })) as MockPenugasan[];
@@ -151,24 +157,21 @@ export default function PenugasanPage() {
     }
   };
 
-  // Helper format short date subtitle (e.g. (Senin, 24/8))
   const formatSubtitleDate = (dateStr: string) => {
     try {
       const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return "(Senin, 24/8)";
-      const weekday = d.toLocaleDateString("id-ID", { weekday: "long" });
-      const day = d.getDate();
-      const month = d.getMonth() + 1;
-      return `(${weekday}, ${day}/${month})`;
+      if (isNaN(d.getTime())) return "(Hari H)";
+      const days = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+      return `(${days[d.getDay()]}, ${d.getDate()}/${d.getMonth() + 1})`;
     } catch {
-      return "(Senin, 24/8)";
+      return "(Hari H)";
     }
   };
 
-  // Form State for Create/Edit
+  // Form state
   const [formData, setFormData] = useState({
-    kegiatanTerkait: "Upacara Hari Jadi Kota",
-    tanggalKegiatan: "Senin, 24 Agustus 2026",
+    kegiatanTerkait: "",
+    tanggalKegiatan: "",
     jenisKonten: "Foto",
     pic: "Budi Fotografer",
     picAvatar: "BF",
@@ -180,63 +183,67 @@ export default function PenugasanPage() {
     catatan: "",
   });
 
-  // Handle URL Param action=create & kegiatan parameter (e.g. from KegiatanPage)
+  // Handle URL pre-fill from Kegiatan Page
   useEffect(() => {
-    const action = searchParams.get("action");
-    const kegiatanParam = searchParams.get("kegiatan");
-
-    if (action === "create" || kegiatanParam) {
-      const matchedKegiatan = kegiatanList.find(
-        (k) => k.title.toLowerCase() === kegiatanParam?.toLowerCase()
+    const kegParam = searchParams.get("kegiatan");
+    const actionParam = searchParams.get("action");
+    if (kegParam) {
+      const found = kegiatanList.find(
+        (k) => k.title.toLowerCase() === kegParam.toLowerCase()
       );
-
-      const targetTitle = matchedKegiatan ? matchedKegiatan.title : (kegiatanParam ?? "Upacara Hari Jadi Kota");
-      const targetDate = matchedKegiatan ? formatIndoDate(matchedKegiatan.deadline) : "Senin, 24 Agustus 2026";
-      const targetSubDate = matchedKegiatan ? formatSubtitleDate(matchedKegiatan.deadline) : "(Senin, 24/8)";
-      const targetLocation = matchedKegiatan?.lokasi ?? "Balaikota Among Tani";
-      const defaultOutput = matchedKegiatan?.outputDibutuhkan?.[0] ?? "Foto";
-
-      setFormData({
-        kegiatanTerkait: targetTitle,
-        tanggalKegiatan: targetDate,
-        jenisKonten: defaultOutput,
-        pic: "Budi Fotografer",
-        picAvatar: "BF",
-        jamMulai: "08:00",
-        jamSelesai: "10:00",
-        waktuSubtitle: targetSubDate,
-        status: "in-progress",
-        lokasi: targetLocation,
-        catatan: `Penugasan untuk kegiatan ${targetTitle}`,
-      });
-
-      if (action === "create") {
-        setIsCreateOpen(true);
+      if (found) {
+        setFormData({
+          kegiatanTerkait: found.title,
+          tanggalKegiatan: formatIndoDate(found.deadline),
+          waktuSubtitle: formatSubtitleDate(found.deadline),
+          jenisKonten: found.outputDibutuhkan?.[0] ?? "Foto",
+          pic: "Budi Fotografer",
+          picAvatar: "BF",
+          jamMulai: "08:30",
+          jamSelesai: "11:00",
+          status: "in-progress",
+          lokasi: found.lokasi ?? "Balaikota Among Tani",
+          catatan: `Penugasan untuk kegiatan ${found.title} (${found.opdPenyelenggara ?? "OPD"})`,
+        });
+      } else {
+        setFormData((prev) => ({
+          ...prev,
+          kegiatanTerkait: kegParam,
+          catatan: `Penugasan untuk agenda ${kegParam}`,
+        }));
       }
 
-      // Clear action param after handling
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete("action");
-      setSearchParams(newParams, { replace: true });
+      if (actionParam === "create") {
+        setIsCreateOpen(true);
+      }
     }
   }, [searchParams, kegiatanList]);
 
-  // List of PICs for options
+  // Sync search state with URL params
+  useEffect(() => {
+    if (searchQuery) {
+      setSearchParams({ search: searchQuery });
+    } else {
+      setSearchParams({});
+    }
+  }, [searchQuery, setSearchParams]);
+
+  // Options for form
   const PIC_OPTIONS = [
-    { name: "Budi Fotografer", avatar: "BF", role: "FOTO_VIDEO" },
-    { name: "Andi Prahum", avatar: "AP", role: "PRAHUM" },
-    { name: "Citra Desainer", avatar: "CD", role: "DESAINER_EDITOR" },
-    { name: "Dinda Amelia", avatar: "DA", role: "FOTO_VIDEO" },
-    { name: "Fajar Nugroho", avatar: "FN", role: "DESAINER_EDITOR" },
+    { name: "Budi Fotografer", role: "Fotografer", avatar: "BF" },
+    { name: "Citra Videografer", role: "Videografer", avatar: "CV" },
+    { name: "Andi Penulis", role: "Pranata Humas / Berita", avatar: "AP" },
+    { name: "Dewi Desainer", role: "Desainer Grafis", avatar: "DD" },
+    { name: "Eko Reporter", role: "Reporter Lapangan", avatar: "ER" },
   ];
 
   const JENIS_KONTEN_OPTIONS = [
     "Foto",
+    "Video",
     "Naskah Berita",
-    "Flyer/Infografis",
-    "Review Konten",
-    "Video Liputan",
     "Reels / TikTok",
+    "Infografis",
+    "Live Streaming",
   ];
 
   // Tab Status Counts (Solid & Real-time by item.status)
@@ -269,75 +276,6 @@ export default function PenugasanPage() {
 
     if (conflict) {
       return `${formData.pic} sudah memiliki penugasan pada '${conflict.kegiatanTerkait}' (${conflict.jamMulai} - ${conflict.jamSelesai}). Terjadi bentrok jadwal.`;
-=======
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [conflictWarning, setConflictWarning] = useState<string | null>(null);
-  
-  const [formData, setFormData] = useState({
-    activityId: "",
-    userId: "",
-    contentTypeId: "",
-    startTime: "",
-    endTime: "",
-    deadline: "",
-  });
-
-  const columns: TableColumn<AssignmentRow>[] = [
-    { key: "activityTitle", label: "Kegiatan Terkait" },
-    { 
-      key: "activityDate", 
-      label: "Tanggal", 
-      render: (_, row) => row.activityDate ? new Date(row.activityDate).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' }) : "-" 
-    },
-    { key: "contentType", label: "Output (Jenis Konten)", render: (val) => <span className="font-semibold text-gray-700">{val as string}</span> },
-    { key: "picName", label: "PIC" },
-    { key: "startTime", label: "Waktu", render: (_, row) => `${row.startTime?.substring(0,5) || "-"} s/d ${row.endTime?.substring(0,5) || "-"}` },
-    {
-      key: "status",
-      label: "Status",
-      render: (val) => (
-        <Badge variant={val === "COMPLETED" ? "success" : val === "ASSIGNED" ? "warning" : "default"}>
-          {val as string}
-        </Badge>
-      ),
-    },
-  ];
-
-  const handleSimpan = async () => {
-    try {
-      // Adding seconds since backend requires HH:mm:ss for time fields
-      const payload = {
-        ...formData,
-        startTime: formData.startTime.length === 5 ? `${formData.startTime}:00` : formData.startTime,
-        endTime: formData.endTime.length === 5 ? `${formData.endTime}:00` : formData.endTime,
-        deadline: formData.deadline ? new Date(formData.deadline).toISOString() : undefined,
-      };
-
-      const res = await fetch("/api/v1/assignments", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      
-      const json = await res.json();
-      
-      if (res.status === 409) {
-        setConflictWarning(json.error);
-        return;
-      }
-      
-      if (!res.ok) {
-        alert("Gagal menyimpan penugasan");
-        return;
-      }
-
-      setIsModalOpen(false);
-      setConflictWarning(null);
-      refetch();
-      setFormData({ activityId: "", userId: "", contentTypeId: "", startTime: "", endTime: "", deadline: "" });
-    } catch (e) {
-      alert("Terjadi kesalahan jaringan.");
->>>>>>> origin/backend-frontend-connected
     }
     return null;
   }, [formData, items, selectedItem]);
@@ -355,13 +293,11 @@ export default function PenugasanPage() {
   // Filtered & Sorted Items
   const filteredItems = useMemo(() => {
     let list = items.filter((item) => {
-      // Tab filter (strictly by item.status)
       if (activeTab === "in-progress" && item.status !== "in-progress") return false;
       if (activeTab === "done" && item.status !== "done") return false;
       if (activeTab === "pending" && item.status !== "pending") return false;
       if (activeTab === "conflict" && item.status !== "conflict") return false;
 
-      // Search
       const matchSearch =
         searchQuery.trim() === "" ||
         item.kegiatanTerkait.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -371,7 +307,6 @@ export default function PenugasanPage() {
       return matchSearch;
     });
 
-    // Sorting
     list = [...list].sort((a, b) => {
       const recA = a as unknown as Record<string, unknown>;
       const recB = b as unknown as Record<string, unknown>;
@@ -499,7 +434,7 @@ export default function PenugasanPage() {
   };
 
   // Save Create
-  const handleSaveCreate = () => {
+  const handleSaveCreate = async () => {
     if (!formData.kegiatanTerkait.trim()) {
       addToast("Mohon isi nama kegiatan terkait", "warning");
       return;
@@ -573,20 +508,11 @@ export default function PenugasanPage() {
     addToast(`Penugasan "${selectedItem.kegiatanTerkait}" telah dihapus.`, "info");
   };
 
-  const handleForceSimpan = async () => {
-      // For this MVP, if forced, maybe we hit an endpoint that bypasses conflict check.
-      // But for now, we just close it since we don't have bypass implemented yet in backend MVP.
-      alert("Peringatan diabaikan (Bypass belum diimplementasikan di purwarupa).");
-      setIsModalOpen(false);
-      setConflictWarning(null);
-      setFormData({ activityId: "", userId: "", contentTypeId: "", startTime: "", endTime: "", deadline: "" });
-  };
-
   if (isLoading) return <LoadingSpinner />;
   if (error) return <ErrorState message={error.message} onRetry={refetch} />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* ── Header Title & Description ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -606,10 +532,8 @@ export default function PenugasanPage() {
         </button>
       </div>
 
-<<<<<<< HEAD
       {/* ── Main Container / Card ── */}
       <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden">
-        
         {/* ── 1. Top Tabs dengan Counter Real-Time ── */}
         <div className="flex items-center gap-8 px-6 pt-4 border-b border-gray-200/70 overflow-x-auto text-sm">
           {/* Tab Semua */}
@@ -721,8 +645,8 @@ export default function PenugasanPage() {
             }}
             className={`pb-3.5 flex items-center gap-2 font-medium transition relative whitespace-nowrap cursor-pointer ${
               activeTab === "conflict"
-                ? "text-[#0f1f5c] font-bold border-b-2 border-[#0f1f5c]"
-                : "text-gray-500 hover:text-gray-800"
+                ? "text-rose-600 font-bold border-b-2 border-rose-600"
+                : "text-gray-500 hover:text-rose-600"
             }`}
           >
             <span>Bentrok</span>
@@ -738,71 +662,59 @@ export default function PenugasanPage() {
           </button>
         </div>
 
-        {/* ── 2. Toolbar Aksi Cepat & Search Bar (Tanpa Cetak) ── */}
-        <div className="p-4 sm:p-5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 border-b border-gray-100 bg-white">
-          {/* Left: Action Pills (Tandai Selesai, Tandai Menunggu, Hapus) */}
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              disabled={selectedIds.length === 0}
-              onClick={() => handleBulkMarkStatus("done")}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-xs font-medium text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 disabled:opacity-40 disabled:pointer-events-none transition shadow-2xs cursor-pointer"
-            >
-              <RiCheckLine className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Tandai Selesai</span>
-            </button>
-
-            <button
-              type="button"
-              disabled={selectedIds.length === 0}
-              onClick={() => handleBulkMarkStatus("pending")}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-xs font-medium text-gray-700 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200 disabled:opacity-40 disabled:pointer-events-none transition shadow-2xs cursor-pointer"
-            >
-              <RiTimeLine className="w-3.5 h-3.5 text-amber-600" />
-              <span>Tandai Menunggu</span>
-            </button>
-
-            <button
-              type="button"
-              disabled={selectedIds.length === 0}
-              onClick={handleBulkDelete}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-xs font-medium text-gray-700 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 disabled:opacity-40 disabled:pointer-events-none transition shadow-2xs cursor-pointer"
-            >
-              <RiDeleteBinLine className="w-3.5 h-3.5 text-gray-500" />
-              <span>Hapus</span>
-            </button>
-
-            {selectedIds.length > 0 && (
-              <span className="text-xs font-semibold text-indigo-600 ml-1">
-                {selectedIds.length} dipilih
-              </span>
-            )}
-          </div>
-
-          {/* Right: Search Box Rounded */}
-          <div className="relative w-full md:w-72">
+        {/* ── 2. Toolbar: Search + Bulk Actions Bar ── */}
+        <div className="p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-3 border-b border-gray-100 bg-gray-50/50">
+          <div className="relative w-full sm:w-80">
             <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Cari penugasan..."
+              placeholder="Cari kegiatan, staf, jenis..."
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition placeholder:text-gray-400 bg-white shadow-2xs"
+              className="w-full pl-9.5 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition"
             />
           </div>
+
+          {/* Bulk Action Controls */}
+          {selectedIds.length > 0 && (
+            <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 animate-fadeIn">
+              <span className="text-xs font-semibold text-gray-600 whitespace-nowrap">
+                {selectedIds.length} dipilih:
+              </span>
+              <button
+                onClick={() => handleBulkMarkStatus("done")}
+                className="px-2.5 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg flex items-center gap-1 transition cursor-pointer"
+              >
+                <RiCheckLine className="w-3.5 h-3.5" />
+                <span>Selesai</span>
+              </button>
+              <button
+                onClick={() => handleBulkMarkStatus("in-progress")}
+                className="px-2.5 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg flex items-center gap-1 transition cursor-pointer"
+              >
+                <RiTimeLine className="w-3.5 h-3.5" />
+                <span>Proses</span>
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                className="px-2.5 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg flex items-center gap-1 transition cursor-pointer"
+              >
+                <RiDeleteBinLine className="w-3.5 h-3.5" />
+                <span>Hapus</span>
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* ── 3. Table Container ── */}
+        {/* ── 3. Table Penugasan ── */}
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
-            {/* ── Header Tabel Biru Tua Solid (Easy to Spot & Bold) ── */}
             <thead>
-              <tr className="bg-[#0f1f5c] border-b border-[#0a1540] text-white text-xs font-bold uppercase tracking-wider shadow-xs">
-                {/* Select All Checkbox */}
-                <th className="py-3.5 px-4 w-10">
+              <tr className="bg-[#0f1f5c] text-white text-xs font-semibold uppercase tracking-wider">
+                <th className="py-3.5 px-4 w-10 text-center">
                   <input
                     type="checkbox"
                     checked={isAllSelected}
@@ -810,213 +722,182 @@ export default function PenugasanPage() {
                       if (el) el.indeterminate = isSomeSelected;
                     }}
                     onChange={handleSelectAll}
-                    className="w-4 h-4 rounded border-blue-300/60 bg-white/20 text-blue-500 focus:ring-offset-[#0f1f5c] focus:ring-white cursor-pointer"
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                   />
                 </th>
-
-                {/* Kolom Kegiatan & Tanggal dengan Sort */}
                 <th
                   onClick={() => toggleSort("kegiatanTerkait")}
-                  className="py-3.5 px-4 cursor-pointer hover:bg-[#162a75] transition-colors select-none group"
+                  className="py-3.5 px-4 cursor-pointer select-none hover:text-blue-200 transition"
                 >
-                  <div className="flex items-center gap-1.5 text-white group-hover:text-blue-100 font-bold">
-                    <span>Kegiatan & Tanggal</span>
-                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-blue-200 group-hover:text-white" />
+                  <div className="flex items-center gap-1.5">
+                    <span>Kegiatan Terkait</span>
+                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-gray-300" />
                   </div>
                 </th>
-
-                {/* Kolom Output dengan Sort */}
-                <th
-                  onClick={() => toggleSort("jenisKonten")}
-                  className="py-3.5 px-4 cursor-pointer hover:bg-[#162a75] transition-colors select-none group"
-                >
-                  <div className="flex items-center gap-1.5 text-white group-hover:text-blue-100 font-bold">
-                    <span>Output</span>
-                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-blue-200 group-hover:text-white" />
-                  </div>
-                </th>
-
-                {/* Kolom PIC dengan Sort */}
                 <th
                   onClick={() => toggleSort("pic")}
-                  className="py-3.5 px-4 cursor-pointer hover:bg-[#162a75] transition-colors select-none group"
+                  className="py-3.5 px-4 cursor-pointer select-none hover:text-blue-200 transition"
                 >
-                  <div className="flex items-center gap-1.5 text-white group-hover:text-blue-100 font-bold">
-                    <span>PIC</span>
-                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-blue-200 group-hover:text-white" />
+                  <div className="flex items-center gap-1.5">
+                    <span>Petugas PIC</span>
+                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-gray-300" />
                   </div>
                 </th>
-
-                {/* Kolom Waktu Penugasan dengan Sort */}
+                <th
+                  onClick={() => toggleSort("jenisKonten")}
+                  className="py-3.5 px-4 cursor-pointer select-none hover:text-blue-200 transition"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>Jenis Konten</span>
+                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-gray-300" />
+                  </div>
+                </th>
                 <th
                   onClick={() => toggleSort("jamMulai")}
-                  className="py-3.5 px-4 cursor-pointer hover:bg-[#162a75] transition-colors select-none group"
+                  className="py-3.5 px-4 cursor-pointer select-none hover:text-blue-200 transition"
                 >
-                  <div className="flex items-center gap-1.5 text-white group-hover:text-blue-100 font-bold">
+                  <div className="flex items-center gap-1.5">
                     <span>Waktu Penugasan</span>
-                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-blue-200 group-hover:text-white" />
+                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-gray-300" />
                   </div>
                 </th>
-
-                {/* Kolom Status dengan Sort */}
                 <th
                   onClick={() => toggleSort("status")}
-                  className="py-3.5 px-4 cursor-pointer hover:bg-[#162a75] transition-colors select-none group"
+                  className="py-3.5 px-4 cursor-pointer select-none hover:text-blue-200 transition"
                 >
-                  <div className="flex items-center gap-1.5 text-white group-hover:text-blue-100 font-bold">
+                  <div className="flex items-center gap-1.5">
                     <span>Status</span>
-                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-blue-200 group-hover:text-white" />
+                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-gray-300" />
                   </div>
                 </th>
-
-                {/* Kolom Aksi */}
-                <th className="py-3.5 px-4 text-center text-white font-bold">
-                  <span>Aksi</span>
-                </th>
+                <th className="py-3.5 px-4 text-right pr-6">Aksi</th>
               </tr>
             </thead>
-
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-100 text-sm">
               {paginatedItems.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-gray-400 text-sm">
-                    Tidak ada data penugasan pada kategori ini.
+                  <td colSpan={7} className="text-center py-12 text-gray-400">
+                    <p className="font-medium text-gray-500">Tidak ada penugasan ditemukan</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Coba ganti filter tab atau kata kunci pencarian.
+                    </p>
                   </td>
                 </tr>
               ) : (
-                paginatedItems.map((row) => {
-                  const isConflict = row.status === "conflict";
-                  const isSelected = selectedIds.includes(row.id);
-
+                paginatedItems.map((item) => {
+                  const isSelected = selectedIds.includes(item.id);
                   return (
                     <tr
-                      key={row.id}
-                      className={`transition-colors ${
-                        isSelected
-                          ? "bg-blue-50/40 hover:bg-blue-50/60"
-                          : isConflict
-                          ? "bg-[#fff1f2]/70 hover:bg-[#ffe4e6]/60 border-l-4 border-l-rose-500"
-                          : "hover:bg-gray-50/70"
+                      key={item.id}
+                      className={`hover:bg-gray-50/80 transition-colors ${
+                        isSelected ? "bg-indigo-50/40" : ""
                       }`}
                     >
-                      {/* Checkbox row */}
-                      <td className="py-4 px-4">
+                      {/* Checkbox */}
+                      <td className="py-4 px-4 text-center">
                         <input
                           type="checkbox"
                           checked={isSelected}
-                          onChange={() => handleSelectRow(row.id)}
-                          className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                          onChange={() => handleSelectRow(item.id)}
+                          className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                         />
                       </td>
 
-                      {/* Kegiatan & Tanggal */}
+                      {/* Kegiatan Terkait */}
                       <td className="py-4 px-4">
-                        <p className="font-semibold text-gray-900 text-sm">{row.kegiatanTerkait}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          {row.tanggalKegiatan ?? "Senin, 24 Agustus 2026"}
-                        </p>
+                        <div className="font-semibold text-gray-900">{item.kegiatanTerkait}</div>
+                        {item.lokasi && (
+                          <div className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-gray-400" />
+                            <span>{item.lokasi}</span>
+                          </div>
+                        )}
                       </td>
 
-                      {/* Output */}
-                      <td className="py-4 px-4">
-                        <span className="text-sm text-gray-800 font-normal">{row.jenisKonten}</span>
-                      </td>
-
-                      {/* PIC */}
+                      {/* Petugas PIC */}
                       <td className="py-4 px-4">
                         <div className="flex items-center gap-2.5">
-                          <div className="relative flex-shrink-0">
-                            <div className="w-8 h-8 rounded-full bg-[#cbd5e1] text-gray-700 font-bold text-xs flex items-center justify-center">
-                              {row.picAvatar ?? row.pic.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
-                            </div>
-                            {isConflict && (
-                              <div
-                                title={row.conflictMessage ?? "Jadwal bertabrakan"}
-                                className="absolute -bottom-1 -right-1 bg-red-600 text-white rounded-full p-0.5 shadow ring-2 ring-white flex items-center justify-center animate-pulse"
-                              >
-                                <AlertTriangle className="w-2.5 h-2.5 fill-current" />
-                              </div>
-                            )}
+                          <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 text-white font-bold text-xs flex items-center justify-center shadow-2xs">
+                            {item.picAvatar ?? item.pic.slice(0, 2).toUpperCase()}
                           </div>
-                          <span className="text-sm font-medium text-gray-800">{row.pic}</span>
+                          <span className="font-medium text-gray-800">{item.pic}</span>
                         </div>
+                      </td>
+
+                      {/* Jenis Konten */}
+                      <td className="py-4 px-4 font-medium text-gray-700">
+                        {item.jenisKonten}
                       </td>
 
                       {/* Waktu Penugasan */}
                       <td className="py-4 px-4">
-                        <p className="text-sm font-medium text-gray-900">
-                          {row.jamMulai} - {row.jamSelesai}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          {row.waktuSubtitle ?? "(Senin, 24/8)"}
-                        </p>
+                        <div className="font-mono text-xs font-semibold text-gray-800">
+                          {item.jamMulai} - {item.jamSelesai}
+                        </div>
+                        {item.waktuSubtitle && (
+                          <div className="text-[11px] text-gray-400 mt-0.5">
+                            {item.waktuSubtitle}
+                          </div>
+                        )}
                       </td>
 
-                      {/* Status Badge */}
+                      {/* Status */}
                       <td className="py-4 px-4">
-                        {row.status === "in-progress" && (
+                        {item.status === "in-progress" && (
                           <StatusBadge
                             status="default"
                             leftIcon={RiTimeLine}
                             leftLabel="Proses"
-                            className="bg-amber-50 text-amber-800 border-amber-200/90 shadow-2xs"
+                            className="bg-amber-50 text-amber-800 border-amber-200/90 shadow-xs"
                           />
                         )}
-                        {row.status === "done" && (
+                        {item.status === "done" && (
                           <StatusBadge
                             status="success"
                             leftIcon={RiCheckboxCircleFill}
                             leftLabel="Selesai"
-                            className="bg-emerald-50 text-emerald-800 border-emerald-200/90 shadow-2xs"
+                            className="bg-emerald-50 text-emerald-800 border-emerald-200/90 shadow-xs"
                           />
                         )}
-                        {row.status === "pending" && (
+                        {item.status === "pending" && (
                           <StatusBadge
                             status="default"
                             leftIcon={RiHourglassLine}
                             leftLabel="Menunggu"
-                            className="bg-gray-50 text-gray-700 border-gray-200/90 shadow-2xs"
+                            className="bg-gray-50 text-gray-700 border-gray-200/90 shadow-xs"
                           />
                         )}
-                        {row.status === "conflict" && (
+                        {item.status === "conflict" && (
                           <StatusBadge
                             status="error"
                             leftIcon={RiCloseCircleFill}
                             leftLabel="Bentrok"
-                            className="bg-rose-50 text-rose-800 border-rose-200/90 shadow-2xs"
+                            className="bg-rose-50 text-rose-800 border-rose-200/90 shadow-xs"
                           />
                         )}
                       </td>
 
-                      {/* Kolom Aksi Minimalis Sejajar (Detail, Edit, Delete) */}
-                      <td className="py-4 px-4 text-center">
-                        <div className="flex items-center justify-center gap-3">
-                          {/* Detail */}
+                      {/* Actions */}
+                      <td className="py-4 px-4 text-right pr-6">
+                        <div className="flex items-center justify-end gap-1 text-gray-400">
                           <button
-                            type="button"
-                            title="Lihat Detail Penugasan"
-                            onClick={() => handleOpenDetail(row)}
-                            className="text-blue-500 hover:text-blue-700 transition p-1 hover:bg-blue-50 rounded cursor-pointer"
+                            onClick={() => handleOpenDetail(item)}
+                            className="p-1.5 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition"
+                            title="Detail"
                           >
                             <RiEyeLine className="w-4 h-4" />
                           </button>
-
-                          {/* Edit */}
                           <button
-                            type="button"
-                            title="Edit Penugasan"
-                            onClick={() => handleOpenEdit(row)}
-                            className="text-gray-400 hover:text-gray-700 transition p-1 hover:bg-gray-100 rounded cursor-pointer"
+                            onClick={() => handleOpenEdit(item)}
+                            className="p-1.5 hover:text-blue-600 hover:bg-blue-50 rounded-md transition"
+                            title="Edit"
                           >
                             <RiEditLine className="w-4 h-4" />
                           </button>
-
-                          {/* Delete */}
                           <button
-                            type="button"
-                            title="Hapus Penugasan"
-                            onClick={() => handleOpenDelete(row)}
-                            className="text-gray-400 hover:text-rose-600 transition p-1 hover:bg-rose-50 rounded cursor-pointer"
+                            onClick={() => handleOpenDelete(item)}
+                            className="p-1.5 hover:text-red-600 hover:bg-red-50 rounded-md transition"
+                            title="Hapus"
                           >
                             <RiDeleteBinLine className="w-4 h-4" />
                           </button>
@@ -1030,74 +911,36 @@ export default function PenugasanPage() {
           </table>
         </div>
 
-        {/* ── Footer / Pagination ── */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 sm:p-5 border-t border-gray-100 text-sm text-gray-600 bg-white">
-          {/* Items Per Page */}
+        {/* ── 4. Pagination Footer ── */}
+        <div className="p-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
           <div className="flex items-center gap-2">
             <span>Tampilkan</span>
-            <div className="relative">
-              <select
-                value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="appearance-none bg-white border border-gray-200 rounded-lg pl-3 pr-7 py-1 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
-              >
-                <option value={10}>10/page</option>
-                <option value={20}>20/page</option>
-                <option value={50}>50/page</option>
-              </select>
-            </div>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="border border-gray-200 rounded px-2 py-1 bg-white text-gray-700 focus:outline-none"
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+            </select>
+            <span>dari {filteredItems.length} data</span>
           </div>
 
-          {/* Page Navigation */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             <button
-              disabled={currentPage <= 1}
+              disabled={currentPage === 1}
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               className="px-2.5 py-1 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-40 disabled:pointer-events-none rounded hover:bg-gray-50 transition cursor-pointer"
             >
               Sebelumnya
             </button>
-
-            <button
-              onClick={() => setCurrentPage(1)}
-              className={`w-7 h-7 rounded-lg text-xs font-semibold flex items-center justify-center transition cursor-pointer ${
-                currentPage === 1
-                  ? "bg-gray-100 text-gray-900 font-bold"
-                  : "text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              1
-            </button>
-
-            {filteredItems.length > pageSize && (
-              <button
-                onClick={() => setCurrentPage(2)}
-                className={`w-7 h-7 rounded-lg text-xs font-semibold flex items-center justify-center transition cursor-pointer ${
-                  currentPage === 2
-                    ? "bg-gray-100 text-gray-900 font-bold"
-                    : "text-gray-600 hover:bg-gray-50"
-                }`}
-              >
-                2
-              </button>
-            )}
-
-            {filteredItems.length > pageSize * 2 && (
-              <button
-                onClick={() => setCurrentPage(3)}
-                className={`w-7 h-7 rounded-lg text-xs font-semibold flex items-center justify-center transition cursor-pointer ${
-                  currentPage === 3
-                    ? "bg-gray-100 text-gray-900 font-bold"
-                    : "text-gray-600 hover:bg-gray-50"
-                }`}
-              >
-                3
-              </button>
-            )}
-
+            <span className="px-3 py-1 font-semibold text-gray-800 bg-gray-100 rounded">
+              {currentPage}
+            </span>
             <button
               disabled={currentPage * pageSize >= filteredItems.length}
               onClick={() => setCurrentPage((p) => p + 1)}
@@ -1131,23 +974,12 @@ export default function PenugasanPage() {
                 <p className="text-[11px] text-rose-600 mt-1 italic">
                   Status akan otomatis ditandai sebagai Bentrok jika disimpan.
                 </p>
-=======
-      <Dialog open={isModalOpen} onClose={() => { setIsModalOpen(false); setConflictWarning(null); }} title="Buat Penugasan Baru">
-        <div className="space-y-4 mt-4">
-          {conflictWarning && (
-            <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-              <AlertTriangle size={20} className="text-amber-600 flex-shrink-0" />
-              <div>
-                <p className="text-sm font-bold text-amber-800">⚠️ Peringatan: {conflictWarning}</p>
-                <p className="text-xs text-amber-700 mt-1">Sistem mendeteksi jadwal ganda pada jam ini. Anda tetap dapat menyimpan tugas jika diperlukan.</p>
->>>>>>> origin/backend-frontend-connected
               </div>
             </div>
           )}
 
           {/* Nama Kegiatan (Dropdown Sinkron dari Manajemen Kegiatan) */}
           <div>
-<<<<<<< HEAD
             <div className="flex items-center justify-between mb-1">
               <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
                 Kegiatan Terkait (Sinkron dari Agenda) *
@@ -1160,41 +992,6 @@ export default function PenugasanPage() {
                 <span>Kelola Agenda</span>
                 <ExternalLink className="w-3 h-3" />
               </button>
-=======
-            <label className="text-sm font-medium text-gray-700">Pilih PIC (Pegawai)</label>
-            <Select 
-              options={(petugasList || []).map((p: any) => ({ value: p.id, label: `${p.name} (${p.staffType})` }))} 
-              placeholder="Pilih PIC"
-              className="mt-1"
-              value={formData.userId}
-              onChange={e => setFormData({ ...formData, userId: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700">Kegiatan Terkait</label>
-            <Select 
-              options={(activities || []).map((a: any) => ({ value: a.id, label: a.title || "Kegiatan Tanpa Judul" }))} 
-              placeholder="Pilih Kegiatan"
-              className="mt-1"
-              value={formData.activityId}
-              onChange={e => setFormData({ ...formData, activityId: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700">Jenis Konten (Output)</label>
-            <Select 
-              options={(contentTypes || []).map((ct: any) => ({ value: ct.id, label: ct.name }))} 
-              placeholder="Pilih Output"
-              className="mt-1"
-              value={formData.contentTypeId}
-              onChange={e => setFormData({ ...formData, contentTypeId: e.target.value })}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium text-gray-700">Jam Mulai</label>
-              <Input type="time" className="mt-1" value={formData.startTime} onChange={e => setFormData({ ...formData, startTime: e.target.value })} />
->>>>>>> origin/backend-frontend-connected
             </div>
 
             <select
@@ -1258,7 +1055,6 @@ export default function PenugasanPage() {
           {/* Output & Tanggal */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-<<<<<<< HEAD
               <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
                 Output / Jenis Konten
               </label>
@@ -1375,21 +1171,6 @@ export default function PenugasanPage() {
               }}
             >
               Batal
-=======
-              <label className="text-sm font-medium text-gray-700">Jam Selesai</label>
-              <Input type="time" className="mt-1" value={formData.endTime} onChange={e => setFormData({ ...formData, endTime: e.target.value })} />
-            </div>
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700">Deadline Pengumpulan</label>
-            <Input type="datetime-local" className="mt-1" value={formData.deadline} onChange={e => setFormData({ ...formData, deadline: e.target.value })} />
-          </div>
-          
-          <div className="pt-4 flex justify-end gap-2">
-            <Button variant="outline" onClick={() => { setIsModalOpen(false); setConflictWarning(null); }}>Batal</Button>
-            <Button variant={conflictWarning ? "warning" : "default"} onClick={conflictWarning ? handleForceSimpan : handleSimpan}>
-              {conflictWarning ? "Tetap Simpan" : "Simpan Penugasan"}
->>>>>>> origin/backend-frontend-connected
             </Button>
             <button
               onClick={isCreateOpen ? handleSaveCreate : handleSaveEdit}
