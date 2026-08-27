@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import {
   FileText,
   MapPin,
@@ -13,6 +14,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "../../lib/AuthContext";
+import { apiFetch } from "../../lib/api-client";
 import { WORKFLOWS } from "../../lib/mock-data";
 import { useToast } from "../../contexts/ToastContext";
 
@@ -128,6 +130,8 @@ const PetugasPenugasanPage = () => {
   const location = useLocation();
   const { addToast } = useToast();
 
+  const userBidang = user?.staffType || (user as any)?.bidang;
+
   const [tasks, setTasks] = useState<TaskItem[]>(defaultTasks);
   const initialTaskId = (location.state as { taskId?: string } | null)?.taskId ?? null;
   const [selectedId, setSelectedId] = useState<string | null>(initialTaskId);
@@ -136,7 +140,44 @@ const PetugasPenugasanPage = () => {
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
 
-  const userBidang = user?.staffType || (user as any)?.bidang;
+  // Query Real Tasks from Backend API
+  const { data: dbTasks, refetch } = useQuery({
+    queryKey: ["my-tasks-petugas", user?.id],
+    queryFn: async () => {
+      try {
+        const res = await apiFetch<{ success: boolean; data: any[] }>("/productions/my-tasks");
+        if (res.data && res.data.length > 0) {
+          return res.data.map((t: any) => ({
+            id: t.id,
+            kegiatan: t.kegiatan,
+            lokasi: t.lokasi || "Balaikota Among Tani",
+            jenisPekerjaan: t.jenisPekerjaan || "Liputan",
+            deadline: t.deadline || "24 Agustus 2026",
+            bidang: userBidang || "PRAHUM",
+            status: t.status || "BELUM",
+            kategori: (t.kegiatan.toLowerCase().includes("rapat")
+              ? "rapat"
+              : t.kegiatan.toLowerCase().includes("sidang")
+              ? "sidang"
+              : t.kegiatan.toLowerCase().includes("upacara")
+              ? "upacara"
+              : "peresmian") as TaskItem["kategori"],
+            instruksi: t.instruksi || "Lakukan tugas sesuai instruksi dan laporkan hasil tautan kerja.",
+            workLink: t.workLink,
+          })) as TaskItem[];
+        }
+        return null;
+      } catch {
+        return null;
+      }
+    },
+  });
+
+  useEffect(() => {
+    if (dbTasks && dbTasks.length > 0) {
+      setTasks(dbTasks);
+    }
+  }, [dbTasks]);
 
   const userTasks = useMemo(() => {
     return tasks.filter((t) => !userBidang || t.bidang === userBidang);
@@ -150,21 +191,37 @@ const PetugasPenugasanPage = () => {
     }
   }, [selectedTask]);
 
-  const updateStatus = (id: string, status: string) => {
+  const updateStatus = async (id: string, status: string) => {
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
     addToast(`Status tugas diperbarui ke: ${status.replace("_", " ")}`, "success");
+
+    try {
+      await apiFetch(`/productions/${id}/status`, {
+        method: "POST",
+        body: JSON.stringify({ status }),
+      });
+      refetch();
+    } catch {}
   };
 
-  const handleSaveWorkLink = () => {
+  const handleSaveWorkLink = async () => {
     if (!selectedTask) return;
     if (!uploadLink.trim()) {
       addToast("Tautan luaran tidak boleh kosong.", "warning");
       return;
     }
     setTasks((prev) =>
-      prev.map((t) => (t.id === selectedTask.id ? { ...t, workLink: uploadLink.trim() } : t))
+      prev.map((t) => (t.id === selectedTask.id ? { ...t, workLink: uploadLink.trim(), status: "SELESAI" } : t))
     );
-    addToast("Tautan hasil kerja berhasil disimpan!", "success");
+    addToast("Tautan hasil kerja berhasil disimpan ke database!", "success");
+
+    try {
+      await apiFetch(`/productions/${selectedTask.id}/submit`, {
+        method: "POST",
+        body: JSON.stringify({ workLink: uploadLink.trim() }),
+      });
+      refetch();
+    } catch {}
   };
 
   const filteredTasks = useMemo(() => {
@@ -227,163 +284,158 @@ const PetugasPenugasanPage = () => {
           <div className="flex items-center justify-between border-b border-gray-100 pb-4">
             <button
               onClick={() => setSelectedId(null)}
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0a1647] hover:text-white bg-white hover:bg-[#0a1647] active:bg-[#060e29] border border-[#0a1647]/30 hover:border-slate-400 px-4 py-2 rounded-lg transition-colors cursor-pointer shadow-xs"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0a1647] hover:underline cursor-pointer"
             >
-              <ArrowLeft size={15} /> Kembali ke Daftar Penugasan
+              <ArrowLeft size={16} /> Kembali ke Daftar Tugas
             </button>
-
-            {/* Category badge */}
-            <span className="px-3 py-1 text-xs font-bold rounded-lg bg-white border border-[#0a1647]/30 text-[#0a1647]">
-              {categoryLabels[selectedTask.kategori] || selectedTask.kategori}
-            </span>
-          </div>
-
-          <div>
-            <div className="flex flex-wrap items-center gap-2 mb-2">
+            <div className="flex items-center gap-2">
               <span className="px-3 py-1 text-xs font-bold rounded-lg bg-white border border-[#0a1647]/30 text-[#0a1647]">
-                {selectedTask.status.replace("_", " ")}
-              </span>
-              <span className="px-3 py-1 text-xs font-semibold rounded-lg bg-white border border-[#0a1647]/30 text-[#0a1647]">
-                {selectedTask.jenisPekerjaan}
+                Status: {selectedTask.status.replace("_", " ")}
               </span>
             </div>
-
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mt-2">{selectedTask.kegiatan}</h2>
-            <p className="text-xs sm:text-sm text-gray-500 mt-1">
-              Sektor Bidang: <strong className="text-[#0a1647]">{selectedTask.bidang}</strong>
-            </p>
           </div>
 
+          {/* Conflict Alert Banner if detected */}
           {selectedTask.hasConflict && (
-            <div className="bg-white border border-[#0a1647]/30 rounded-xl p-4 flex items-start gap-3 text-xs shadow-xs">
-              <AlertTriangle size={18} className="text-[#0a1647] flex-shrink-0 mt-0.5" />
+            <div className="bg-white border border-[#0a1647]/30 rounded-xl p-4 flex items-start gap-3 shadow-xs">
+              <AlertTriangle size={18} className="text-[#0a1647] shrink-0 mt-0.5" />
               <div>
-                <p className="font-bold text-[#0a1647]">Perhatian: Terdeteksi Jadwal Bentrok</p>
-                <p className="text-gray-700 mt-0.5">{selectedTask.conflictMessage}</p>
+                <p className="text-xs font-bold text-[#0a1647] uppercase tracking-wide">
+                  Peringatan Bentrok Jadwal Terdeteksi
+                </p>
+                <p className="text-xs text-gray-600 mt-1 leading-relaxed">
+                  {selectedTask.conflictMessage || "Jadwal penugasan ini berbenturan dengan agenda liputan lain pada rentang waktu yang berdekatan."}
+                </p>
               </div>
             </div>
           )}
 
-          {/* Metadata Info */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white border border-gray-200 rounded-xl p-5 text-xs">
-            <div>
-              <span className="font-semibold text-gray-500 flex items-center gap-1.5">
-                <MapPin size={14} className="text-[#0a1647]" /> Lokasi Pelaksanaan
+          {/* Task Info Header */}
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="px-2.5 py-0.5 text-xs font-bold rounded-md bg-white border border-[#0a1647]/30 text-[#0a1647]">
+                {categoryLabels[selectedTask.kategori] || selectedTask.kategori}
               </span>
-              <p className="font-bold text-gray-900 mt-1 text-sm">{selectedTask.lokasi}</p>
+              <span className="px-2.5 py-0.5 text-xs font-semibold rounded-md bg-white border border-[#0a1647]/30 text-[#0a1647]">
+                {selectedTask.jenisPekerjaan}
+              </span>
             </div>
-            <div>
-              <span className="font-semibold text-gray-500 flex items-center gap-1.5">
-                <Clock size={14} className="text-[#0a1647]" /> Batas Waktu (Deadline)
+            <h2 className="text-xl font-bold text-gray-900">{selectedTask.kegiatan}</h2>
+            <div className="flex flex-wrap gap-4 text-xs text-gray-500 pt-1">
+              <span className="flex items-center gap-1.5 text-gray-600">
+                <MapPin size={14} className="text-[#0a1647]" /> {selectedTask.lokasi}
               </span>
-              <p className="font-bold text-gray-900 mt-1 text-sm">{selectedTask.deadline}</p>
-            </div>
-            <div className="sm:col-span-2">
-              <span className="font-semibold text-gray-500 flex items-center gap-1.5">
-                <FileText size={14} className="text-[#0a1647]" /> Catatan &amp; Instruksi Khusus
+              <span className="flex items-center gap-1.5 text-[#0a1647] font-semibold bg-white border border-[#0a1647]/30 px-2 py-0.5 rounded-md">
+                <Clock size={14} className="text-[#0a1647]" /> Batas Pengumpulan: {selectedTask.deadline}
               </span>
-              <p className="text-gray-800 mt-1.5 leading-relaxed text-xs sm:text-sm bg-white p-3.5 rounded-lg border border-gray-200">
-                {selectedTask.instruksi}
-              </p>
             </div>
           </div>
 
-          {/* Update Status Stepper */}
-          <div>
-            <h3 className="text-sm font-bold text-[#0a1647] mb-1">
-              Update Status Produksi
-            </h3>
-            <p className="text-xs text-gray-500 mb-3.5">
-              Klik tahapan di bawah untuk memperbarui progress pekerjaan kamu secara berurutan.
+          {/* Instruksi Card */}
+          <div className="bg-white rounded-xl p-4 sm:p-5 border border-gray-200 space-y-1.5">
+            <p className="text-xs font-bold text-[#0a1647] uppercase tracking-wider flex items-center gap-1.5">
+              <FileText size={14} /> Instruksi Liputan / Tugas
             </p>
-            <div className="flex flex-wrap gap-2.5">
-              {activeWorkflow.map((step, idx) => {
-                const isActive = selectedTask.status === step;
+            <p className="text-xs text-gray-700 leading-relaxed pl-5">
+              {selectedTask.instruksi}
+            </p>
+          </div>
+
+          {/* Alur Kerja Section */}
+          <div className="space-y-3 pt-2">
+            <p className="text-xs font-bold text-[#0a1647] uppercase tracking-wider">
+              Perbarui Alur Status Pekerjaan ({userBidang || "PRAHUM"})
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {activeWorkflow.map((st, idx) => {
+                const isActive = selectedTask.status === st;
                 return (
                   <button
-                    key={step}
-                    onClick={() => updateStatus(selectedTask.id, step)}
-                    className={`flex items-center gap-2 text-xs font-bold px-4 py-2.5 rounded-lg transition-all cursor-pointer ${
+                    key={st}
+                    onClick={() => updateStatus(selectedTask.id, st)}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                       isActive
                         ? "bg-[#0a1647] text-white shadow-xs border border-[#0a1647]"
-                        : "bg-white text-[#0a1647] border border-[#0a1647]/30 hover:bg-[#0a1647]/5 active:bg-[#0a1647] active:text-white"
+                        : "bg-white text-[#0a1647] border border-[#0a1647]/30 hover:bg-[#0a1647]/5 hover:border-[#0a1647] active:bg-[#0a1647] active:text-white"
                     }`}
                   >
-                    {isActive ? (
-                      <CheckCircle2 size={15} />
-                    ) : (
-                      <span className="w-4 h-4 rounded-full bg-slate-100 text-[#0a1647] text-[10px] flex items-center justify-center font-bold">
-                        {idx + 1}
-                      </span>
-                    )}
-                    <span>{step.replace("_", " ")}</span>
+                    <span className="w-4 h-4 rounded-full bg-white text-[#0a1647] text-[10px] flex items-center justify-center font-bold">
+                      {idx + 1}
+                    </span>
+                    <span>{st.replace("_", " ")}</span>
+                    {isActive && <CheckCircle2 size={13} className="text-white ml-0.5" />}
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {/* Upload Cloud Link */}
-          <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-3 shadow-xs">
-            <h4 className="text-sm font-bold text-[#0a1647]">
-              Kirimkan Luaran / Hasil Kerja
-            </h4>
-            <p className="text-xs text-gray-500">
-              Tempelkan link tautan Google Drive / Cloud Penyimpanan hasil dokumentasi/file kamu.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
+          {/* Upload Luaran Form */}
+          <div className="border-t border-gray-100 pt-6 space-y-3">
+            <div>
+              <p className="text-xs font-bold text-[#0a1647] uppercase tracking-wider flex items-center gap-1.5">
+                <Upload size={14} /> Tautan Hasil Luaran Kerja (Google Drive / Cloud)
+              </p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Masukkan tautan file folder dokumentasi, naskah berita, atau berkas final untuk diarsip ke Bank Konten.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2 max-w-xl">
               <input
-                type="text"
+                type="url"
                 value={uploadLink}
                 onChange={(e) => setUploadLink(e.target.value)}
-                placeholder="https://drive.google.com/..."
-                className="flex-1 border border-[#0a1647]/30 rounded-lg px-4 py-2.5 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#0a1647]/20 focus:border-[#0a1647]"
+                placeholder="https://drive.google.com/drive/folders/..."
+                className="flex-1 px-3.5 py-2.5 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0a1647]/30 focus:border-[#0a1647] transition"
               />
               <button
                 onClick={handleSaveWorkLink}
-                className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-white rounded-lg px-5 py-2.5 transition-colors hover:bg-[#12236e] active:bg-[#060e29] cursor-pointer shadow-xs"
-                style={{ backgroundColor: DARK_BLUE }}
+                className="px-5 py-2.5 rounded-lg text-xs font-bold text-white shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 shrink-0 bg-[#0a1647] hover:bg-[#081238]"
               >
-                <Upload size={15} /> Simpan Tautan
+                <Upload size={13} />
+                <span>Simpan Tautan</span>
               </button>
             </div>
+
             {selectedTask.workLink && (
-              <div className="text-xs text-[#0a1647] pt-1.5 flex items-center gap-1.5">
-                <span className="text-gray-500">Tautan tersimpan:</span>
+              <div className="mt-3 flex items-center gap-2 text-xs">
+                <span className="font-semibold text-gray-600">Tautan Tersimpan:</span>
                 <a
                   href={selectedTask.workLink}
                   target="_blank"
                   rel="noreferrer"
-                  className="font-semibold underline truncate hover:text-[#0a1647] inline-flex items-center gap-1"
+                  className="font-medium text-[#0a1647] hover:underline flex items-center gap-1 truncate max-w-md"
                 >
-                  {selectedTask.workLink} <ExternalLink size={12} />
+                  <span className="truncate">{selectedTask.workLink}</span>
+                  <ExternalLink size={12} className="shrink-0" />
                 </a>
               </div>
             )}
           </div>
         </div>
       ) : (
-        /* LIST VIEW (Biru Gelap & Putih) */
+        /* TASK LIST VIEW */
         <div className="space-y-4">
-          {/* Controls Bar: Search & Status Filters */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          {/* Top Search Bar & Status Filter Bar */}
+          <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
             {/* Search Input */}
-            <div className="relative flex-1 w-full md:max-w-md">
-              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#0a1647]" />
+            <div className="relative flex-1 max-w-md">
+              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Cari nama kegiatan, lokasi, atau jenis tugas..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 text-xs bg-white border border-[#0a1647]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0a1647]/20 focus:border-[#0a1647] shadow-xs"
+                placeholder="Cari nama kegiatan, lokasi, atau jenis tugas..."
+                className="w-full pl-9.5 pr-4 py-2 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0a1647]/30 focus:border-[#0a1647] transition"
               />
             </div>
 
-            {/* Status Quick Filter Tabs */}
-            <div className="flex items-center gap-1.5 bg-white p-1 rounded-lg text-xs w-full sm:w-auto border border-[#0a1647]/30 shadow-xs">
+            {/* Status Segmented Tabs */}
+            <div className="inline-flex rounded-lg border border-[#0a1647]/30 bg-white p-0.5 shadow-2xs self-start md:self-auto overflow-x-auto">
               <button
                 onClick={() => setStatusFilter("ALL")}
-                className={`px-3.5 py-1.5 rounded-md font-bold transition-all cursor-pointer flex-1 sm:flex-none text-center ${
+                className={`px-3 py-1 text-xs font-bold rounded-md transition-all cursor-pointer ${
                   statusFilter === "ALL"
                     ? "bg-[#0a1647] text-white shadow-xs"
                     : "text-[#0a1647] hover:bg-[#0a1647]/5 active:bg-[#0a1647] active:text-white"
@@ -393,7 +445,7 @@ const PetugasPenugasanPage = () => {
               </button>
               <button
                 onClick={() => setStatusFilter("PROSES")}
-                className={`px-3.5 py-1.5 rounded-md font-bold transition-all cursor-pointer flex-1 sm:flex-none text-center ${
+                className={`px-3 py-1 text-xs font-bold rounded-md transition-all cursor-pointer ${
                   statusFilter === "PROSES"
                     ? "bg-[#0a1647] text-white shadow-xs"
                     : "text-[#0a1647] hover:bg-[#0a1647]/5 active:bg-[#0a1647] active:text-white"
@@ -403,7 +455,7 @@ const PetugasPenugasanPage = () => {
               </button>
               <button
                 onClick={() => setStatusFilter("SELESAI")}
-                className={`px-3.5 py-1.5 rounded-md font-bold transition-all cursor-pointer flex-1 sm:flex-none text-center ${
+                className={`px-3 py-1 text-xs font-bold rounded-md transition-all cursor-pointer ${
                   statusFilter === "SELESAI"
                     ? "bg-[#0a1647] text-white shadow-xs"
                     : "text-[#0a1647] hover:bg-[#0a1647]/5 active:bg-[#0a1647] active:text-white"
