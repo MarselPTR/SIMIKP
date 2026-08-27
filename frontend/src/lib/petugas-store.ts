@@ -1,0 +1,227 @@
+import { useState, useEffect, useCallback } from "react";
+import { apiFetch } from "./api-client";
+
+export interface PetugasTaskItem {
+  id: string;
+  kegiatan: string;
+  lokasi: string;
+  jenisPekerjaan: string;
+  deadline: string;
+  bidang: string;
+  status: string;
+  instruksi: string;
+  kategori: "upacara" | "rapat" | "peresmian" | "sidang";
+  hasConflict?: boolean;
+  conflictMessage?: string;
+  workLink?: string;
+}
+
+export const INITIAL_PETUGAS_TASKS: PetugasTaskItem[] = [
+  {
+    id: "t1",
+    kegiatan: "Liputan Peresmian Taman Kota Kec. Selatan",
+    lokasi: "Taman Kota Kec. Selatan",
+    jenisPekerjaan: "Penulisan Rilis & Berita",
+    deadline: "24 Agustus 2026 15:00",
+    bidang: "PRAHUM",
+    status: "LIPUTAN",
+    kategori: "peresmian",
+    instruksi: "Fokus pada wawancara Walikota dan dampaknya bagi UMKM lokal sekitar taman.",
+    hasConflict: true,
+    conflictMessage: "Budi sudah memiliki jadwal kegiatan lain pada pukul 09.00–11.00 WIB.",
+  },
+  {
+    id: "t2",
+    kegiatan: "Rapat Koordinasi Publikasi OPD & Media Massa",
+    lokasi: "Studio Media SIMIKP",
+    jenisPekerjaan: "Press Release & Live Tweeting",
+    deadline: "25 Agustus 2026 16:00",
+    bidang: "PRAHUM",
+    status: "MENULIS",
+    kategori: "rapat",
+    instruksi: "Rangkum 5 poin kesepakatan media relations untuk tayang di portal resmi.",
+  },
+  {
+    id: "t3",
+    kegiatan: "Dokumentasi Upacara Peringatan Hari Kemerdekaan",
+    lokasi: "Balaikota Among Tani",
+    jenisPekerjaan: "Foto & Video Liputan",
+    deadline: "26 Agustus 2026 12:00",
+    bidang: "FOTO_VIDEO",
+    status: "SIAP_TAYANG",
+    kategori: "upacara",
+    instruksi: "Ambil minimal 30 foto resolusi tinggi dan highlight video 60 detik.",
+    workLink: "https://drive.google.com/drive/folders/1upacara-foto-batu",
+  },
+  {
+    id: "t4",
+    kegiatan: "Desain Banner Media Sosial HUT Kota Batu Ke-25",
+    lokasi: "Kantor Diskominfo",
+    jenisPekerjaan: "Desain Grafis / Feeds Instagram",
+    deadline: "27 Agustus 2026 14:00",
+    bidang: "DESAINER_EDITOR",
+    status: "DESAIN",
+    kategori: "peresmian",
+    instruksi: "Gunakan palet warna resmi Pemkot dan sertakan logo OPD terbaru.",
+  },
+  {
+    id: "t5",
+    kegiatan: "Sidang Paripurna Pandangan Fraksi DPRD",
+    lokasi: "Gedung DPRD Kota Batu",
+    jenisPekerjaan: "Notulensi & Transkrip Pidato",
+    deadline: "28 Agustus 2026 17:00",
+    bidang: "PRAHUM",
+    status: "BELUM",
+    kategori: "sidang",
+    instruksi: "Dokumentasikan poin pandangan seluruh 6 fraksi secara lengkap.",
+  },
+  {
+    id: "t6",
+    kegiatan: "Produksi Video Profil Desa Wisata Bumiaji",
+    lokasi: "Kecamatan Bumiaji",
+    jenisPekerjaan: "Video Dokumenter 4K",
+    deadline: "29 Agustus 2026 16:00",
+    bidang: "FOTO_VIDEO",
+    status: "LIPUTAN",
+    kategori: "peresmian",
+    instruksi: "Pengambilan video lanskap perkebunan apel dan wawancara pengelola wisata.",
+  },
+  {
+    id: "t7",
+    kegiatan: "Infografis Realisasi Anggaran APBD Triwulan II",
+    lokasi: "Kantor Diskominfo",
+    jenisPekerjaan: "Desain Infografis Publik",
+    deadline: "30 Agustus 2026 12:00",
+    bidang: "DESAINER_EDITOR",
+    status: "REVISI",
+    kategori: "rapat",
+    instruksi: "Perbaiki kontras warna pada diagram sektor pendidikan dan kesehatan.",
+  },
+];
+
+const STORAGE_KEY = "simikp_petugas_tasks_data";
+const EVENT_NAME = "simikp_tasks_sync_event";
+
+export const getStoredPetugasTasks = (): PetugasTaskItem[] => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch {}
+  return INITIAL_PETUGAS_TASKS;
+};
+
+export const saveStoredPetugasTasks = (tasks: PetugasTaskItem[]) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    window.dispatchEvent(new Event(EVENT_NAME));
+  } catch {}
+};
+
+export const updatePetugasTaskStatus = async (id: string, status: string): Promise<PetugasTaskItem[]> => {
+  const current = getStoredPetugasTasks();
+  const updated = current.map((t) => (t.id === id ? { ...t, status } : t));
+  saveStoredPetugasTasks(updated);
+
+  // Optional attempt to post to backend API
+  try {
+    await apiFetch(`/productions/${id}/status`, {
+      method: "POST",
+      body: JSON.stringify({ status }),
+    });
+  } catch {}
+
+  return updated;
+};
+
+export const submitPetugasTaskWork = async (id: string, workLink: string): Promise<PetugasTaskItem[]> => {
+  const current = getStoredPetugasTasks();
+  const updated = current.map((t) =>
+    t.id === id ? { ...t, workLink, status: "SELESAI" } : t
+  );
+  saveStoredPetugasTasks(updated);
+
+  // Optional attempt to post to backend API
+  try {
+    await apiFetch(`/productions/${id}/submit`, {
+      method: "POST",
+      body: JSON.stringify({ workLink }),
+    });
+  } catch {}
+
+  return updated;
+};
+
+/**
+ * Reactive React Hook that stays in sync across Dashboard & Penugasan Saya
+ */
+export const usePetugasTasksStore = (userBidang?: string | null) => {
+  const [tasks, setTasks] = useState<PetugasTaskItem[]>(() => getStoredPetugasTasks());
+
+  const sync = useCallback(() => {
+    setTasks(getStoredPetugasTasks());
+  }, []);
+
+  useEffect(() => {
+    // Initial fetch from backend if available
+    apiFetch<{ success: boolean; data: any[] }>("/productions/my-tasks")
+      .then((res) => {
+        if (res.data && res.data.length > 0) {
+          const mapped: PetugasTaskItem[] = res.data.map((t: any) => ({
+            id: t.id,
+            kegiatan: t.kegiatan,
+            lokasi: t.lokasi || "Balaikota Among Tani",
+            jenisPekerjaan: t.jenisPekerjaan || "Liputan",
+            deadline: t.deadline || "24 Agustus 2026",
+            bidang: userBidang || "PRAHUM",
+            status: t.status || "BELUM",
+            kategori: (t.kegiatan.toLowerCase().includes("rapat")
+              ? "rapat"
+              : t.kegiatan.toLowerCase().includes("sidang")
+              ? "sidang"
+              : t.kegiatan.toLowerCase().includes("upacara")
+              ? "upacara"
+              : "peresmian") as PetugasTaskItem["kategori"],
+            instruksi: t.instruksi || "Lakukan tugas sesuai arahan.",
+            workLink: t.workLink,
+          }));
+
+          // Merge with stored local edits
+          const current = getStoredPetugasTasks();
+          const merged = mapped.map((m) => {
+            const local = current.find((c) => c.id === m.id);
+            return local ? { ...m, ...local } : m;
+          });
+
+          // Include any default tasks not in backend yet
+          const nonDbTasks = current.filter((c) => !mapped.some((m) => m.id === c.id));
+          const allMerged = [...merged, ...nonDbTasks];
+
+          saveStoredPetugasTasks(allMerged);
+          setTasks(allMerged);
+        }
+      })
+      .catch(() => {});
+
+    // Listen to local sync events
+    window.addEventListener(EVENT_NAME, sync);
+    window.addEventListener("storage", sync);
+
+    return () => {
+      window.removeEventListener(EVENT_NAME, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, [sync, userBidang]);
+
+  const userTasks = tasks.filter((t) => !userBidang || t.bidang === userBidang);
+
+  return {
+    tasks: userTasks,
+    allTasks: tasks,
+    updateStatus: (id: string, status: string) => updatePetugasTaskStatus(id, status),
+    submitWork: (id: string, link: string) => submitPetugasTaskWork(id, link),
+    refresh: sync,
+  };
+};

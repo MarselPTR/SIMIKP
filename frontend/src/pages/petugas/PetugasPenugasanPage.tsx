@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import {
   FileText,
   MapPin,
@@ -14,7 +13,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "../../lib/AuthContext";
-import { apiFetch } from "../../lib/api-client";
+import { usePetugasTasksStore, PetugasTaskItem } from "../../lib/petugas-store";
 import { WORKFLOWS } from "../../lib/mock-data";
 import { useToast } from "../../contexts/ToastContext";
 
@@ -130,58 +129,16 @@ const PetugasPenugasanPage = () => {
   const location = useLocation();
   const { addToast } = useToast();
 
-  const userBidang = user?.staffType || (user as any)?.bidang;
+  const userBidang = user?.staffType || (user as any)?.bidang || "PRAHUM";
 
-  const [tasks, setTasks] = useState<TaskItem[]>(defaultTasks);
+  const { tasks: userTasks, updateStatus: storeUpdateStatus, submitWork: storeSubmitWork } = usePetugasTasksStore(userBidang);
+
   const initialTaskId = (location.state as { taskId?: string } | null)?.taskId ?? null;
   const [selectedId, setSelectedId] = useState<string | null>(initialTaskId);
   const [uploadLink, setUploadLink] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
-
-  // Query Real Tasks from Backend API
-  const { data: dbTasks, refetch } = useQuery({
-    queryKey: ["my-tasks-petugas", user?.id],
-    queryFn: async () => {
-      try {
-        const res = await apiFetch<{ success: boolean; data: any[] }>("/productions/my-tasks");
-        if (res.data && res.data.length > 0) {
-          return res.data.map((t: any) => ({
-            id: t.id,
-            kegiatan: t.kegiatan,
-            lokasi: t.lokasi || "Balaikota Among Tani",
-            jenisPekerjaan: t.jenisPekerjaan || "Liputan",
-            deadline: t.deadline || "24 Agustus 2026",
-            bidang: userBidang || "PRAHUM",
-            status: t.status || "BELUM",
-            kategori: (t.kegiatan.toLowerCase().includes("rapat")
-              ? "rapat"
-              : t.kegiatan.toLowerCase().includes("sidang")
-              ? "sidang"
-              : t.kegiatan.toLowerCase().includes("upacara")
-              ? "upacara"
-              : "peresmian") as TaskItem["kategori"],
-            instruksi: t.instruksi || "Lakukan tugas sesuai instruksi dan laporkan hasil tautan kerja.",
-            workLink: t.workLink,
-          })) as TaskItem[];
-        }
-        return null;
-      } catch {
-        return null;
-      }
-    },
-  });
-
-  useEffect(() => {
-    if (dbTasks && dbTasks.length > 0) {
-      setTasks(dbTasks);
-    }
-  }, [dbTasks]);
-
-  const userTasks = useMemo(() => {
-    return tasks.filter((t) => !userBidang || t.bidang === userBidang);
-  }, [tasks, userBidang]);
 
   const selectedTask = userTasks.find((t) => t.id === selectedId) ?? null;
 
@@ -192,16 +149,8 @@ const PetugasPenugasanPage = () => {
   }, [selectedTask]);
 
   const updateStatus = async (id: string, status: string) => {
-    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
+    await storeUpdateStatus(id, status);
     addToast(`Status tugas diperbarui ke: ${status.replace("_", " ")}`, "success");
-
-    try {
-      await apiFetch(`/productions/${id}/status`, {
-        method: "POST",
-        body: JSON.stringify({ status }),
-      });
-      refetch();
-    } catch {}
   };
 
   const handleSaveWorkLink = async () => {
@@ -210,18 +159,8 @@ const PetugasPenugasanPage = () => {
       addToast("Tautan luaran tidak boleh kosong.", "warning");
       return;
     }
-    setTasks((prev) =>
-      prev.map((t) => (t.id === selectedTask.id ? { ...t, workLink: uploadLink.trim(), status: "SELESAI" } : t))
-    );
+    await storeSubmitWork(selectedTask.id, uploadLink.trim());
     addToast("Tautan hasil kerja berhasil disimpan ke database!", "success");
-
-    try {
-      await apiFetch(`/productions/${selectedTask.id}/submit`, {
-        method: "POST",
-        body: JSON.stringify({ workLink: uploadLink.trim() }),
-      });
-      refetch();
-    } catch {}
   };
 
   const filteredTasks = useMemo(() => {

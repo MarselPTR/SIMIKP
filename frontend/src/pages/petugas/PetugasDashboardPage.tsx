@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import {
   ClipboardList,
   Clock,
@@ -15,8 +14,7 @@ import {
   FileText,
 } from "lucide-react";
 import { useAuth } from "../../lib/AuthContext";
-import { apiFetch } from "../../lib/api-client";
-import { LoadingSpinner, ErrorState } from "../../components/shared/StateComponents";
+import { usePetugasTasksStore } from "../../lib/petugas-store";
 import EventCalendar, { dateKeyOf } from "../../components/shared/EventCalendar";
 import type { CalendarEvent } from "../../components/shared/EventCalendar";
 import Dialog from "../../components/ui/Dialog";
@@ -223,29 +221,13 @@ const PetugasDashboardPage = () => {
 
   const userBidang = user?.staffType || (user as any)?.bidang || "PRAHUM";
 
-  // Query Petugas Tasks
-  const { data: dbTasks, isLoading, error } = useQuery({
-    queryKey: ["my-tasks-dashboard", user?.id],
-    queryFn: async () => {
-      try {
-        const res = await apiFetch<{ success: boolean; data: PetugasTask[] }>("/productions/my-tasks");
-        if (res.data && res.data.length > 0) return res.data;
-        return fallbackTasks;
-      } catch {
-        return fallbackTasks;
-      }
-    },
-  });
+  // Unified Reactive Task Store synced across pages & database
+  const { tasks } = usePetugasTasksStore(userBidang);
 
   const now = new Date();
   const [calYear, setCalYear] = useState(now.getFullYear());
   const [calMonth, setCalMonth] = useState(now.getMonth());
   const [viewDateKey, setViewDateKey] = useState<string | null>(null);
-
-  const tasks = useMemo(() => {
-    const list = dbTasks || fallbackTasks;
-    return list.filter((t) => !t.bidang || t.bidang === userBidang);
-  }, [dbTasks, userBidang]);
 
   const totalTasks = tasks.length;
   const selesaiCount = tasks.filter((t) => t.status === "COMPLETED" || t.status === "SELESAI").length;
@@ -313,9 +295,6 @@ const PetugasDashboardPage = () => {
   const activeWorkflowList = WORKFLOWS[userBidang] || WORKFLOWS["PRAHUM"];
 
   const upcomingTasks = tasks.slice(0, 4);
-
-  if (isLoading) return <LoadingSpinner />;
-  if (error) return <ErrorState message={error.message} />;
 
   return (
     <div className="space-y-6 pb-12">
