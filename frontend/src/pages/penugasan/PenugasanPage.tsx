@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { apiFetch } from "../../lib/api-client";
 import type { MockPenugasan } from "../../lib/mock-data";
@@ -35,46 +35,70 @@ export default function PenugasanPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const queryClient = useQueryClient();
-
-  // Query Penugasan Data from real backend API
-  const { data: rawData, isLoading, error, refetch } = useQuery({
+  // Query Penugasan Data
+  const { data: initialData, isLoading, error, refetch } = useQuery({
     queryKey: ["penugasan"],
     queryFn: async () => {
-      const res = await apiFetch<{ success: boolean; data: any[] }>("/assignments");
-      return res.data;
+      try {
+        const res = await apiFetch<{ success: boolean; data: any[] }>("/assignments");
+        if (res.data) {
+          return res.data.map((a: any) => ({
+            id: a.id,
+            kegiatanTerkait: a.activityTitle || a.activity?.title || "Kegiatan",
+            tanggalKegiatan: a.activityDate || "2026-08-27",
+            pic: a.picName || a.user?.name || "Petugas",
+            picAvatar: a.picName ? a.picName.slice(0, 2).toUpperCase() : "PT",
+            jenisKonten: a.contentType || "Dokumentasi",
+            jamMulai: a.startTime || "08:00",
+            jamSelesai: a.endTime || "12:00",
+            status:
+              a.status === "COMPLETED"
+                ? "done"
+                : a.status === "IN_PROGRESS"
+                ? "in-progress"
+                : a.status === "CONFLICT"
+                ? "conflict"
+                : "pending",
+            lokasi: a.location || "Batu",
+            catatan: a.instruction,
+          })) as MockPenugasan[];
+        }
+        return [];
+      } catch (err) {
+        console.error(err);
+        return [];
+      }
     },
   });
 
-  // Query Kegiatan Data from real backend API
+  const { data: petugasList } = useQuery({
+    queryKey: ["petugas"],
+    queryFn: async () => {
+      try {
+        const res = await apiFetch<{ success: boolean; data: any[] }>("/users/petugas");
+        return res.data;
+      } catch {
+        return [];
+      }
+    },
+  });
+
+
+
+  // Query Kegiatan Data for real-time synchronization
   const { data: kegiatanList = [] } = useQuery({
     queryKey: ["kegiatan"],
     queryFn: async () => {
-      const res = await apiFetch<{ data: any[] }>("/activities");
-      return res.data;
+      try {
+        const res = await apiFetch<{ success: boolean; data: any[] }>("/activities");
+        return res.data || [];
+      } catch {
+        return [];
+      }
     },
   });
 
-  // Map API response to UI-compatible MockPenugasan shape
-  const items: MockPenugasan[] = useMemo(() => {
-    if (!rawData) return [];
-    return rawData.map((item: any) => ({
-      id: item.id ?? String(Math.random()),
-      kegiatanTerkait: item.activityTitle ?? item.kegiatanTerkait ?? "",
-      tanggalKegiatan: item.activityDate ?? item.tanggalKegiatan ?? "",
-      jenisKonten: item.contentType ?? item.jenisKonten ?? "",
-      pic: item.picName ?? item.pic ?? "",
-      picAvatar: item.picAvatar ?? (item.picName ? item.picName.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase() : "?"),
-      jamMulai: item.startTime ?? item.jamMulai ?? "00:00",
-      jamSelesai: item.endTime ?? item.jamSelesai ?? "00:00",
-      waktuSubtitle: item.waktuSubtitle ?? "",
-      status: item.status ?? "pending",
-      hasConflict: item.status === "conflict",
-      lokasi: item.lokasi ?? "",
-      catatan: item.catatan ?? item.instruction ?? "",
-    }));
-  }, [rawData]);
-
+  const items = initialData || [];
 
   // Filters, sorting & selection
   const [activeTab, setActiveTab] = useState<string>("all");
@@ -108,24 +132,21 @@ export default function PenugasanPage() {
     }
   };
 
-  // Helper format short date subtitle (e.g. (Senin, 24/8))
   const formatSubtitleDate = (dateStr: string) => {
     try {
       const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return "(Senin, 24/8)";
-      const weekday = d.toLocaleDateString("id-ID", { weekday: "long" });
-      const day = d.getDate();
-      const month = d.getMonth() + 1;
-      return `(${weekday}, ${day}/${month})`;
+      if (isNaN(d.getTime())) return "(Hari H)";
+      const days = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+      return `(${days[d.getDay()]}, ${d.getDate()}/${d.getMonth() + 1})`;
     } catch {
-      return "(Senin, 24/8)";
+      return "(Hari H)";
     }
   };
 
-  // Form State for Create/Edit
+  // Form state
   const [formData, setFormData] = useState({
-    kegiatanTerkait: "Upacara Hari Jadi Kota",
-    tanggalKegiatan: "Senin, 24 Agustus 2026",
+    kegiatanTerkait: "",
+    tanggalKegiatan: "",
     jenisKonten: "Foto",
     pic: "Budi Fotografer",
     picAvatar: "BF",
@@ -137,63 +158,67 @@ export default function PenugasanPage() {
     catatan: "",
   });
 
-  // Handle URL Param action=create & kegiatan parameter (e.g. from KegiatanPage)
+  // Handle URL pre-fill from Kegiatan Page
   useEffect(() => {
-    const action = searchParams.get("action");
-    const kegiatanParam = searchParams.get("kegiatan");
-
-    if (action === "create" || kegiatanParam) {
-      const matchedKegiatan = kegiatanList.find(
-        (k) => k.title.toLowerCase() === kegiatanParam?.toLowerCase()
+    const kegParam = searchParams.get("kegiatan");
+    const actionParam = searchParams.get("action");
+    if (kegParam) {
+      const found = kegiatanList.find(
+        (k) => k.title.toLowerCase() === kegParam.toLowerCase()
       );
-
-      const targetTitle = matchedKegiatan ? matchedKegiatan.title : (kegiatanParam ?? "Upacara Hari Jadi Kota");
-      const targetDate = matchedKegiatan ? formatIndoDate(matchedKegiatan.deadline) : "Senin, 24 Agustus 2026";
-      const targetSubDate = matchedKegiatan ? formatSubtitleDate(matchedKegiatan.deadline) : "(Senin, 24/8)";
-      const targetLocation = matchedKegiatan?.lokasi ?? "Balaikota Among Tani";
-      const defaultOutput = matchedKegiatan?.outputDibutuhkan?.[0] ?? "Foto";
-
-      setFormData({
-        kegiatanTerkait: targetTitle,
-        tanggalKegiatan: targetDate,
-        jenisKonten: defaultOutput,
-        pic: "Budi Fotografer",
-        picAvatar: "BF",
-        jamMulai: "08:00",
-        jamSelesai: "10:00",
-        waktuSubtitle: targetSubDate,
-        status: "in-progress",
-        lokasi: targetLocation,
-        catatan: `Penugasan untuk kegiatan ${targetTitle}`,
-      });
-
-      if (action === "create") {
-        setIsCreateOpen(true);
+      if (found) {
+        setFormData({
+          kegiatanTerkait: found.title,
+          tanggalKegiatan: formatIndoDate(found.deadline),
+          waktuSubtitle: formatSubtitleDate(found.deadline),
+          jenisKonten: found.outputDibutuhkan?.[0] ?? "Foto",
+          pic: "Budi Fotografer",
+          picAvatar: "BF",
+          jamMulai: "08:30",
+          jamSelesai: "11:00",
+          status: "in-progress",
+          lokasi: found.lokasi ?? "Balaikota Among Tani",
+          catatan: `Penugasan untuk kegiatan ${found.title} (${found.opdPenyelenggara ?? "OPD"})`,
+        });
+      } else {
+        setFormData((prev) => ({
+          ...prev,
+          kegiatanTerkait: kegParam,
+          catatan: `Penugasan untuk agenda ${kegParam}`,
+        }));
       }
 
-      // Clear action param after handling
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete("action");
-      setSearchParams(newParams, { replace: true });
+      if (actionParam === "create") {
+        setIsCreateOpen(true);
+      }
     }
   }, [searchParams, kegiatanList]);
 
-  // List of PICs for options
+  // Sync search state with URL params
+  useEffect(() => {
+    if (searchQuery) {
+      setSearchParams({ search: searchQuery });
+    } else {
+      setSearchParams({});
+    }
+  }, [searchQuery, setSearchParams]);
+
+  // Options for form
   const PIC_OPTIONS = [
-    { name: "Budi Fotografer", avatar: "BF", role: "FOTO_VIDEO" },
-    { name: "Andi Prahum", avatar: "AP", role: "PRAHUM" },
-    { name: "Citra Desainer", avatar: "CD", role: "DESAINER_EDITOR" },
-    { name: "Dinda Amelia", avatar: "DA", role: "FOTO_VIDEO" },
-    { name: "Fajar Nugroho", avatar: "FN", role: "DESAINER_EDITOR" },
+    { name: "Budi Fotografer", role: "Fotografer", avatar: "BF" },
+    { name: "Citra Videografer", role: "Videografer", avatar: "CV" },
+    { name: "Andi Penulis", role: "Pranata Humas / Berita", avatar: "AP" },
+    { name: "Dewi Desainer", role: "Desainer Grafis", avatar: "DD" },
+    { name: "Eko Reporter", role: "Reporter Lapangan", avatar: "ER" },
   ];
 
   const JENIS_KONTEN_OPTIONS = [
     "Foto",
+    "Video",
     "Naskah Berita",
-    "Flyer/Infografis",
-    "Review Konten",
-    "Video Liputan",
     "Reels / TikTok",
+    "Infografis",
+    "Live Streaming",
   ];
 
   // Tab Status Counts (Solid & Real-time by item.status)
@@ -243,23 +268,20 @@ export default function PenugasanPage() {
   // Filtered & Sorted Items
   const filteredItems = useMemo(() => {
     let list = items.filter((item) => {
-      // Tab filter (strictly by item.status)
       if (activeTab === "in-progress" && item.status !== "in-progress") return false;
       if (activeTab === "done" && item.status !== "done") return false;
       if (activeTab === "pending" && item.status !== "pending") return false;
       if (activeTab === "conflict" && item.status !== "conflict") return false;
 
-      // Search
       const matchSearch =
         searchQuery.trim() === "" ||
-        (item.kegiatanTerkait ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (item.pic ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (item.jenisKonten ?? "").toLowerCase().includes(searchQuery.toLowerCase());
+        item.kegiatanTerkait.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.pic.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.jenisKonten.toLowerCase().includes(searchQuery.toLowerCase());
 
       return matchSearch;
     });
 
-    // Sorting
     list = [...list].sort((a, b) => {
       const recA = a as unknown as Record<string, unknown>;
       const recB = b as unknown as Record<string, unknown>;
@@ -302,56 +324,44 @@ export default function PenugasanPage() {
   const isSomeSelected =
     paginatedItems.some((it) => selectedIds.includes(it.id)) && !isAllSelected;
 
-  // Mutations for backend CRUD
-  const saveMutation = useMutation({
-    mutationFn: async (payload: any) => {
-      if (payload.id && !String(payload.id).startsWith("p-")) {
-        return apiFetch(`/assignments/${payload.id}`, { method: "PUT", body: JSON.stringify(payload) });
-      }
-      return apiFetch("/assignments", { method: "POST", body: JSON.stringify(payload) });
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["penugasan"] }),
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => apiFetch(`/assignments/${id}`, { method: "DELETE" }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["penugasan"] }),
-  });
-
-  const bulkStatusMutation = useMutation({
-    mutationFn: async (payload: { ids: string[], status: string }) => {
-      await Promise.all(payload.ids.map(id => apiFetch(`/assignments/${id}`, { method: "PUT", body: JSON.stringify({ status: payload.status }) })));
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["penugasan"] }),
-  });
-
-  const bulkDeleteMutation = useMutation({
-    mutationFn: async (ids: string[]) => {
-      await Promise.all(ids.map(id => apiFetch(`/assignments/${id}`, { method: "DELETE" })));
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["penugasan"] }),
-  });
-
-  // Bulk Actions (via backend)
-  const handleBulkMarkStatus = (status: MockPenugasan["status"]) => {
+  // Bulk Actions
+  const handleBulkMarkStatus = async (status: MockPenugasan["status"]) => {
     if (selectedIds.length === 0) return;
-    const statusLabel = status === "done" ? "Selesai" : status === "pending" ? "Menunggu" : status === "in-progress" ? "Proses" : "Bentrok";
-    bulkStatusMutation.mutate({ ids: selectedIds, status }, {
-      onSuccess: () => {
-        addToast(`${selectedIds.length} penugasan berhasil ditandai sebagai ${statusLabel}.`, "success");
-        setSelectedIds([]);
-      }
-    });
+    
+    try {
+      const dbStatus = status === "done" ? "COMPLETED" : status === "in-progress" ? "IN_PROGRESS" : "ASSIGNED";
+      await Promise.all(
+        selectedIds.map(id => 
+          apiFetch(`/assignments/${id}`, {
+            method: "PUT",
+            body: JSON.stringify({ status: dbStatus })
+          })
+        )
+      );
+      addToast(`Status ${selectedIds.length} penugasan berhasil diubah.`, "success");
+      setSelectedIds([]);
+      refetch();
+    } catch (e) {
+      addToast("Gagal mengubah status secara massal.", "error");
+    }
   };
 
-  const handleBulkDelete = () => {
+  const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return;
-    bulkDeleteMutation.mutate(selectedIds, {
-      onSuccess: () => {
-        addToast(`${selectedIds.length} penugasan berhasil dihapus.`, "info");
-        setSelectedIds([]);
-      }
-    });
+    if (!window.confirm(`Yakin ingin menghapus ${selectedIds.length} penugasan terpilih?`)) return;
+    
+    try {
+      await Promise.all(
+        selectedIds.map(id => 
+          apiFetch(`/assignments/${id}`, { method: "DELETE" })
+        )
+      );
+      addToast(`${selectedIds.length} penugasan berhasil dihapus.`, "success");
+      setSelectedIds([]);
+      refetch();
+    } catch (e) {
+      addToast("Gagal menghapus penugasan.", "error");
+    }
   };
 
   // Handler Open Create
@@ -404,90 +414,91 @@ export default function PenugasanPage() {
     setIsDeleteOpen(true);
   };
 
-  // Save Create (via backend)
-  const handleSaveCreate = () => {
+  // Save Create
+  const handleSaveCreate = async () => {
     if (!formData.kegiatanTerkait.trim()) {
       addToast("Mohon isi nama kegiatan terkait", "warning");
       return;
     }
 
-    const payload = {
-      activityId: formData.kegiatanTerkait, // backend accepts title or ID
-      userId: formData.pic,                  // backend accepts name or ID
-      contentTypeId: formData.jenisKonten,   // backend accepts name or ID
-      startTime: formData.jamMulai + ":00",
-      endTime: formData.jamSelesai + ":00",
-    };
-    saveMutation.mutate(payload, {
-      onSuccess: () => {
-        setIsCreateOpen(false);
-        addToast("Penugasan baru berhasil dibuat.", "success");
-      },
-      onError: (err: any) => {
-        addToast(err?.message || "Gagal menyimpan penugasan", "error");
-      },
-    });
+    const activity = kegiatanList.find(k => k.title === formData.kegiatanTerkait);
+    const picUser = petugasList?.find((p: any) => p.name === formData.pic);
+
+    try {
+      await apiFetch("/assignments", {
+        method: "POST",
+        body: JSON.stringify({
+          activityId: activity?.id,
+          picId: picUser?.id,
+          contentType: formData.jenisKonten,
+          startTime: formData.jamMulai,
+          endTime: formData.jamSelesai,
+          instruction: formData.catatan,
+          status: "ASSIGNED",
+          location: formData.lokasi,
+          activityDate: formData.tanggalKegiatan,
+        }),
+      });
+      addToast("Penugasan baru berhasil dibuat.", "success");
+      refetch();
+      setIsCreateOpen(false);
+    } catch (e) {
+      addToast("Gagal membuat penugasan", "error");
+    }
   };
 
-  // Save Edit (via backend)
-  const handleSaveEdit = () => {
+  // Save Edit
+  const handleSaveEdit = async () => {
     if (!selectedItem) return;
     if (!formData.kegiatanTerkait.trim()) {
       addToast("Mohon isi nama kegiatan terkait", "warning");
       return;
     }
+    
+    const activity = kegiatanList.find(k => k.title === formData.kegiatanTerkait);
+    const picUser = petugasList?.find((p: any) => p.name === formData.pic);
 
-    const payload = {
-      id: selectedItem.id,
-      activityId: formData.kegiatanTerkait,
-      userId: formData.pic,
-      contentTypeId: formData.jenisKonten,
-      startTime: formData.jamMulai + ":00",
-      endTime: formData.jamSelesai + ":00",
-      status: formData.status,
-    };
-    saveMutation.mutate(payload, {
-      onSuccess: () => {
-        setIsEditOpen(false);
-        addToast("Perubahan penugasan berhasil disimpan.", "success");
-      },
-      onError: (err: any) => {
-        addToast(err?.message || "Gagal memperbarui penugasan", "error");
-      },
-    });
-  };
-
-  // Confirm Delete (via backend)
-  const handleConfirmDelete = () => {
-    if (!selectedItem) return;
-    deleteMutation.mutate(selectedItem.id, {
-      onSuccess: () => {
-        setIsDeleteOpen(false);
-        addToast(`Penugasan "${selectedItem.kegiatanTerkait}" telah dihapus.`, "info");
-      },
-      onError: (err: any) => {
-        addToast(err?.message || "Gagal menghapus penugasan", "error");
-      },
-    });
-  };
-
-  useEffect(() => {
-    if (searchParams.get("action") === "create") {
-      // Small timeout to allow render, then open create modal
-      setTimeout(() => {
-        handleOpenCreate();
-        // Clear the URL param so it doesn't reopen on refresh
-        searchParams.delete("action");
-        navigate(`?${searchParams.toString()}`, { replace: true });
-      }, 100);
+    try {
+      await apiFetch(`/assignments/${selectedItem.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          activityId: activity?.id,
+          picId: picUser?.id,
+          contentType: formData.jenisKonten,
+          startTime: formData.jamMulai,
+          endTime: formData.jamSelesai,
+          instruction: formData.catatan,
+          status: formData.status === "in-progress" ? "IN_PROGRESS" : formData.status === "done" ? "COMPLETED" : "ASSIGNED",
+          location: formData.lokasi,
+          activityDate: formData.tanggalKegiatan,
+        }),
+      });
+      addToast("Perubahan penugasan berhasil disimpan.", "success");
+      refetch();
+      setIsEditOpen(false);
+    } catch (e) {
+      addToast("Gagal menyimpan penugasan", "error");
     }
-  }, [searchParams, navigate]);
+  };
+
+  // Confirm Delete
+  const handleConfirmDelete = async () => {
+    if (!selectedItem) return;
+    try {
+      await apiFetch(`/assignments/${selectedItem.id}`, { method: "DELETE" });
+      addToast(`Penugasan "${selectedItem.kegiatanTerkait}" telah dihapus.`, "info");
+      refetch();
+      setIsDeleteOpen(false);
+    } catch (e) {
+      addToast("Gagal menghapus penugasan", "error");
+    }
+  };
 
   if (isLoading) return <LoadingSpinner />;
   if (error) return <ErrorState message={error.message} onRetry={refetch} />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* ── Header Title & Description ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -509,7 +520,6 @@ export default function PenugasanPage() {
 
       {/* ── Main Container / Card ── */}
       <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden">
-        
         {/* ── 1. Top Tabs dengan Counter Real-Time ── */}
         <div className="flex items-center gap-8 px-6 pt-4 border-b border-gray-200/70 overflow-x-auto text-sm">
           {/* Tab Semua */}
@@ -621,8 +631,8 @@ export default function PenugasanPage() {
             }}
             className={`pb-3.5 flex items-center gap-2 font-medium transition relative whitespace-nowrap cursor-pointer ${
               activeTab === "conflict"
-                ? "text-[#0f1f5c] font-bold border-b-2 border-[#0f1f5c]"
-                : "text-gray-500 hover:text-gray-800"
+                ? "text-rose-600 font-bold border-b-2 border-rose-600"
+                : "text-gray-500 hover:text-rose-600"
             }`}
           >
             <span>Bentrok</span>
@@ -638,71 +648,59 @@ export default function PenugasanPage() {
           </button>
         </div>
 
-        {/* ── 2. Toolbar Aksi Cepat & Search Bar (Tanpa Cetak) ── */}
-        <div className="p-4 sm:p-5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 border-b border-gray-100 bg-white">
-          {/* Left: Action Pills (Tandai Selesai, Tandai Menunggu, Hapus) */}
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              disabled={selectedIds.length === 0}
-              onClick={() => handleBulkMarkStatus("done")}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-xs font-medium text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 disabled:opacity-40 disabled:pointer-events-none transition shadow-2xs cursor-pointer"
-            >
-              <RiCheckLine className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Tandai Selesai</span>
-            </button>
-
-            <button
-              type="button"
-              disabled={selectedIds.length === 0}
-              onClick={() => handleBulkMarkStatus("pending")}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-xs font-medium text-gray-700 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200 disabled:opacity-40 disabled:pointer-events-none transition shadow-2xs cursor-pointer"
-            >
-              <RiTimeLine className="w-3.5 h-3.5 text-amber-600" />
-              <span>Tandai Menunggu</span>
-            </button>
-
-            <button
-              type="button"
-              disabled={selectedIds.length === 0}
-              onClick={handleBulkDelete}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-xs font-medium text-gray-700 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 disabled:opacity-40 disabled:pointer-events-none transition shadow-2xs cursor-pointer"
-            >
-              <RiDeleteBinLine className="w-3.5 h-3.5 text-gray-500" />
-              <span>Hapus</span>
-            </button>
-
-            {selectedIds.length > 0 && (
-              <span className="text-xs font-semibold text-indigo-600 ml-1">
-                {selectedIds.length} dipilih
-              </span>
-            )}
-          </div>
-
-          {/* Right: Search Box Rounded */}
-          <div className="relative w-full md:w-72">
+        {/* ── 2. Toolbar: Search + Bulk Actions Bar ── */}
+        <div className="p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-3 border-b border-gray-100 bg-gray-50/50">
+          <div className="relative w-full sm:w-80">
             <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Cari penugasan..."
+              placeholder="Cari kegiatan, staf, jenis..."
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition placeholder:text-gray-400 bg-white shadow-2xs"
+              className="w-full pl-10 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition placeholder:text-gray-400"
             />
           </div>
+
+          {/* Bulk Action Controls */}
+          {selectedIds.length > 0 && (
+            <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 animate-fadeIn">
+              <span className="text-xs font-semibold text-gray-600 whitespace-nowrap">
+                {selectedIds.length} dipilih:
+              </span>
+              <button
+                onClick={() => handleBulkMarkStatus("done")}
+                className="px-2.5 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg flex items-center gap-1 transition cursor-pointer"
+              >
+                <RiCheckLine className="w-3.5 h-3.5" />
+                <span>Selesai</span>
+              </button>
+              <button
+                onClick={() => handleBulkMarkStatus("in-progress")}
+                className="px-2.5 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg flex items-center gap-1 transition cursor-pointer"
+              >
+                <RiTimeLine className="w-3.5 h-3.5" />
+                <span>Proses</span>
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                className="px-2.5 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg flex items-center gap-1 transition cursor-pointer"
+              >
+                <RiDeleteBinLine className="w-3.5 h-3.5" />
+                <span>Hapus</span>
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* ── 3. Table Container ── */}
+        {/* ── 3. Table Penugasan ── */}
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
-            {/* ── Header Tabel Biru Tua Solid (Easy to Spot & Bold) ── */}
             <thead>
-              <tr className="bg-[#0f1f5c] border-b border-[#0a1540] text-white text-xs font-bold uppercase tracking-wider shadow-xs">
-                {/* Select All Checkbox */}
-                <th className="py-3.5 px-4 w-10">
+              <tr className="bg-[#0f1f5c] text-white text-xs font-semibold uppercase tracking-wider">
+                <th className="py-3.5 px-4 w-10 text-center">
                   <input
                     type="checkbox"
                     checked={isAllSelected}
@@ -710,213 +708,182 @@ export default function PenugasanPage() {
                       if (el) el.indeterminate = isSomeSelected;
                     }}
                     onChange={handleSelectAll}
-                    className="w-4 h-4 rounded border-blue-300/60 bg-white/20 text-blue-500 focus:ring-offset-[#0f1f5c] focus:ring-white cursor-pointer"
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                   />
                 </th>
-
-                {/* Kolom Kegiatan & Tanggal dengan Sort */}
                 <th
                   onClick={() => toggleSort("kegiatanTerkait")}
-                  className="py-3.5 px-4 cursor-pointer hover:bg-[#162a75] transition-colors select-none group"
+                  className="py-3.5 px-4 cursor-pointer select-none hover:text-blue-200 transition"
                 >
-                  <div className="flex items-center gap-1.5 text-white group-hover:text-blue-100 font-bold">
-                    <span>Kegiatan & Tanggal</span>
-                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-blue-200 group-hover:text-white" />
+                  <div className="flex items-center gap-1.5">
+                    <span>Kegiatan Terkait</span>
+                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-gray-300" />
                   </div>
                 </th>
-
-                {/* Kolom Output dengan Sort */}
-                <th
-                  onClick={() => toggleSort("jenisKonten")}
-                  className="py-3.5 px-4 cursor-pointer hover:bg-[#162a75] transition-colors select-none group"
-                >
-                  <div className="flex items-center gap-1.5 text-white group-hover:text-blue-100 font-bold">
-                    <span>Output</span>
-                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-blue-200 group-hover:text-white" />
-                  </div>
-                </th>
-
-                {/* Kolom PIC dengan Sort */}
                 <th
                   onClick={() => toggleSort("pic")}
-                  className="py-3.5 px-4 cursor-pointer hover:bg-[#162a75] transition-colors select-none group"
+                  className="py-3.5 px-4 cursor-pointer select-none hover:text-blue-200 transition"
                 >
-                  <div className="flex items-center gap-1.5 text-white group-hover:text-blue-100 font-bold">
-                    <span>PIC</span>
-                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-blue-200 group-hover:text-white" />
+                  <div className="flex items-center gap-1.5">
+                    <span>Petugas PIC</span>
+                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-gray-300" />
                   </div>
                 </th>
-
-                {/* Kolom Waktu Penugasan dengan Sort */}
+                <th
+                  onClick={() => toggleSort("jenisKonten")}
+                  className="py-3.5 px-4 cursor-pointer select-none hover:text-blue-200 transition"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>Jenis Konten</span>
+                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-gray-300" />
+                  </div>
+                </th>
                 <th
                   onClick={() => toggleSort("jamMulai")}
-                  className="py-3.5 px-4 cursor-pointer hover:bg-[#162a75] transition-colors select-none group"
+                  className="py-3.5 px-4 cursor-pointer select-none hover:text-blue-200 transition"
                 >
-                  <div className="flex items-center gap-1.5 text-white group-hover:text-blue-100 font-bold">
+                  <div className="flex items-center gap-1.5">
                     <span>Waktu Penugasan</span>
-                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-blue-200 group-hover:text-white" />
+                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-gray-300" />
                   </div>
                 </th>
-
-                {/* Kolom Status dengan Sort */}
                 <th
                   onClick={() => toggleSort("status")}
-                  className="py-3.5 px-4 cursor-pointer hover:bg-[#162a75] transition-colors select-none group"
+                  className="py-3.5 px-4 cursor-pointer select-none hover:text-blue-200 transition"
                 >
-                  <div className="flex items-center gap-1.5 text-white group-hover:text-blue-100 font-bold">
+                  <div className="flex items-center gap-1.5">
                     <span>Status</span>
-                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-blue-200 group-hover:text-white" />
+                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-gray-300" />
                   </div>
                 </th>
-
-                {/* Kolom Aksi */}
-                <th className="py-3.5 px-4 text-center text-white font-bold">
-                  <span>Aksi</span>
-                </th>
+                <th className="py-3.5 px-4 text-right pr-6">Aksi</th>
               </tr>
             </thead>
-
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-100 text-sm">
               {paginatedItems.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-gray-400 text-sm">
-                    Tidak ada data penugasan pada kategori ini.
+                  <td colSpan={7} className="text-center py-12 text-gray-400">
+                    <p className="font-medium text-gray-500">Tidak ada penugasan ditemukan</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Coba ganti filter tab atau kata kunci pencarian.
+                    </p>
                   </td>
                 </tr>
               ) : (
-                paginatedItems.map((row) => {
-                  const isConflict = row.status === "conflict";
-                  const isSelected = selectedIds.includes(row.id);
-
+                paginatedItems.map((item) => {
+                  const isSelected = selectedIds.includes(item.id);
                   return (
                     <tr
-                      key={row.id}
-                      className={`transition-colors ${
-                        isSelected
-                          ? "bg-blue-50/40 hover:bg-blue-50/60"
-                          : isConflict
-                          ? "bg-[#fff1f2]/70 hover:bg-[#ffe4e6]/60 border-l-4 border-l-rose-500"
-                          : "hover:bg-gray-50/70"
+                      key={item.id}
+                      className={`hover:bg-gray-50/80 transition-colors ${
+                        isSelected ? "bg-indigo-50/40" : ""
                       }`}
                     >
-                      {/* Checkbox row */}
-                      <td className="py-4 px-4">
+                      {/* Checkbox */}
+                      <td className="py-4 px-4 text-center">
                         <input
                           type="checkbox"
                           checked={isSelected}
-                          onChange={() => handleSelectRow(row.id)}
-                          className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                          onChange={() => handleSelectRow(item.id)}
+                          className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                         />
                       </td>
 
-                      {/* Kegiatan & Tanggal */}
+                      {/* Kegiatan Terkait */}
                       <td className="py-4 px-4">
-                        <p className="font-semibold text-gray-900 text-sm">{row.kegiatanTerkait}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          {row.tanggalKegiatan ?? "Senin, 24 Agustus 2026"}
-                        </p>
+                        <div className="font-semibold text-gray-900">{item.kegiatanTerkait}</div>
+                        {item.lokasi && (
+                          <div className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-gray-400" />
+                            <span>{item.lokasi}</span>
+                          </div>
+                        )}
                       </td>
 
-                      {/* Output */}
-                      <td className="py-4 px-4">
-                        <span className="text-sm text-gray-800 font-normal">{row.jenisKonten}</span>
-                      </td>
-
-                      {/* PIC */}
+                      {/* Petugas PIC */}
                       <td className="py-4 px-4">
                         <div className="flex items-center gap-2.5">
-                          <div className="relative flex-shrink-0">
-                            <div className="w-8 h-8 rounded-full bg-[#cbd5e1] text-gray-700 font-bold text-xs flex items-center justify-center">
-                              {row.picAvatar ?? (row.pic ? row.pic.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() : "?")}
-                            </div>
-                            {isConflict && (
-                              <div
-                                title={row.conflictMessage ?? "Jadwal bertabrakan"}
-                                className="absolute -bottom-1 -right-1 bg-red-600 text-white rounded-full p-0.5 shadow ring-2 ring-white flex items-center justify-center animate-pulse"
-                              >
-                                <AlertTriangle className="w-2.5 h-2.5 fill-current" />
-                              </div>
-                            )}
+                          <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 text-white font-bold text-xs flex items-center justify-center shadow-2xs">
+                            {item.picAvatar ?? item.pic.slice(0, 2).toUpperCase()}
                           </div>
-                          <span className="text-sm font-medium text-gray-800">{row.pic}</span>
+                          <span className="font-medium text-gray-800">{item.pic}</span>
                         </div>
+                      </td>
+
+                      {/* Jenis Konten */}
+                      <td className="py-4 px-4 font-medium text-gray-700">
+                        {item.jenisKonten}
                       </td>
 
                       {/* Waktu Penugasan */}
                       <td className="py-4 px-4">
-                        <p className="text-sm font-medium text-gray-900">
-                          {row.jamMulai} - {row.jamSelesai}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          {row.waktuSubtitle ?? "(Senin, 24/8)"}
-                        </p>
+                        <div className="font-mono text-xs font-semibold text-gray-800">
+                          {item.jamMulai} - {item.jamSelesai}
+                        </div>
+                        {item.waktuSubtitle && (
+                          <div className="text-[11px] text-gray-400 mt-0.5">
+                            {item.waktuSubtitle}
+                          </div>
+                        )}
                       </td>
 
-                      {/* Status Badge */}
+                      {/* Status */}
                       <td className="py-4 px-4">
-                        {row.status === "in-progress" && (
+                        {item.status === "in-progress" && (
                           <StatusBadge
                             status="default"
                             leftIcon={RiTimeLine}
                             leftLabel="Proses"
-                            className="bg-amber-50 text-amber-800 border-amber-200/90 shadow-2xs"
+                            className="bg-amber-50 text-amber-800 border-amber-200/90 shadow-xs"
                           />
                         )}
-                        {row.status === "done" && (
+                        {item.status === "done" && (
                           <StatusBadge
                             status="success"
                             leftIcon={RiCheckboxCircleFill}
                             leftLabel="Selesai"
-                            className="bg-emerald-50 text-emerald-800 border-emerald-200/90 shadow-2xs"
+                            className="bg-emerald-50 text-emerald-800 border-emerald-200/90 shadow-xs"
                           />
                         )}
-                        {row.status === "pending" && (
+                        {item.status === "pending" && (
                           <StatusBadge
                             status="default"
                             leftIcon={RiHourglassLine}
                             leftLabel="Menunggu"
-                            className="bg-gray-50 text-gray-700 border-gray-200/90 shadow-2xs"
+                            className="bg-gray-50 text-gray-700 border-gray-200/90 shadow-xs"
                           />
                         )}
-                        {row.status === "conflict" && (
+                        {item.status === "conflict" && (
                           <StatusBadge
                             status="error"
                             leftIcon={RiCloseCircleFill}
                             leftLabel="Bentrok"
-                            className="bg-rose-50 text-rose-800 border-rose-200/90 shadow-2xs"
+                            className="bg-rose-50 text-rose-800 border-rose-200/90 shadow-xs"
                           />
                         )}
                       </td>
 
-                      {/* Kolom Aksi Minimalis Sejajar (Detail, Edit, Delete) */}
-                      <td className="py-4 px-4 text-center">
-                        <div className="flex items-center justify-center gap-3">
-                          {/* Detail */}
+                      {/* Actions */}
+                      <td className="py-4 px-4 text-right pr-6">
+                        <div className="flex items-center justify-end gap-1 text-gray-400">
                           <button
-                            type="button"
-                            title="Lihat Detail Penugasan"
-                            onClick={() => handleOpenDetail(row)}
-                            className="text-blue-500 hover:text-blue-700 transition p-1 hover:bg-blue-50 rounded cursor-pointer"
+                            onClick={() => handleOpenDetail(item)}
+                            className="p-1.5 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition"
+                            title="Detail"
                           >
                             <RiEyeLine className="w-4 h-4" />
                           </button>
-
-                          {/* Edit */}
                           <button
-                            type="button"
-                            title="Edit Penugasan"
-                            onClick={() => handleOpenEdit(row)}
-                            className="text-gray-400 hover:text-gray-700 transition p-1 hover:bg-gray-100 rounded cursor-pointer"
+                            onClick={() => handleOpenEdit(item)}
+                            className="p-1.5 hover:text-blue-600 hover:bg-blue-50 rounded-md transition"
+                            title="Edit"
                           >
                             <RiEditLine className="w-4 h-4" />
                           </button>
-
-                          {/* Delete */}
                           <button
-                            type="button"
-                            title="Hapus Penugasan"
-                            onClick={() => handleOpenDelete(row)}
-                            className="text-gray-400 hover:text-rose-600 transition p-1 hover:bg-rose-50 rounded cursor-pointer"
+                            onClick={() => handleOpenDelete(item)}
+                            className="p-1.5 hover:text-red-600 hover:bg-red-50 rounded-md transition"
+                            title="Hapus"
                           >
                             <RiDeleteBinLine className="w-4 h-4" />
                           </button>
@@ -930,74 +897,36 @@ export default function PenugasanPage() {
           </table>
         </div>
 
-        {/* ── Footer / Pagination ── */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 sm:p-5 border-t border-gray-100 text-sm text-gray-600 bg-white">
-          {/* Items Per Page */}
+        {/* ── 4. Pagination Footer ── */}
+        <div className="p-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
           <div className="flex items-center gap-2">
             <span>Tampilkan</span>
-            <div className="relative">
-              <select
-                value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="appearance-none bg-white border border-gray-200 rounded-lg pl-3 pr-7 py-1 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
-              >
-                <option value={10}>10/page</option>
-                <option value={20}>20/page</option>
-                <option value={50}>50/page</option>
-              </select>
-            </div>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="border border-gray-200 rounded px-2 py-1 bg-white text-gray-700 focus:outline-none"
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+            </select>
+            <span>dari {filteredItems.length} data</span>
           </div>
 
-          {/* Page Navigation */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             <button
-              disabled={currentPage <= 1}
+              disabled={currentPage === 1}
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               className="px-2.5 py-1 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-40 disabled:pointer-events-none rounded hover:bg-gray-50 transition cursor-pointer"
             >
               Sebelumnya
             </button>
-
-            <button
-              onClick={() => setCurrentPage(1)}
-              className={`w-7 h-7 rounded-lg text-xs font-semibold flex items-center justify-center transition cursor-pointer ${
-                currentPage === 1
-                  ? "bg-gray-100 text-gray-900 font-bold"
-                  : "text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              1
-            </button>
-
-            {filteredItems.length > pageSize && (
-              <button
-                onClick={() => setCurrentPage(2)}
-                className={`w-7 h-7 rounded-lg text-xs font-semibold flex items-center justify-center transition cursor-pointer ${
-                  currentPage === 2
-                    ? "bg-gray-100 text-gray-900 font-bold"
-                    : "text-gray-600 hover:bg-gray-50"
-                }`}
-              >
-                2
-              </button>
-            )}
-
-            {filteredItems.length > pageSize * 2 && (
-              <button
-                onClick={() => setCurrentPage(3)}
-                className={`w-7 h-7 rounded-lg text-xs font-semibold flex items-center justify-center transition cursor-pointer ${
-                  currentPage === 3
-                    ? "bg-gray-100 text-gray-900 font-bold"
-                    : "text-gray-600 hover:bg-gray-50"
-                }`}
-              >
-                3
-              </button>
-            )}
-
+            <span className="px-3 py-1 font-semibold text-gray-800 bg-gray-100 rounded">
+              {currentPage}
+            </span>
             <button
               disabled={currentPage * pageSize >= filteredItems.length}
               onClick={() => setCurrentPage((p) => p + 1)}
