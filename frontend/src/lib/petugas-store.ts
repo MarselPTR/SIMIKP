@@ -14,6 +14,9 @@ export interface PetugasTaskItem {
   hasConflict?: boolean;
   conflictMessage?: string;
   workLink?: string;
+  revisionNotes?: string;
+  revisionAuthor?: string;
+  revisionDate?: string;
 }
 
 export const INITIAL_PETUGAS_TASKS: PetugasTaskItem[] = [
@@ -63,6 +66,7 @@ export const INITIAL_PETUGAS_TASKS: PetugasTaskItem[] = [
     status: "DESAIN",
     kategori: "peresmian",
     instruksi: "Gunakan palet warna resmi Pemkot dan sertakan logo OPD terbaru.",
+    workLink: "https://drive.google.com/drive/folders/1desain-banner-batu",
   },
   {
     id: "t5",
@@ -95,7 +99,11 @@ export const INITIAL_PETUGAS_TASKS: PetugasTaskItem[] = [
     bidang: "DESAINER_EDITOR",
     status: "REVISI",
     kategori: "rapat",
-    instruksi: "Perbaiki kontras warna pada diagram sektor pendidikan dan kesehatan.",
+    instruksi: "Rancang diagram visual realisasi APBD triwulan kedua untuk publikasi media sosial.",
+    workLink: "https://drive.google.com/drive/folders/1infografis-apbd",
+    revisionNotes: "Tolong perbaiki kontras warna pada diagram sektor pendidikan dan kesehatan, serta sertakan logo OPD terbaru di pojok kanan atas.",
+    revisionAuthor: "Admin Diskominfo",
+    revisionDate: "27 Agustus 2026, 11:30 WIB",
   },
 ];
 
@@ -125,7 +133,6 @@ export const updatePetugasTaskStatus = async (id: string, status: string): Promi
   const updated = current.map((t) => (t.id === id ? { ...t, status } : t));
   saveStoredPetugasTasks(updated);
 
-  // Optional attempt to post to backend API
   try {
     await apiFetch(`/productions/${id}/status`, {
       method: "POST",
@@ -136,14 +143,81 @@ export const updatePetugasTaskStatus = async (id: string, status: string): Promi
   return updated;
 };
 
-export const submitPetugasTaskWork = async (id: string, workLink: string): Promise<PetugasTaskItem[]> => {
+export const requestTaskRevision = async (id: string, notes: string, author = "Admin Diskominfo"): Promise<PetugasTaskItem[]> => {
   const current = getStoredPetugasTasks();
+  const nowStr = new Date().toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }) + " WIB";
+
   const updated = current.map((t) =>
-    t.id === id ? { ...t, workLink, status: "SELESAI" } : t
+    t.id === id
+      ? {
+          ...t,
+          status: "REVISI",
+          revisionNotes: notes,
+          revisionAuthor: author,
+          revisionDate: nowStr,
+        }
+      : t
   );
   saveStoredPetugasTasks(updated);
 
-  // Optional attempt to post to backend API
+  try {
+    await apiFetch(`/productions/${id}/status`, {
+      method: "POST",
+      body: JSON.stringify({ status: "REVISI" }),
+    });
+  } catch {}
+
+  return updated;
+};
+
+export const approveTaskContent = async (id: string): Promise<PetugasTaskItem[]> => {
+  const current = getStoredPetugasTasks();
+  const updated = current.map((t) =>
+    t.id === id
+      ? {
+          ...t,
+          status: "SIAP_TAYANG",
+          revisionNotes: undefined,
+          revisionAuthor: undefined,
+          revisionDate: undefined,
+        }
+      : t
+  );
+  saveStoredPetugasTasks(updated);
+
+  try {
+    await apiFetch(`/productions/${id}/status`, {
+      method: "POST",
+      body: JSON.stringify({ status: "SIAP_TAYANG" }),
+    });
+  } catch {}
+
+  return updated;
+};
+
+export const submitPetugasTaskWork = async (id: string, workLink: string): Promise<PetugasTaskItem[]> => {
+  const current = getStoredPetugasTasks();
+  const target = current.find((t) => t.id === id);
+  // If task was in REVISI status, advancing it moves to SIAP_TAYANG (ready for final review/tayang)
+  const nextStatus = target?.status === "REVISI" ? "SIAP_TAYANG" : "SELESAI";
+
+  const updated = current.map((t) =>
+    t.id === id
+      ? {
+          ...t,
+          workLink,
+          status: nextStatus,
+        }
+      : t
+  );
+  saveStoredPetugasTasks(updated);
+
   try {
     await apiFetch(`/productions/${id}/submit`, {
       method: "POST",
@@ -188,14 +262,12 @@ export const usePetugasTasksStore = (userBidang?: string | null) => {
             workLink: t.workLink,
           }));
 
-          // Merge with stored local edits
           const current = getStoredPetugasTasks();
           const merged = mapped.map((m) => {
             const local = current.find((c) => c.id === m.id);
             return local ? { ...m, ...local } : m;
           });
 
-          // Include any default tasks not in backend yet
           const nonDbTasks = current.filter((c) => !mapped.some((m) => m.id === c.id));
           const allMerged = [...merged, ...nonDbTasks];
 
@@ -205,7 +277,6 @@ export const usePetugasTasksStore = (userBidang?: string | null) => {
       })
       .catch(() => {});
 
-    // Listen to local sync events
     window.addEventListener(EVENT_NAME, sync);
     window.addEventListener("storage", sync);
 
@@ -222,6 +293,8 @@ export const usePetugasTasksStore = (userBidang?: string | null) => {
     allTasks: tasks,
     updateStatus: (id: string, status: string) => updatePetugasTaskStatus(id, status),
     submitWork: (id: string, link: string) => submitPetugasTaskWork(id, link),
+    requestRevision: (id: string, notes: string, author?: string) => requestTaskRevision(id, notes, author),
+    approveContent: (id: string) => approveTaskContent(id),
     refresh: sync,
   };
 };

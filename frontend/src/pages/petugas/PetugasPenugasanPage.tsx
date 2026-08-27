@@ -271,6 +271,29 @@ const PetugasPenugasanPage = () => {
                 </div>
               )}
 
+              {/* ⚠️ Catatan Revisi dari Admin Diskominfo (Two-Way Feedback Loop) */}
+              {(selectedTask.status === "REVISI" || selectedTask.revisionNotes) && (
+                <div className="bg-amber-50/90 border border-amber-300/80 rounded-2xl p-5 shadow-xs space-y-2">
+                  <div className="flex items-center justify-between gap-2 border-b border-amber-200/60 pb-2.5">
+                    <div className="flex items-center gap-2 text-amber-900 font-bold text-xs uppercase tracking-wider">
+                      <AlertTriangle size={16} className="text-amber-600" />
+                      <span>Catatan Koreksi &amp; Revisi dari Admin Diskominfo</span>
+                    </div>
+                    {selectedTask.revisionDate && (
+                      <span className="text-[11px] font-medium text-amber-700">
+                        {selectedTask.revisionDate}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-amber-900 leading-relaxed font-medium bg-white/80 rounded-xl p-3.5 border border-amber-200">
+                    "{selectedTask.revisionNotes || "Tolong lakukan perbaikan konten sesuai arahan pimpinan dan upload kembali tautan file hasil revisi."}"
+                  </p>
+                  <p className="text-[11px] text-amber-700">
+                    💡 <em>Silakan perbaiki file di Google Drive / Cloud, lalu perbarui tautan di bawah dan klik <strong>"Kirim Ulang Hasil Revisi"</strong>.</em>
+                  </p>
+                </div>
+              )}
+
               {/* 2. Agenda Title & Meta Info */}
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
@@ -325,6 +348,7 @@ const PetugasPenugasanPage = () => {
                   {taskWorkflow.map((step, idx) => {
                     const isDone = isCompleted || idx < stepIndex;
                     const isCurrent = !isCompleted && idx === stepIndex;
+                    const isRevisionStep = step === "REVISI";
 
                     return (
                       <button
@@ -340,7 +364,9 @@ const PetugasPenugasanPage = () => {
                             isDone
                               ? "bg-emerald-600 text-white shadow-xs group-hover:bg-emerald-700"
                               : isCurrent
-                              ? "bg-[#0a1647] text-white ring-4 ring-[#0a1647]/20 shadow-xs scale-110"
+                              ? isRevisionStep
+                                ? "bg-amber-600 text-white ring-4 ring-amber-500/25 shadow-xs scale-110"
+                                : "bg-[#0a1647] text-white ring-4 ring-[#0a1647]/20 shadow-xs scale-110"
                               : "bg-white border-2 border-gray-300 text-gray-400 group-hover:border-[#0a1647] group-hover:text-[#0a1647]"
                           }`}
                         >
@@ -357,7 +383,9 @@ const PetugasPenugasanPage = () => {
                             isDone
                               ? "text-emerald-700 font-bold"
                               : isCurrent
-                              ? "text-[#0a1647] font-extrabold"
+                              ? isRevisionStep
+                                ? "text-amber-700 font-extrabold"
+                                : "text-[#0a1647] font-extrabold"
                               : "text-gray-400 group-hover:text-gray-700"
                           }`}
                         >
@@ -401,7 +429,9 @@ const PetugasPenugasanPage = () => {
                     </div>
 
                     <p className="text-xs text-gray-500 leading-relaxed">
-                      Masukkan tautan Google Drive / cloud storage hasil liputan atau naskah final. Menyimpan tautan akan menandai tugas ini <strong>SELESAI</strong> dan mengarsipkannya otomatis ke Bank Konten.
+                      {selectedTask.status === "REVISI"
+                        ? "Unggah tautan Google Drive / Cloud file desain yang sudah diperbaiki. Klik tombol di bawah untuk mengirim ulang ke Admin."
+                        : "Masukkan tautan Google Drive / cloud storage hasil liputan atau naskah final. Menyimpan tautan akan menandai tugas ini SELESAI dan mengarsipkannya otomatis ke Bank Konten."}
                     </p>
 
                     <div className="space-y-2">
@@ -415,10 +445,18 @@ const PetugasPenugasanPage = () => {
 
                       <button
                         onClick={handleSaveWorkLink}
-                        className="w-full py-2.5 rounded-lg text-xs font-bold text-white shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2 bg-[#0a1647] hover:bg-[#122368]"
+                        className={`w-full py-2.5 rounded-lg text-xs font-bold text-white shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                          selectedTask.status === "REVISI"
+                            ? "bg-amber-600 hover:bg-amber-700"
+                            : "bg-[#0a1647] hover:bg-[#122368]"
+                        }`}
                       >
                         <Upload size={14} />
-                        <span>Simpan Tautan &amp; Selesaikan Tugas</span>
+                        <span>
+                          {selectedTask.status === "REVISI"
+                            ? "Kirim Ulang Hasil Revisi (Lanjut ke Siap Tayang)"
+                            : "Simpan Tautan & Selesaikan Tugas"}
+                        </span>
                       </button>
                     </div>
                   </div>
