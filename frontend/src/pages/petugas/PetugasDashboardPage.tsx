@@ -272,25 +272,68 @@ const PetugasDashboardPage = () => {
     };
   }, [totalTasks, selesaiCount]);
 
-  // Calendar Events
+  // Helper to parse date key from task deadline
+  const getTaskDateKey = (t: PetugasTaskItem, defaultYear: number, defaultMonth: number): string => {
+    let day = 24;
+    let month = defaultMonth;
+    let year = defaultYear;
+
+    const dateMatch = t.deadline?.match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/);
+    if (dateMatch) {
+      day = parseInt(dateMatch[1], 10);
+      year = parseInt(dateMatch[3], 10);
+      const monthNames = [
+        "januari", "februari", "maret", "april", "mei", "juni",
+        "juli", "agustus", "september", "oktober", "november", "desember"
+      ];
+      const mIdx = monthNames.indexOf(dateMatch[2].toLowerCase());
+      if (mIdx >= 0) month = mIdx + 1;
+    } else {
+      const isoMatch = t.deadline?.match(/(\d{4})-(\d{2})-(\d{2})/);
+      if (isoMatch) {
+        year = parseInt(isoMatch[1], 10);
+        month = parseInt(isoMatch[2], 10);
+        day = parseInt(isoMatch[3], 10);
+      }
+    }
+
+    return dateKeyOf(year, month, day);
+  };
+
+  // Calendar Events: Dynamically populated ONLY from the active petugas sector's assigned tasks
   const calendarEvents = useMemo(() => {
     const map: Record<string, CalendarEvent[]> = {};
-    const baseDate = dateKeyOf(calYear, calMonth, 24);
-    map[baseDate] = [{ color: "#0f1f5c", label: "Peresmian Taman" }];
-    const date2 = dateKeyOf(calYear, calMonth, 25);
-    map[date2] = [{ color: "#d97706", label: "Rakor Publikasi" }];
-    const date3 = dateKeyOf(calYear, calMonth, 26);
-    map[date3] = [{ color: "#10b981", label: "Dokumentasi Upacara" }];
-    const date4 = dateKeyOf(calYear, calMonth, 28);
-    map[date4] = [{ color: "#6366f1", label: "Sidang Paripurna" }];
+
+    tasks.forEach((t) => {
+      const dKey = getTaskDateKey(t, calYear, calMonth);
+      const isDone = t.status === "SELESAI" || t.status === "COMPLETED" || t.status === "SIAP_TAYANG";
+      const isBelum = t.status === "BELUM" || t.status === "ASSIGNED";
+      const color = isDone ? "#10b981" : isBelum ? "#6b7280" : "#d97706";
+
+      if (!map[dKey]) map[dKey] = [];
+      map[dKey].push({
+        label: t.kegiatan,
+        color,
+      });
+    });
+
     return map;
-  }, [calYear, calMonth]);
+  }, [tasks, calYear, calMonth]);
 
   const calendarLegend = [
     { label: "Belum Dimulai", color: "#6b7280" },
     { label: "Sedang Dikerjakan", color: "#d97706" },
     { label: "Siap Tayang / Selesai", color: "#10b981" },
   ];
+
+  // Tasks matching the currently clicked calendar day
+  const tasksOnClickedDate = useMemo(() => {
+    if (!viewDateKey) return [];
+    return tasks.filter((t) => {
+      const taskDateKey = getTaskDateKey(t, calYear, calMonth);
+      return taskDateKey === viewDateKey;
+    });
+  }, [tasks, viewDateKey, calYear, calMonth]);
 
   const activeWorkflowList = WORKFLOWS[userBidang] || WORKFLOWS["PRAHUM"];
 
@@ -568,26 +611,32 @@ const PetugasDashboardPage = () => {
           </p>
 
           <div className="space-y-2 max-h-60 overflow-y-auto">
-            {tasks.map((t) => (
-              <div
-                key={t.id}
-                onClick={() => {
-                  setViewDateKey(null);
-                  navigate("/petugas/penugasan", { state: { taskId: t.id } });
-                }}
-                className="p-3 rounded-xl border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/30 transition cursor-pointer text-xs flex items-center justify-between"
-              >
-                <div>
-                  <p className="font-bold text-gray-900">{t.kegiatan}</p>
-                  <p className="text-[11px] text-gray-500 flex items-center gap-1 mt-0.5">
-                    <MapPin className="w-3 h-3 text-gray-400" /> {t.lokasi}
-                  </p>
-                </div>
-                <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-blue-50 text-blue-700 border border-blue-200">
-                  {t.status.replace("_", " ")}
-                </span>
+            {tasksOnClickedDate.length === 0 ? (
+              <div className="text-center py-6 text-gray-400 text-xs bg-gray-50/60 rounded-xl border border-dashed border-gray-200">
+                Tidak ada agenda tugas sektor <strong>{userBidang}</strong> pada tanggal ini.
               </div>
-            ))}
+            ) : (
+              tasksOnClickedDate.map((t) => (
+                <div
+                  key={t.id}
+                  onClick={() => {
+                    setViewDateKey(null);
+                    navigate("/petugas/penugasan", { state: { taskId: t.id } });
+                  }}
+                  className="p-3 rounded-xl border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/30 transition cursor-pointer text-xs flex items-center justify-between"
+                >
+                  <div>
+                    <p className="font-bold text-gray-900">{t.kegiatan}</p>
+                    <p className="text-[11px] text-gray-500 flex items-center gap-1 mt-0.5">
+                      <MapPin className="w-3 h-3 text-gray-400" /> {t.lokasi}
+                    </p>
+                  </div>
+                  <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-blue-50 text-blue-700 border border-blue-200">
+                    {t.status.replace("_", " ")}
+                  </span>
+                </div>
+              ))
+            )}
           </div>
 
           <div className="pt-3 border-t border-gray-100 flex justify-end">
