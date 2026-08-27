@@ -13,7 +13,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "../../lib/AuthContext";
-import { usePetugasTasksStore, PetugasTaskItem } from "../../lib/petugas-store";
+import { usePetugasTasksStore } from "../../lib/petugas-store";
 import { WORKFLOWS } from "../../lib/mock-data";
 import { useToast } from "../../contexts/ToastContext";
 
