@@ -52,6 +52,9 @@ import activitiesRoutes from "./modules/activities/activities.routes";
 import masterRoutes from "./modules/master/master.routes";
 import usersRoutes from "./modules/users/users.routes";
 import productionsRoutes from "./modules/productions/productions.routes";
+import { reportsRoutes } from "./modules/reports/reports.routes";
+import { reviewsRoutes } from "./modules/reviews/reviews.routes";
+import { publicationsRoutes } from "./modules/publications/publications.routes";
 
 // Register routes
 server.register(authRoutes, { prefix: "/api/v1/auth" });
@@ -61,6 +64,9 @@ server.register(activitiesRoutes, { prefix: "/api/v1/activities" });
 server.register(masterRoutes, { prefix: "/api/v1/master" });
 server.register(usersRoutes, { prefix: "/api/v1/users" });
 server.register(productionsRoutes, { prefix: "/api/v1/productions" });
+server.register(reportsRoutes, { prefix: "/api/v1/reports" });
+server.register(reviewsRoutes, { prefix: "/api/v1/reviews" });
+server.register(publicationsRoutes, { prefix: "/api/v1/publications" });
 
 import path from "path";
 import fastifyStatic from "@fastify/static";

@@ -127,4 +127,61 @@ export class ActivitiesController {
       return reply.status(500).send({ success: false, error: "Gagal membuat kegiatan" });
     }
   }
+
+  static async update(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
+    try {
+      const { id } = request.params;
+      const data = createActivitySchema.parse(request.body);
+
+      await db.transaction(async (tx) => {
+        // Update Activity
+        await tx.update(activities)
+          .set({
+            title: data.title,
+            activityDate: new Date(data.activityDate),
+            activityTime: data.activityTime,
+            priority: data.priority,
+            locationId: data.locationId || null,
+            opdId: data.opdId || null,
+            description: data.description,
+          })
+          .where(eq(activities.id, id));
+
+        // Update Required Contents (Delete old, insert new)
+        await tx.delete(activityRequiredContents).where(eq(activityRequiredContents.activityId, id));
+
+        if (data.outputDibutuhkan && data.outputDibutuhkan.length > 0) {
+          const relations = data.outputDibutuhkan.map(ctId => ({
+            activityId: id,
+            contentTypeId: ctId,
+          }));
+          await tx.insert(activityRequiredContents).values(relations);
+        }
+      });
+
+      return reply.send({ success: true, message: "Kegiatan berhasil diperbarui" });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return reply.status(400).send({ success: false, error: error.issues });
+      }
+      request.log.error(error);
+      return reply.status(500).send({ success: false, error: "Gagal memperbarui kegiatan" });
+    }
+  }
+
+  static async delete(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
+    try {
+      const { id } = request.params;
+
+      await db.transaction(async (tx) => {
+        await tx.delete(activityRequiredContents).where(eq(activityRequiredContents.activityId, id));
+        await tx.delete(activities).where(eq(activities.id, id));
+      });
+
+      return reply.send({ success: true, message: "Kegiatan berhasil dihapus" });
+    } catch (error) {
+      request.log.error(error);
+      return reply.status(500).send({ success: false, error: "Gagal menghapus kegiatan" });
+    }
+  }
 }

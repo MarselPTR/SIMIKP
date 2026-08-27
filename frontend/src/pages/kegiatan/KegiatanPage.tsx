@@ -1,118 +1,245 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "../../lib/api-client";
-import type { MockKegiatan } from "../../lib/mock-data";
-import Card from "../../components/ui/Card";
-import Table from "../../components/ui/Table";
-import type { TableColumn } from "../../components/ui/Table";
+import { useNavigate } from "react-router-dom";
+import {
+  Search,
+  Plus,
+  Trash2,
+  Pencil,
+  MapPin,
+  Building2,
+  Inbox,
+  X,
+  CalendarDays,
+  ExternalLink,
+
+  UserPlus,
+} from "lucide-react";
+
+import type { MockKegiatan, MockPenugasan } from "../../lib/mock-data";
+import { KEGIATAN_STATUS_COLORS, KEGIATAN_STATUS_LABELS } from "../../lib/mock-data";
 import Badge from "../../components/ui/Badge";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 import Dialog from "../../components/ui/Dialog";
 import Select from "../../components/ui/Select";
 import { LoadingSpinner, ErrorState } from "../../components/shared/StateComponents";
+import EventCalendar from "../../components/shared/EventCalendar";
+import type { CalendarEvent } from "../../components/shared/EventCalendar";
+
+const STATUS_COLORS = KEGIATAN_STATUS_COLORS;
+const STATUS_LABELS = KEGIATAN_STATUS_LABELS;
+
+const STATUS_BADGE_VARIANT: Record<MockKegiatan["status"], "success" | "warning" | "default" | "info"> = {
+  active: "success",
+  review: "warning",
+  done: "default",
+  pending: "info",
+};
+
+const PRIORITAS_BADGE_VARIANT: Record<MockKegiatan["prioritas"], "warning" | "info" | "default"> = {
+  Tinggi: "warning",
+  Sedang: "info",
+  Rendah: "default",
+};
+
+const OUTPUT_OPTIONS = ["Naskah Berita", "Foto", "Video", "Reels"];
+
+const todayStr = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+const emptyForm = {
+  title: "",
+  deadline: todayStr(),
+  lokasi: "",
+  opdPenyelenggara: "",
+  prioritas: "Sedang" as MockKegiatan["prioritas"],
+  outputDibutuhkan: [] as string[],
+};
+
+const formatTanggal = (iso: string) => {
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return iso;
+  return new Date(y, m - 1, d).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+};
+
+const formatTanggalPanjang = (iso: string) => {
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return iso;
+  return new Date(y, m - 1, d).toLocaleDateString("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+};
 
 const KegiatanPage = () => {
-  const { data: kegiatan, isLoading, error, refetch } = useQuery({
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { data: kegiatanData = [], isLoading, error, refetch } = useQuery({
     queryKey: ["kegiatan"],
+    queryFn: async () => (await apiFetch<{ data: any[] }>("/activities")).data,
+  });
+
+  // Query Penugasan Data for real-time synchronization
+  const { data: penugasanList = [] } = useQuery({
+    queryKey: ["penugasan"],
     queryFn: async () => {
-      const res = await apiFetch<{ success: boolean; data: MockKegiatan[] }>("/activities");
+      const res = await apiFetch<{ data: any[] }>("/assignments");
       return res.data;
     },
   });
+
+  // Helper get assigned tasks for a kegiatan
+  const getAssignedTasks = (title: string): MockPenugasan[] => {
+    return penugasanList.filter((p) => 
+      p && p.kegiatanTerkait && p.kegiatanTerkait.toLowerCase() === title.toLowerCase()
+    );
+  };
+
+
+
   const [search, setSearch] = useState("");
   const [filterDate, setFilterDate] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<MockKegiatan["status"] | "all">("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState(emptyForm);
+  const [viewDateKey, setViewDateKey] = useState<string | null>(null);
+
+  const now = new Date();
+  const [calYear, setCalYear] = useState(now.getFullYear());
+  const [calMonth, setCalMonth] = useState(now.getMonth());
 
   const filtered = useMemo(() => {
-    if (!kegiatan) return [];
-    let res = kegiatan;
+    let res = kegiatanData;
     if (search) {
       res = res.filter((k) => k.title.toLowerCase().includes(search.toLowerCase()));
+    }
+    if (statusFilter !== "all") {
+      res = res.filter((k) => k.status === statusFilter);
     }
     // Simplistic filter mock
     if (filterDate === "today") res = res.slice(0, 2);
     if (filterDate === "tomorrow") res = res.slice(2, 4);
     if (filterDate === "this_week") res = res.slice(0, 5);
     return res;
-  }, [kegiatan, search, filterDate]);
+  }, [kegiatanData, search, filterDate, statusFilter]);
 
-  const { data: opds } = useQuery({
-    queryKey: ["opds"],
-    queryFn: async () => {
-      const res = await apiFetch<{ success: boolean; data: any[] }>("/master/opds");
-      return res.data;
+  const calendarEvents = useMemo(() => {
+    const map: Record<string, CalendarEvent[]> = {};
+    for (const k of kegiatanData) {
+      if (!k.deadline) continue;
+      const list = map[k.deadline] ?? (map[k.deadline] = []);
+      list.push({ color: STATUS_COLORS[k.status], label: k.title });
+    }
+    return map;
+  }, [kegiatanData]);
+
+  const calendarLegend = (Object.keys(STATUS_LABELS) as MockKegiatan["status"][]).map((status) => ({
+    label: STATUS_LABELS[status],
+    color: STATUS_COLORS[status],
+  }));
+
+  const statusCounts = useMemo(() => {
+    const counts: Record<MockKegiatan["status"], number> = { active: 0, review: 0, done: 0, pending: 0 };
+    for (const k of kegiatanData) counts[k.status]++;
+    return counts;
+  }, [kegiatanData]);
+
+  const tugasPadaTanggal = useMemo(
+    () => (viewDateKey ? kegiatanData.filter((k) => k.deadline === viewDateKey) : []),
+    [kegiatanData, viewDateKey],
+  );
+
+  const openAddDialog = (prefillDate?: string) => {
+    setEditingId(null);
+    setForm({ ...emptyForm, deadline: prefillDate ?? todayStr() });
+    setIsModalOpen(true);
+  };
+
+  const openEditDialog = (item: MockKegiatan) => {
+    setEditingId(item.id);
+    setForm({
+      title: item.title,
+      deadline: item.deadline,
+      lokasi: item.lokasi ?? "",
+      opdPenyelenggara: item.opdPenyelenggara ?? "",
+      prioritas: item.prioritas,
+      outputDibutuhkan: item.outputDibutuhkan ?? [],
+    });
+    setIsModalOpen(true);
+  };
+
+
+  const saveMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      if (editingId) {
+        return apiFetch(`/activities/${editingId}`, {
+          method: "PUT",
+          body: JSON.stringify(payload),
+        });
+      } else {
+        return apiFetch("/activities", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["kegiatan"] });
+      closeDialog();
     },
   });
 
-  const { data: contentTypes } = useQuery({
-    queryKey: ["contentTypes"],
-    queryFn: async () => {
-      const res = await apiFetch<{ success: boolean; data: any[] }>("/master/content-types");
-      return res.data;
-    },
-  });
-
-  const [formData, setFormData] = useState({
-    title: "",
-    activityDate: "",
-    activityTime: "",
-    opdId: "",
-    outputDibutuhkan: [] as string[],
-  });
-
-  const handleSubmit = async () => {
-    try {
-      await apiFetch("/activities", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiFetch(`/activities/${id}`, {
+        method: "DELETE",
       });
-      setIsModalOpen(false);
-      refetch(); // Reload table
-      setFormData({ title: "", activityDate: "", activityTime: "", opdId: "", outputDibutuhkan: [] });
-    } catch (e) {
-      alert("Gagal menyimpan kegiatan");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["kegiatan"] });
+    },
+  });
+
+  const closeDialog = () => {
+    setIsModalOpen(false);
+    setEditingId(null);
+  };
+
+  const toggleOutput = (opt: string) => {
+    setForm((f) => ({
+      ...f,
+      outputDibutuhkan: f.outputDibutuhkan.includes(opt)
+        ? f.outputDibutuhkan.filter((o) => o !== opt)
+        : [...f.outputDibutuhkan, opt],
+    }));
+  };
+
+  const handleSave = () => {
+    if (!form.title.trim() || !form.deadline) return;
+
+    const payload = {
+      title: form.title.trim(),
+      activityDate: form.deadline,
+      prioritas: form.prioritas,
+      lokasi: form.lokasi,
+      opdPenyelenggara: form.opdPenyelenggara,
+    };
+    saveMutation.mutate(payload);
+  };
+
+  const handleDelete = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (window.confirm("Hapus kegiatan ini? Tindakan ini tidak bisa dibatalkan.")) {
+      deleteMutation.mutate(id);
     }
   };
-
-  const handleToggleOutput = (id: string) => {
-    setFormData((prev) => {
-      const isSelected = prev.outputDibutuhkan.includes(id);
-      return {
-        ...prev,
-        outputDibutuhkan: isSelected
-          ? prev.outputDibutuhkan.filter((x) => x !== id)
-          : [...prev.outputDibutuhkan, id],
-      };
-    });
-  };
-
-  const columns: TableColumn<MockKegiatan>[] = [
-    { key: "title", label: "Judul Kegiatan" },
-    { key: "opdPenyelenggara", label: "OPD Penyelenggara", render: (val) => (val as string) || "—" },
-    { key: "outputDibutuhkan", label: "Output", render: (val) => ((val as string[])?.join(", ") || "—") },
-    { key: "prioritas", label: "Prioritas", render: (val) => (
-      <Badge variant={val === "Tinggi" ? "warning" : val === "Sedang" ? "info" : "default"}>
-        {val as string}
-      </Badge>
-    )},
-    { key: "lokasi", label: "Lokasi" },
-    { key: "deadline", label: "Tanggal" },
-    {
-      key: "status",
-      label: "Status",
-      render: (val) => (
-        <Badge
-          variant={
-            val === "active" ? "success" : val === "review" ? "warning" : val === "done" ? "default" : "info"
-          }
-        >
-          {val as string}
-        </Badge>
-      ),
-    },
-  ];
 
   if (isLoading) return <LoadingSpinner />;
   if (error) return <ErrorState message={error.message} onRetry={refetch} />;
@@ -124,76 +251,439 @@ const KegiatanPage = () => {
           <h2 className="text-2xl font-bold text-gray-900">Agenda Kegiatan</h2>
           <p className="text-sm text-gray-500">Kelola jadwal kegiatan (Satu Kegiatan = Satu Data Induk)</p>
         </div>
-        <Button variant="default" onClick={() => setIsModalOpen(true)}>+ Tambah Kegiatan</Button>
+        <Button variant="default" onClick={() => openAddDialog()} className="gap-1.5">
+          <Plus className="w-4 h-4" /> Tambah Kegiatan
+        </Button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 bg-white p-3 rounded-lg border border-gray-200">
-        <Input
-          placeholder="Cari kegiatan..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-48"
-        />
-        <div className="h-6 w-px bg-gray-300 mx-2"></div>
-        <Button variant={filterDate === "today" ? "default" : "outline"} onClick={() => setFilterDate("today")}>Hari Ini</Button>
-        <Button variant={filterDate === "tomorrow" ? "default" : "outline"} onClick={() => setFilterDate("tomorrow")}>Besok</Button>
-        <Button variant={filterDate === "this_week" ? "default" : "outline"} onClick={() => setFilterDate("this_week")}>Minggu Ini</Button>
-        <Button variant={filterDate === "all" ? "default" : "outline"} onClick={() => setFilterDate("all")}>Semua</Button>
+      <EventCalendar
+        year={calYear}
+        month={calMonth}
+        events={calendarEvents}
+        legend={calendarLegend}
+        subtitle="Klik tanggal untuk melihat kegiatan pada hari itu"
+        selectedDateKey={viewDateKey}
+        onNavigate={(y, m) => {
+          setCalYear(y);
+          setCalMonth(m);
+        }}
+        onDayClick={(dateKey) => setViewDateKey((prev) => (prev === dateKey ? null : dateKey))}
+      />
+
+      {/* Toolbar */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 space-y-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[220px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <Input
+              placeholder="Cari kegiatan..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 pr-8"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 transition-colors duration-150"
+                aria-label="Bersihkan pencarian"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {[
+              { key: "today", label: "Hari Ini" },
+              { key: "tomorrow", label: "Besok" },
+              { key: "this_week", label: "Minggu Ini" },
+              { key: "all", label: "Semua" },
+            ].map((f) => (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => setFilterDate(f.key)}
+                className={`rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150 ${
+                  filterDate === f.key
+                    ? "bg-[#0f1f5c] text-white shadow-sm"
+                    : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Status quick filter chips */}
+        <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-gray-50">
+          <button
+            type="button"
+            onClick={() => setStatusFilter("all")}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all duration-150 ${
+              statusFilter === "all" ? "bg-[#0f1f5c] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            Semua Status
+            <span className="opacity-70">{kegiatanData.length}</span>
+          </button>
+          {(Object.keys(STATUS_LABELS) as MockKegiatan["status"][]).map((status) => (
+            <button
+              key={status}
+              type="button"
+              onClick={() => setStatusFilter(statusFilter === status ? "all" : status)}
+              className="inline-flex items-center gap-1.5 rounded-full pl-2 pr-3 py-1 text-xs font-medium transition-all duration-150"
+              style={
+                statusFilter === status
+                  ? { backgroundColor: STATUS_COLORS[status], color: "white" }
+                  : { backgroundColor: `${STATUS_COLORS[status]}14`, color: STATUS_COLORS[status] }
+              }
+            >
+              <span
+                className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                style={{ backgroundColor: statusFilter === status ? "white" : STATUS_COLORS[status] }}
+              />
+              {STATUS_LABELS[status]}
+              <span className="opacity-70">{statusCounts[status]}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
-      <Card>
-        <Table columns={columns} data={filtered} />
-      </Card>
+      <p className="text-xs text-gray-400 px-1">
+        Menampilkan <span className="font-medium text-gray-600">{filtered.length}</span> dari{" "}
+        <span className="font-medium text-gray-600">{kegiatanData.length}</span> kegiatan
+      </p>
 
-      <Dialog open={isModalOpen} onClose={() => setIsModalOpen(false)} title="Tambah Kegiatan Baru">
+      {filtered.length === 0 ? (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col items-center justify-center py-16 text-center">
+          <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center mb-3">
+            <Inbox className="w-6 h-6 text-gray-300" />
+          </div>
+          <h4 className="text-base font-medium text-gray-900">Tidak ada kegiatan ditemukan</h4>
+          <p className="text-sm text-gray-500 mt-1 max-w-xs">
+            Coba ubah kata kunci pencarian atau filter, atau tambahkan kegiatan baru.
+          </p>
+          <Button variant="default" className="mt-4 gap-1.5" onClick={() => openAddDialog()}>
+            <Plus className="w-4 h-4" /> Tambah Kegiatan
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          {filtered.map((row) => {
+            const assignedTasks = getAssignedTasks(row.title);
+
+            return (
+              <div
+                key={row.id}
+                onClick={() => openEditDialog(row)}
+                className="group relative bg-white rounded-xl border border-gray-200 shadow-sm p-4 cursor-pointer transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md hover:border-blue-200"
+              >
+                <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openEditDialog(row);
+                    }}
+                    className="p-1.5 rounded-md text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors duration-150"
+                    aria-label={`Edit ${row.title}`}
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => handleDelete(row.id, e)}
+                    className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors duration-150"
+                    aria-label={`Hapus ${row.title}`}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="pr-14">
+                  <Badge variant={PRIORITAS_BADGE_VARIANT[row.prioritas]}>{row.prioritas}</Badge>
+                </div>
+                <h4 className="mt-2 text-sm font-semibold text-gray-900 leading-snug line-clamp-2">{row.title}</h4>
+
+                <div className="mt-3 space-y-1.5 text-xs text-gray-500">
+                  {row.opdPenyelenggara && (
+                    <div className="flex items-center gap-1.5">
+                      <Building2 className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
+                      <span className="truncate">{row.opdPenyelenggara}</span>
+                    </div>
+                  )}
+                  {row.lokasi && (
+                    <div className="flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
+                      <span className="truncate">{row.lokasi}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1.5">
+                    <CalendarDays className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
+                    <span>{formatTanggal(row.deadline)}</span>
+                  </div>
+                </div>
+
+                {row.outputDibutuhkan && row.outputDibutuhkan.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1">
+                    {row.outputDibutuhkan.map((o) => (
+                      <span key={o} className="text-[10px] font-medium text-gray-500 bg-gray-50 rounded px-1.5 py-0.5">
+                        {o}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Petugas Tim Ditugaskan (Sinkron dari Penugasan) */}
+                <div className="mt-3 pt-2.5 border-t border-gray-100 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    {assignedTasks.length > 0 ? (
+                      <>
+                        <div className="flex -space-x-1.5 overflow-hidden">
+                          {assignedTasks.slice(0, 3).map((task, idx) => (
+                            <div
+                              key={task.id ?? idx}
+                              title={`${task.pic} (${task.jenisKonten})`}
+                              className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 font-bold text-[9px] flex items-center justify-center ring-1 ring-white"
+                            >
+                              {task.picAvatar ?? task.pic.slice(0, 2).toUpperCase()}
+                            </div>
+                          ))}
+                        </div>
+                        <span className="text-[11px] text-gray-600 font-medium">
+                          {assignedTasks.length} Petugas
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-[11px] text-gray-400 italic">Belum ada penugasan PIC</span>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/penugasan?kegiatan=${encodeURIComponent(row.title)}&action=create`);
+                    }}
+                    className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-0.5"
+                  >
+                    <UserPlus className="w-3 h-3" />
+                    <span>+ Tugaskan</span>
+                  </button>
+                </div>
+
+                <div className="mt-3 pt-2 border-t border-gray-50 flex items-center justify-between">
+                  <Badge variant={STATUS_BADGE_VARIANT[row.status]}>{STATUS_LABELS[row.status]}</Badge>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/penugasan?search=${encodeURIComponent(row.title)}`);
+                    }}
+                    className="text-[11px] text-gray-400 hover:text-gray-600 flex items-center gap-1"
+                  >
+                    <span>Lihat Penugasan</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+    )}
+
+      <Dialog open={isModalOpen} onClose={closeDialog} title={editingId ? "Edit Kegiatan" : "Tambah Kegiatan Baru"}>
         <div className="space-y-4 mt-4">
           <div>
             <label className="text-sm font-medium text-gray-700">Nama Kegiatan</label>
-            <Input 
-              placeholder="Contoh: Upacara Hari Jadi Kota" 
-              className="mt-1" 
-              value={formData.title} 
-              onChange={e => setFormData({ ...formData, title: e.target.value })} 
+            <Input
+              placeholder="Contoh: Upacara Hari Jadi Kota"
+              className="mt-1"
+              value={form.title}
+              onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium text-gray-700">Tanggal</label>
-              <Input type="date" className="mt-1" value={formData.activityDate} onChange={e => setFormData({ ...formData, activityDate: e.target.value })} />
+              <Input
+                type="date"
+                className="mt-1"
+                value={form.deadline}
+                onChange={(e) => setForm((f) => ({ ...f, deadline: e.target.value }))}
+              />
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-700">Jam Mulai</label>
-              <Input type="time" className="mt-1" value={formData.activityTime} onChange={e => setFormData({ ...formData, activityTime: e.target.value })} />
+              <label className="text-sm font-medium text-gray-700">Lokasi</label>
+              <Input
+                placeholder="Contoh: Balaikota"
+                className="mt-1"
+                value={form.lokasi}
+                onChange={(e) => setForm((f) => ({ ...f, lokasi: e.target.value }))}
+              />
             </div>
           </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700">OPD Penyelenggara</label>
-            <Select 
-              options={(opds || []).map(o => ({ value: o.id, label: o.name }))} 
-              placeholder="Pilih OPD"
-              className="mt-1"
-              value={formData.opdId}
-              onChange={e => setFormData({ ...formData, opdId: e.target.value })}
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-gray-700">OPD Penyelenggara</label>
+              <Select
+                options={[
+                  { value: "Diskominfo", label: "Diskominfo" },
+                  { value: "Dinas Pendidikan", label: "Dinas Pendidikan" },
+                  { value: "Dinas Kesehatan", label: "Dinas Kesehatan" },
+                ]}
+                placeholder="Pilih OPD"
+                className="mt-1"
+                value={form.opdPenyelenggara}
+                onChange={(e) => setForm((f) => ({ ...f, opdPenyelenggara: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700">Prioritas</label>
+              <Select
+                options={[
+                  { value: "Tinggi", label: "Tinggi" },
+                  { value: "Sedang", label: "Sedang" },
+                  { value: "Rendah", label: "Rendah" },
+                ]}
+                className="mt-1"
+                value={form.prioritas}
+                onChange={(e) => setForm((f) => ({ ...f, prioritas: e.target.value as MockKegiatan["prioritas"] }))}
+              />
+            </div>
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700 mb-2 block">Output yang Dibutuhkan</label>
             <div className="grid grid-cols-2 gap-2">
-              {(contentTypes || []).map(ct => (
-                <label key={ct.id} className="flex items-center gap-2">
-                  <input 
-                    type="checkbox" 
-                    checked={formData.outputDibutuhkan.includes(ct.id)}
-                    onChange={() => handleToggleOutput(ct.id)} 
-                  /> 
-                  {ct.name}
+              {OUTPUT_OPTIONS.map((opt) => (
+                <label key={opt} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={form.outputDibutuhkan.includes(opt)}
+                    onChange={() => toggleOutput(opt)}
+                  />
+                  {opt}
                 </label>
               ))}
             </div>
           </div>
+
+          {/* If Editing, display Assigned Team preview */}
+          {editingId && (
+            <div className="bg-gray-50 rounded-xl p-3.5 border border-gray-100 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  👥 Penugasan Tim Terkait ({getAssignedTasks(form.title).length})
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeDialog();
+                    navigate(`/penugasan?kegiatan=${encodeURIComponent(form.title)}&action=create`);
+                  }}
+                  className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 hover:underline"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>+ Tambah Penugasan</span>
+                </button>
+              </div>
+
+              {getAssignedTasks(form.title).length === 0 ? (
+                <p className="text-xs text-gray-400 italic">Belum ada staf yang ditugaskan untuk kegiatan ini.</p>
+              ) : (
+                <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                  {getAssignedTasks(form.title).map((t) => (
+                    <div
+                      key={t.id}
+                      className="bg-white rounded-lg p-2 text-xs flex items-center justify-between border border-gray-100"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-indigo-50 text-indigo-700 font-bold text-[9px] flex items-center justify-center">
+                          {t.picAvatar ?? t.pic.slice(0, 2).toUpperCase()}
+                        </span>
+                        <span className="font-medium text-gray-800">{t.pic}</span>
+                        <span className="text-gray-400">({t.jenisKonten})</span>
+                      </div>
+                      <span className="text-[11px] text-gray-500 font-mono">
+                        {t.jamMulai} - {t.jamSelesai}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="pt-4 flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>Batal</Button>
-            <Button variant="default" onClick={handleSubmit}>Simpan Kegiatan</Button>
+            <Button variant="outline" onClick={closeDialog}>Batal</Button>
+            <Button variant="default" disabled={!form.title.trim() || !form.deadline} onClick={handleSave}>
+              {editingId ? "Simpan Perubahan" : "Simpan Kegiatan"}
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+
+      {/* Popup daftar kegiatan pada tanggal yang diklik di kalender */}
+      <Dialog
+        open={viewDateKey !== null}
+        onClose={() => setViewDateKey(null)}
+        title={viewDateKey ? formatTanggalPanjang(viewDateKey) : "Detail Tanggal"}
+      >
+        <div className="mt-1">
+          {tugasPadaTanggal.length > 0 ? (
+            <div className="space-y-2 max-h-80 overflow-y-auto -mx-1 px-1">
+              {tugasPadaTanggal.map((k) => (
+                <button
+                  key={k.id}
+                  type="button"
+                  onClick={() => {
+                    setViewDateKey(null);
+                    openEditDialog(k);
+                  }}
+                  className="w-full text-left flex kegiatanData-start gap-3 rounded-lg border border-gray-100 p-3 transition-all duration-150 hover:border-blue-200 hover:bg-blue-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                >
+                  <span
+                    className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0"
+                    style={{ backgroundColor: STATUS_COLORS[k.status] }}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-gray-900 truncate">{k.title}</p>
+                    <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                      <Badge variant={STATUS_BADGE_VARIANT[k.status]}>{STATUS_LABELS[k.status]}</Badge>
+                      <Badge variant={PRIORITAS_BADGE_VARIANT[k.prioritas]}>{k.prioritas}</Badge>
+                      {k.lokasi && <span className="text-xs text-gray-400 truncate">{k.lokasi}</span>}
+                    </div>
+                  </div>
+                  <Pencil className="w-3.5 h-3.5 text-gray-300 flex-shrink-0 mt-1" />
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mb-2">
+                <Inbox className="w-5 h-5 text-gray-300" />
+              </div>
+              <p className="text-sm text-gray-500">Belum ada kegiatan pada tanggal ini.</p>
+            </div>
+          )}
+
+          <div className="pt-4 mt-4 border-t border-gray-100 flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setViewDateKey(null)}>
+              Tutup
+            </Button>
+            <Button
+              variant="default"
+              className="gap-1.5"
+              onClick={() => {
+                const date = viewDateKey ?? undefined;
+                setViewDateKey(null);
+                openAddDialog(date);
+              }}
+            >
+              <Plus className="w-4 h-4" /> Tambah Kegiatan
+            </Button>
           </div>
         </div>
       </Dialog>

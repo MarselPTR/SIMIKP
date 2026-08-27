@@ -292,6 +292,34 @@ async function runSeed() {
       }
     ]);
 
+    // 10. Reviews & Publications
+    console.log("Memasukkan Data Review & Publikasi...");
+    const { reviews } = await import("./schema/publications.js");
+    const { publications } = await import("./schema/publications.js");
+    
+    const version1Id = crypto.randomUUID();
+    const version2Id = crypto.randomUUID();
+    const version3Id = crypto.randomUUID();
+
+    // Pastikan kita membuat production version fiktif khusus untuk direview/publikasi
+    await db.insert(productionVersions).values([
+      { id: version1Id, productionItemId: prodItem1, versionNumber: 2, workLink: "https://docs.google.com/doc1", isCurrent: false },
+      { id: version2Id, productionItemId: prodItem2, versionNumber: 2, workLink: "https://docs.google.com/doc2", isCurrent: false },
+      { id: version3Id, productionItemId: prodItem1, versionNumber: 3, workLink: "https://docs.google.com/doc3", isCurrent: false }
+    ]);
+
+    await db.insert(reviews).values([
+      { id: crypto.randomUUID(), productionVersionId: version1Id, reviewerId: adminId, status: "approved", comment: "Bagus, hanya perbaiki meta deskripsi.", reviewedAt: new Date("2026-08-28") },
+      { id: crypto.randomUUID(), productionVersionId: version2Id, reviewerId: adminId, status: "revision", comment: "Perbaiki heading dan CTA.", reviewedAt: new Date("2026-08-27") },
+      { id: crypto.randomUUID(), productionVersionId: version3Id, reviewerId: adminId, status: "pending", comment: "", reviewedAt: new Date("2026-08-29") },
+    ]);
+
+    await db.insert(publications).values([
+      { id: crypto.randomUUID(), productionVersionId: version1Id, status: "published", channel: "Website", url: "https://batu.go.id/1", notes: "Views: 1250", recordedBy: adminId, publicationDate: new Date("2026-08-25") },
+      { id: crypto.randomUUID(), productionVersionId: version2Id, status: "scheduled", channel: "Instagram", url: "", notes: "Views: 0", recordedBy: adminId, publicationDate: new Date("2026-09-05") },
+      { id: crypto.randomUUID(), productionVersionId: version3Id, status: "draft", channel: "YouTube", url: "", notes: "Views: 0", recordedBy: adminId, publicationDate: null },
+    ]);
+
     console.log("Data presentasi berhasil disemai dengan bersih dan logis! 🎉");
     process.exit(0);
   } catch (error) {

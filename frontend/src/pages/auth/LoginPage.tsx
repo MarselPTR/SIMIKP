@@ -1,16 +1,21 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../lib/AuthContext";
 import { Role } from "../../lib/mock-data";
 import logoKotaBatu from "../../assets/Logo_Kota_Batu.png";
 
 const LoginPage = () => {
-  const { login, loading } = useAuth();
+  const { login, loading, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+
+  if (isAuthenticated && user) {
+    const destination = user.role === Role.PETUGAS ? "/petugas/dashboard" : "/dashboard";
+    return <Navigate to={destination} replace />;
+  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -23,6 +28,7 @@ const LoginPage = () => {
     const destination = result.user?.role === Role.PETUGAS ? "/petugas/dashboard" : "/dashboard";
     navigate(destination, { replace: true });
   };
+
 
   return (
     <div className="min-h-screen flex">
@@ -52,14 +58,14 @@ const LoginPage = () => {
         <p className="text-gray-500 text-sm mb-8">Gunakan akun SIMIKP Kota Batu Anda</p>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Username */}
+          {/* Email */}
           <div>
             <label className="block text-sm font-medium text-gray-800 mb-1.5">Username</label>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Username Anda (cth: admin)"
+              placeholder="Masukkan username"
               required
               className="w-full border border-gray-300 rounded-md px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition"
               onFocus={(e) => {

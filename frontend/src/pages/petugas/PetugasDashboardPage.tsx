@@ -1,119 +1,117 @@
-import { MapPin, Clock, ChevronRight } from "lucide-react";
+import { AlertTriangle, MapPin, Clock, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../lib/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "../../lib/api-client";
-import { LoadingSpinner, ErrorState } from "../../components/shared/StateComponents";
 
 const NAVY = "#0f1f5c";
 
 const statusBadgeClass = (status: string) =>
-  status === "SELESAI" || status === "COMPLETED" ? "bg-green-100 text-green-700" : "bg-sky-100 text-sky-700";
-
-interface PetugasTask {
-  id: string;
-  kegiatan: string;
-  lokasi: string;
-  deadline: string;
-  status: string;
-  jenisPekerjaan: string;
-  instruksi: string;
-}
+  status === "SELESAI" ? "bg-green-100 text-green-700" : "bg-sky-100 text-sky-700";
 
 const PetugasDashboardPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const { data: tasks, isLoading, error } = useQuery({
-    queryKey: ["my-tasks-dashboard"],
+  const { data: userTasks = [] } = useQuery({
+    queryKey: ["my-tasks"],
     queryFn: async () => {
-      const res = await apiFetch<{ success: boolean; data: PetugasTask[] }>("/productions/my-tasks");
+      const res = await apiFetch<{ success: boolean; data: any[] }>("/productions/my-tasks");
       return res.data;
     },
   });
 
-  if (isLoading) return <LoadingSpinner />;
-  if (error) return <ErrorState message={error.message} />;
-
-  const userTasks = tasks || [];
-  const sedangDikerjakan = userTasks.filter((t) => t.status !== "COMPLETED" && t.status !== "SELESAI").length;
-  const selesai = userTasks.filter((t) => t.status === "COMPLETED" || t.status === "SELESAI").length;
+  const sedangDikerjakan = userTasks.filter((t) => t.status !== "SELESAI" && t.status !== "BELUM").length;
+  const selesai = userTasks.filter((t) => t.status === "SELESAI").length;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="bg-white rounded-xl border border-gray-200 px-6 py-5 shadow-sm">
         <h1 className="text-xl font-bold" style={{ color: NAVY }}>
           Selamat datang kembali, {user?.name}!
         </h1>
         <p className="text-sm text-gray-500 mt-1">
-          Berikut adalah ringkasan tugas kamu sebagai <strong>{user?.staffType?.replace("_", " ")}</strong> hari ini.
+          Berikut adalah daftar tugas dan aktivitas kamu di bidang <strong>{user?.staffType}</strong> hari ini.
         </p>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 border-l-4 p-5 shadow-sm" style={{ borderLeftColor: NAVY }}>
-          <p className="text-sm font-medium text-gray-500 mb-2">Tugas Berjalan (Perlu Diselesaikan)</p>
-          <div className="flex items-end gap-3">
-            <span className="text-4xl font-extrabold text-gray-900">{sedangDikerjakan}</span>
-          </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white rounded-xl border border-gray-200 border-l-4 px-6 py-5 shadow-sm" style={{ borderLeftColor: "#64748b" }}>
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Total Tugas</p>
+          <p className="text-2xl font-bold mt-1" style={{ color: NAVY }}>
+            {userTasks.length}
+          </p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 border-l-4 border-green-600 p-5 shadow-sm">
-          <p className="text-sm font-medium text-gray-500 mb-2">Tugas Selesai</p>
-          <div className="flex items-end gap-3">
-            <span className="text-4xl font-extrabold text-green-600">{selesai}</span>
-            <span className="text-sm font-medium text-green-600 mb-1">Kerja bagus!</span>
-          </div>
+        <div className="bg-white rounded-xl border border-gray-200 border-l-4 px-6 py-5 shadow-sm" style={{ borderLeftColor: NAVY }}>
+          <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: NAVY }}>
+            Sedang Dikerjakan
+          </p>
+          <p className="text-2xl font-bold mt-1" style={{ color: NAVY }}>
+            {sedangDikerjakan}
+          </p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 border-l-4 border-green-600 px-6 py-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-green-600">Selesai</p>
+          <p className="text-2xl font-bold mt-1 text-green-600">{selesai}</p>
         </div>
       </div>
 
-      {/* Task List */}
+      {userTasks.some((t) => t.hasConflict) && (
+        <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-5 py-4">
+          <AlertTriangle size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-amber-800">Perhatian: Ada Jadwal Bentrok</p>
+            {userTasks
+              .filter((t) => t.hasConflict)
+              .map((t) => (
+                <p key={t.id} className="text-sm text-amber-700 mt-0.5">
+                  • {t.conflictMessage}
+                </p>
+              ))}
+          </div>
+        </div>
+      )}
+
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-gray-900">Penugasan Terdekat</h2>
-          <button
-            onClick={() => navigate("/petugas/penugasan")}
-            className="text-sm font-semibold hover:underline flex items-center"
-            style={{ color: NAVY }}
-          >
-            Lihat Semua <ChevronRight size={16} />
-          </button>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-base font-semibold text-gray-900">Daftar Tugas Kamu</h3>
+          <span className="text-xs text-gray-500">Menampilkan bidang: {user?.staffType}</span>
         </div>
 
         <div className="space-y-3">
           {userTasks.length === 0 ? (
-            <div className="text-center py-8 text-gray-500 bg-white rounded-xl border border-gray-200">
-              Tidak ada tugas untuk saat ini.
+            <div className="text-center py-10 text-gray-400 bg-white rounded-xl border border-dashed border-gray-300">
+              Belum ada tugas baru untuk kamu di bidang ini.
             </div>
           ) : (
-            userTasks.slice(0, 3).map((t) => (
+            userTasks.map((t) => (
               <div
                 key={t.id}
-                className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 hover:border-gray-300 transition-colors"
+                className="flex items-center justify-between bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4"
               >
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusBadgeClass(t.status)}`}>
+                <div>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${statusBadgeClass(t.status)}`}>
                       {t.status.replace("_", " ")}
                     </span>
+                    <h4 className="text-sm font-semibold text-gray-900">{t.kegiatan}</h4>
                   </div>
-                  <button
-                    onClick={() => navigate("/petugas/penugasan", { state: { taskId: t.id } })}
-                    className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50"
-                  >
-                    Detail
-                  </button>
+                  <div className="flex gap-4 text-xs text-gray-500">
+                    <span className="flex items-center gap-1">
+                      <MapPin size={13} /> {t.lokasi}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Clock size={13} /> Deadline: {t.deadline}
+                    </span>
+                  </div>
                 </div>
-                <h3 className="text-base font-bold text-gray-900 mb-2 leading-snug">{t.kegiatan}</h3>
-                <div className="flex flex-wrap gap-4 text-xs font-medium text-gray-500">
-                  <span className="flex items-center gap-1">
-                    <MapPin size={14} /> {t.lokasi}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Clock size={14} /> Deadline: {t.deadline}
-                  </span>
-                </div>
+                <button
+                  onClick={() => navigate("/petugas/penugasan", { state: { taskId: t.id } })}
+                  className="flex items-center gap-1 text-sm font-semibold text-white rounded-lg px-3 py-2"
+                  style={{ backgroundColor: NAVY }}
+                >
+                  Buka Detail <ChevronRight size={16} />
+                </button>
               </div>
             ))
           )}

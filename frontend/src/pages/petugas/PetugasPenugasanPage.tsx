@@ -2,91 +2,63 @@ import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, Clock, MapPin, FileText, Upload } from "lucide-react";
 import { useAuth } from "../../lib/AuthContext";
-import { WORKFLOWS } from "../../lib/mock-data";
-import { apiFetch } from "../../lib/api-client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { LoadingSpinner, ErrorState } from "../../components/shared/StateComponents";
+import { apiFetch } from "../../lib/api-client";
+import { WORKFLOWS } from "../../lib/mock-data";
 
 const NAVY = "#0f1f5c";
 
 const statusBadgeClass = (status: string) =>
-  status === "SELESAI" || status === "COMPLETED" ? "bg-green-100 text-green-700" : "bg-sky-100 text-sky-700";
-
-interface PetugasTask {
-  id: string;
-  kegiatan: string;
-  lokasi: string;
-  deadline: string;
-  status: string;
-  jenisPekerjaan: string;
-  instruksi: string;
-}
+  status === "SELESAI" ? "bg-green-100 text-green-700" : "bg-sky-100 text-sky-700";
 
 const PetugasPenugasanPage = () => {
   const { user } = useAuth();
   const location = useLocation();
-  const queryClient = useQueryClient();
   const initialTaskId = (location.state as { taskId?: string } | null)?.taskId ?? null;
 
-  const [selectedId, setSelectedId] = useState<string | null>(initialTaskId);
-  const [uploadLink, setUploadLink] = useState("");
+  const queryClient = useQueryClient();
 
-  const { data: tasks, isLoading, error } = useQuery({
+  const { data: userTasks = [] } = useQuery({
     queryKey: ["my-tasks"],
     queryFn: async () => {
-      const res = await apiFetch<{ success: boolean; data: PetugasTask[] }>("/productions/my-tasks");
+      const res = await apiFetch<{ success: boolean; data: any[] }>("/productions/my-tasks");
       return res.data;
     },
   });
 
+  const [selectedId, setSelectedId] = useState<string | null>(initialTaskId);
+  const [uploadLink, setUploadLink] = useState("");
+
+  const selectedTask = userTasks.find((t) => t.id === selectedId) ?? null;
+
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      await apiFetch(`/productions/${id}/status`, {
+      return apiFetch(`/productions/${id}/status`, {
         method: "POST",
-        body: JSON.stringify({ status })
+        body: JSON.stringify({ status }),
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-tasks"] });
-    }
+    },
   });
 
-  const submitWorkMutation = useMutation({
+  const submitMutation = useMutation({
     mutationFn: async ({ id, workLink }: { id: string; workLink: string }) => {
-      await apiFetch(`/productions/${id}/submit`, {
+      return apiFetch(`/productions/${id}/submit`, {
         method: "POST",
-        body: JSON.stringify({ workLink })
+        body: JSON.stringify({ workLink }),
       });
     },
     onSuccess: () => {
-      alert("Berhasil! Link luaran kerja telah tersimpan.");
       queryClient.invalidateQueries({ queryKey: ["my-tasks"] });
-      setSelectedId(null);
+      alert("Berhasil! Link luaran kerja telah tersimpan.");
       setUploadLink("");
     },
-    onError: () => {
-      alert("Gagal mengirim tautan luaran kerja.");
-    }
   });
-
-  if (isLoading) return <LoadingSpinner />;
-  if (error) return <ErrorState message={error.message} />;
-
-  const userTasks = tasks || [];
-  const selectedTask = userTasks.find((t) => t.id === selectedId) ?? null;
 
   const updateStatus = (id: string, status: string) => {
     updateStatusMutation.mutate({ id, status });
-  };
-
-  const handleSubmitWork = () => {
-    if (!uploadLink) {
-      alert("Tautan Google Drive tidak boleh kosong.");
-      return;
-    }
-    if (selectedTask) {
-      submitWorkMutation.mutate({ id: selectedTask.id, workLink: uploadLink });
-    }
   };
 
   if (!selectedTask) {
@@ -102,7 +74,7 @@ const PetugasPenugasanPage = () => {
         <div className="space-y-3">
           {userTasks.length === 0 ? (
             <div className="text-center py-10 text-gray-400 bg-white rounded-xl border border-dashed border-gray-300">
-              Belum ada tugas untuk kamu saat ini.
+              Belum ada tugas untuk kamu di bidang ini.
             </div>
           ) : (
             userTasks.map((t) => (
@@ -124,7 +96,7 @@ const PetugasPenugasanPage = () => {
                 </div>
                 <button
                   onClick={() => setSelectedId(t.id)}
-                  className="text-sm font-semibold text-white rounded-lg px-3 py-2 hover:opacity-90"
+                  className="text-sm font-semibold text-white rounded-lg px-3 py-2"
                   style={{ backgroundColor: NAVY }}
                 >
                   Kelola Tugas
@@ -137,14 +109,13 @@ const PetugasPenugasanPage = () => {
     );
   }
 
-  // Determine workflow based on staffType
-  const workflow = user?.staffType ? WORKFLOWS[user.staffType] ?? [] : ["ASSIGNED", "IN_PROGRESS", "COMPLETED"];
+  const workflow = user?.staffType ? WORKFLOWS[user.staffType] ?? [] : [];
 
   return (
     <div className="max-w-3xl space-y-4">
       <button
         onClick={() => setSelectedId(null)}
-        className="flex items-center gap-1.5 text-sm font-semibold hover:opacity-80"
+        className="flex items-center gap-1.5 text-sm font-semibold"
         style={{ color: NAVY }}
       >
         <ArrowLeft size={16} /> Kembali ke Daftar Penugasan
@@ -196,10 +167,9 @@ const PetugasPenugasanPage = () => {
                 <button
                   key={step}
                   onClick={() => updateStatus(selectedTask.id, step)}
-                  disabled={updateStatusMutation.isPending}
-                  className={`flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-full transition-colors ${
-                    isActive ? "bg-green-600 text-white shadow-md" : "border border-gray-300 text-gray-600 bg-white hover:bg-gray-50"
-                  } ${updateStatusMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-full ${
+                    isActive ? "bg-green-600 text-white" : "border border-gray-300 text-gray-600 bg-white"
+                  }`}
                 >
                   {isActive && <CheckCircle2 size={14} />} {idx + 1}. {step.replace("_", " ")}
                 </button>
@@ -215,19 +185,23 @@ const PetugasPenugasanPage = () => {
           </p>
           <div className="flex gap-2">
             <input
-              type="url"
+              type="text"
               value={uploadLink}
               onChange={(e) => setUploadLink(e.target.value)}
               placeholder="https://drive.google.com/..."
-              className="flex-1 border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none"
             />
             <button
-              onClick={handleSubmitWork}
-              disabled={submitWorkMutation.isPending}
-              className={`flex items-center gap-1.5 text-sm font-semibold text-white rounded-lg px-4 py-2.5 hover:opacity-90 transition-opacity ${submitWorkMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
+              onClick={() => {
+                if (uploadLink) {
+                  submitMutation.mutate({ id: selectedTask.id, workLink: uploadLink });
+                }
+              }}
+              disabled={submitMutation.isPending}
+              className="flex items-center gap-1.5 text-sm font-semibold text-white rounded-lg px-4 py-2.5 disabled:opacity-50"
               style={{ backgroundColor: NAVY }}
             >
-              <Upload size={16} /> {submitWorkMutation.isPending ? "Mengirim..." : "Kirim"}
+              <Upload size={16} /> {submitMutation.isPending ? "Mengirim..." : "Kirim"}
             </button>
           </div>
         </div>

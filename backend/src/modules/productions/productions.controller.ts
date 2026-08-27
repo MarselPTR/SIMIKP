@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { db } from "../../db";
 import { assignments, activities, contentTypes, users } from "../../db/schema";
-import { productionItems, productionVersions } from "../../db/schema/production";
+import { productionItems, productionVersions, productionFiles } from "../../db/schema/production";
 import { eq, and, desc } from "drizzle-orm";
 import { z } from "zod";
 import crypto from "crypto";
@@ -14,7 +14,116 @@ const submitWorkSchema = z.object({
   workLink: z.string().url(),
 });
 
+const createProductionSchema = z.object({
+  activityId: z.string(),
+  userId: z.string(),
+  contentTypeId: z.string(),
+  title: z.string(),
+});
+
 export class ProductionsController {
+  
+  static async createProduction(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const body = createProductionSchema.parse(request.body);
+      
+      const newAssignmentId = crypto.randomUUID();
+      const newProductionId = crypto.randomUUID();
+      const newVersionId = crypto.randomUUID();
+
+      // Create Assignment -> Production Item -> Production Version
+      await db.transaction(async (tx) => {
+        await tx.insert(assignments).values({
+          id: newAssignmentId,
+          activityId: body.activityId, // Assuming UI sends correct UUID
+          userId: body.userId,
+          contentTypeId: body.contentTypeId,
+          status: "LIPUTAN", // Starting status
+          createdBy: "system",
+        });
+
+        await tx.insert(productionItems).values({
+          id: newProductionId,
+          assignmentId: newAssignmentId,
+          title: body.title,
+          status: "LIPUTAN",
+        });
+
+        await tx.insert(productionVersions).values({
+          id: newVersionId,
+          productionItemId: newProductionId,
+          versionNumber: 1,
+          isCurrent: true,
+        });
+      });
+
+      return reply.status(201).send({ success: true, message: "Produksi berhasil dibuat" });
+    } catch (error) {
+      request.log.error(error);
+      return reply.status(500).send({ success: false, error: "Gagal membuat produksi" });
+    }
+  }
+
+  static async uploadBankKonten(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const body = request.body as any;
+      const { filename, size, type } = body;
+
+      if (!filename) {
+        return reply.status(400).send({ success: false, error: "filename wajib diisi" });
+      }
+
+      // Cari productionVersionId yang valid — ambil versi pertama yang ada di DB
+      const latestVersion = await db
+        .select({ id: productionVersions.id })
+        .from(productionVersions)
+        .limit(1);
+
+      if (!latestVersion.length) {
+        return reply.status(422).send({
+          success: false,
+          error: "Belum ada data produksi. Silakan buat Penugasan terlebih dahulu sebelum mengunggah file.",
+        });
+      }
+
+      // Ambil userId dari session auth, atau fallback ke user pertama yang valid dari DB
+      const sessionUser = (request as any).user;
+      let uploadedBy: string = sessionUser?.id ?? null;
+
+      if (!uploadedBy) {
+        // Fallback: pakai user pertama yang ada di DB (FK valid)
+        const firstUser = await db.select({ id: users.id }).from(users).limit(1);
+        if (!firstUser.length) {
+          return reply.status(422).send({ success: false, error: "Tidak ada user di database." });
+        }
+        uploadedBy = firstUser[0].id;
+      }
+
+      const ext = filename.includes(".") ? filename.split(".").pop()?.toLowerCase() : "bin";
+
+      const newFileId = crypto.randomUUID();
+      await db.insert(productionFiles).values({
+        id: newFileId,
+        productionVersionId: latestVersion[0].id,
+        originalFilename: filename,
+        storedFilename: `bk_${Date.now()}_${filename.replace(/\s/g, "_")}`,
+        storagePath: `/storage/bank-konten/${new Date().getFullYear()}`,
+        mimeType: type || "application/octet-stream",
+        fileExtension: ext || "bin",
+        fileSize: size || 0,
+        uploadedBy,
+      });
+
+      return reply.status(201).send({
+        success: true,
+        message: `File "${filename}" berhasil dicatat ke database`,
+        fileId: newFileId,
+      });
+    } catch (error) {
+      request.log.error(error);
+      return reply.status(500).send({ success: false, error: "Gagal menyimpan metadata file ke database" });
+    }
+  }
   
   // 0. Get All (for Admin Dashboard)
   static async getAll(request: FastifyRequest, reply: FastifyReply) {

@@ -24,9 +24,8 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <HomeRedirect /> },
 
-      // Area manajemen (admin/manager/staff/reviewer) — dari pull terbaru, tidak diubah.
       {
-        element: <RoleRoute allow={[Role.ADMIN, Role.MANAGER, Role.STAFF, Role.REVIEWER]} />,
+        element: <RoleRoute allow={[Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER, Role.STAFF, Role.REVIEWER]} />,
         children: [
           {
             element: <AppLayout />,
