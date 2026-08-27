@@ -11,7 +11,6 @@ import {
   ArrowUpRight,
   AlertTriangle,
   CalendarDays,
-  Sparkles,
   Upload,
   FileText,
 } from "lucide-react";
@@ -518,9 +517,8 @@ const PetugasDashboardPage = () => {
           {/* Workflow Indicator Card */}
           <div className="bg-white rounded-2xl border border-gray-200/80 p-5 sm:p-6 shadow-xs space-y-4">
             <div>
-              <h2 className="text-base font-bold text-[#0f1f5c] flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-amber-500" />
-                <span>Alur Kerja Sektor {userBidang}</span>
+              <h2 className="text-base font-bold text-[#0f1f5c]">
+                Alur Kerja Sektor {userBidang}
               </h2>
               <p className="text-xs text-gray-500 mt-1">Tahapan standar alur produksi konten liputan</p>
             </div>
