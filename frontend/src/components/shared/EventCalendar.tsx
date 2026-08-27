@@ -194,7 +194,7 @@ const EventCalendar = ({
           if (isSelected) {
             cellClass = "bg-blue-50/40 border-[#0f1f5c] ring-2 ring-[#0f1f5c]/25 shadow-md";
           } else if (hasEvents) {
-            cellClass = "bg-blue-50/20 border-blue-300/80 hover:border-[#0f1f5c] shadow-xs";
+            cellClass = "bg-blue-50/25 border-blue-300/90 hover:border-[#0f1f5c] shadow-xs";
           } else if (isToday) {
             cellClass = "bg-white border-gray-200";
           } else if (isWeekend) {
