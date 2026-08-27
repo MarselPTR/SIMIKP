@@ -218,141 +218,233 @@ const PetugasPenugasanPage = () => {
 
       {/* 2. Main Content Area */}
       {selectedTask ? (
-        /* DETAIL WORKSPACE VIEW (Clean Static White) */
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-8 shadow-xs space-y-6">
-          <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-            <button
-              onClick={() => setSelectedId(null)}
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0a1647] hover:underline cursor-pointer"
-            >
-              <ArrowLeft size={16} /> Kembali ke Daftar Tugas
-            </button>
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-1 text-xs font-bold rounded-lg bg-white border border-[#0a1647]/30 text-[#0a1647]">
-                Status: {selectedTask.status.replace("_", " ")}
-              </span>
-            </div>
-          </div>
+        /* DETAIL WORKSPACE VIEW (Konsep 1: Stepper Timeline + 2 Kolom Terorganisir) */
+        (() => {
+          const taskWorkflow = WORKFLOWS[selectedTask.bidang || userBidang || "PRAHUM"] || WORKFLOWS["PRAHUM"];
+          const rawStatus = selectedTask.status === "COMPLETED" ? "SELESAI" : selectedTask.status === "ASSIGNED" ? "BELUM" : selectedTask.status;
+          const foundIndex = taskWorkflow.indexOf(rawStatus);
+          const stepIndex = foundIndex >= 0 ? foundIndex : rawStatus === "SELESAI" ? taskWorkflow.length - 1 : 0;
+          const totalSteps = taskWorkflow.length;
+          const isCompleted = rawStatus === "SELESAI" || selectedTask.status === "COMPLETED";
+          const progressPercent = isCompleted ? 100 : Math.round(((stepIndex + 1) / totalSteps) * 100);
 
-          {/* Conflict Alert Banner if detected */}
-          {selectedTask.hasConflict && (
-            <div className="bg-white border border-[#0a1647]/30 rounded-xl p-4 flex items-start gap-3 shadow-xs">
-              <AlertTriangle size={18} className="text-[#0a1647] shrink-0 mt-0.5" />
-              <div>
-                <p className="text-xs font-bold text-[#0a1647] uppercase tracking-wide">
-                  Peringatan Bentrok Jadwal Terdeteksi
-                </p>
-                <p className="text-xs text-gray-600 mt-1 leading-relaxed">
-                  {selectedTask.conflictMessage || "Jadwal penugasan ini berbenturan dengan agenda liputan lain pada rentang waktu yang berdekatan."}
-                </p>
-              </div>
-            </div>
-          )}
+          return (
+            <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-8 shadow-xs space-y-6">
+              {/* 1. Header Navigation & Status Badge */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
+                <button
+                  onClick={() => setSelectedId(null)}
+                  className="inline-flex items-center gap-2 text-xs font-bold text-[#0a1647] hover:underline cursor-pointer group"
+                >
+                  <ArrowLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
+                  <span>Kembali ke Daftar Penugasan</span>
+                </button>
 
-          {/* Task Info Header */}
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="px-2.5 py-0.5 text-xs font-bold rounded-md bg-white border border-[#0a1647]/30 text-[#0a1647]">
-                {categoryLabels[selectedTask.kategori] || selectedTask.kategori}
-              </span>
-              <span className="px-2.5 py-0.5 text-xs font-semibold rounded-md bg-white border border-[#0a1647]/30 text-[#0a1647]">
-                {selectedTask.jenisPekerjaan}
-              </span>
-            </div>
-            <h2 className="text-xl font-bold text-gray-900">{selectedTask.kegiatan}</h2>
-            <div className="flex flex-wrap gap-4 text-xs text-gray-500 pt-1">
-              <span className="flex items-center gap-1.5 text-gray-600">
-                <MapPin size={14} className="text-[#0a1647]" /> {selectedTask.lokasi}
-              </span>
-              <span className="flex items-center gap-1.5 text-[#0a1647] font-semibold bg-white border border-[#0a1647]/30 px-2 py-0.5 rounded-md">
-                <Clock size={14} className="text-[#0a1647]" /> Batas Pengumpulan: {selectedTask.deadline}
-              </span>
-            </div>
-          </div>
-
-          {/* Instruksi Card */}
-          <div className="bg-white rounded-xl p-4 sm:p-5 border border-gray-200 space-y-1.5">
-            <p className="text-xs font-bold text-[#0a1647] uppercase tracking-wider flex items-center gap-1.5">
-              <FileText size={14} /> Instruksi Liputan / Tugas
-            </p>
-            <p className="text-xs text-gray-700 leading-relaxed pl-5">
-              {selectedTask.instruksi}
-            </p>
-          </div>
-
-          {/* Alur Kerja Section */}
-          <div className="space-y-3 pt-2">
-            <p className="text-xs font-bold text-[#0a1647] uppercase tracking-wider">
-              Perbarui Alur Status Pekerjaan ({userBidang || "PRAHUM"})
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {activeWorkflow.map((st, idx) => {
-                const isActive = selectedTask.status === st;
-                return (
-                  <button
-                    key={st}
-                    onClick={() => updateStatus(selectedTask.id, st)}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                      isActive
-                        ? "bg-[#0a1647] text-white shadow-xs border border-[#0a1647]"
-                        : "bg-white text-[#0a1647] border border-[#0a1647]/30 hover:bg-[#0a1647]/5 hover:border-[#0a1647] active:bg-[#0a1647] active:text-white"
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`px-3.5 py-1 text-xs font-bold rounded-full border flex items-center gap-1.5 ${
+                      isCompleted
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                        : rawStatus === "BELUM"
+                        ? "bg-slate-100 text-slate-700 border-slate-300"
+                        : "bg-amber-50 text-amber-800 border-amber-300"
                     }`}
                   >
-                    <span className="w-4 h-4 rounded-full bg-white text-[#0a1647] text-[10px] flex items-center justify-center font-bold">
-                      {idx + 1}
-                    </span>
-                    <span>{st.replace("_", " ")}</span>
-                    {isActive && <CheckCircle2 size={13} className="text-white ml-0.5" />}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Upload Luaran Form */}
-          <div className="border-t border-gray-100 pt-6 space-y-3">
-            <div>
-              <p className="text-xs font-bold text-[#0a1647] uppercase tracking-wider flex items-center gap-1.5">
-                <Upload size={14} /> Tautan Hasil Luaran Kerja (Google Drive / Cloud)
-              </p>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Masukkan tautan file folder dokumentasi, naskah berita, atau berkas final untuk diarsip ke Bank Konten.
-              </p>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-2 max-w-xl">
-              <input
-                type="url"
-                value={uploadLink}
-                onChange={(e) => setUploadLink(e.target.value)}
-                placeholder="https://drive.google.com/drive/folders/..."
-                className="flex-1 px-3.5 py-2.5 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0a1647]/30 focus:border-[#0a1647] transition"
-              />
-              <button
-                onClick={handleSaveWorkLink}
-                className="px-5 py-2.5 rounded-lg text-xs font-bold text-white shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 shrink-0 bg-[#0a1647] hover:bg-[#081238]"
-              >
-                <Upload size={13} />
-                <span>Simpan Tautan</span>
-              </button>
-            </div>
-
-            {selectedTask.workLink && (
-              <div className="mt-3 flex items-center gap-2 text-xs">
-                <span className="font-semibold text-gray-600">Tautan Tersimpan:</span>
-                <a
-                  href={selectedTask.workLink}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="font-medium text-[#0a1647] hover:underline flex items-center gap-1 truncate max-w-md"
-                >
-                  <span className="truncate">{selectedTask.workLink}</span>
-                  <ExternalLink size={12} className="shrink-0" />
-                </a>
+                    {isCompleted && <CheckCircle2 size={13} className="text-emerald-600" />}
+                    <span>Status: {rawStatus.replace("_", " ")} ({progressPercent}%)</span>
+                  </span>
+                </div>
               </div>
-            )}
-          </div>
-        </div>
+
+              {/* Conflict Alert Banner if detected */}
+              {selectedTask.hasConflict && (
+                <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 flex items-start gap-3 shadow-xs">
+                  <AlertTriangle size={18} className="text-rose-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-bold text-rose-800 uppercase tracking-wide">
+                      Peringatan Bentrok Jadwal Terdeteksi
+                    </p>
+                    <p className="text-xs text-rose-700 mt-1 leading-relaxed">
+                      {selectedTask.conflictMessage || "Jadwal penugasan ini berbenturan dengan agenda liputan lain pada rentang waktu yang berdekatan."}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* 2. Agenda Title & Meta Info */}
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="px-2.5 py-0.5 text-xs font-bold rounded-md bg-slate-50 border border-slate-200 text-slate-700">
+                    {categoryLabels[selectedTask.kategori] || selectedTask.kategori}
+                  </span>
+                  <span className="px-2.5 py-0.5 text-xs font-semibold rounded-md bg-slate-50 border border-slate-200 text-slate-700">
+                    {selectedTask.jenisPekerjaan}
+                  </span>
+                </div>
+                <h2 className="text-xl font-extrabold text-gray-900 leading-snug">{selectedTask.kegiatan}</h2>
+                <div className="flex flex-wrap gap-4 text-xs text-gray-500 pt-0.5">
+                  <span className="flex items-center gap-1.5 text-gray-600 font-medium">
+                    <MapPin size={14} className="text-[#0a1647]" /> {selectedTask.lokasi}
+                  </span>
+                  <span className="flex items-center gap-1.5 text-[#0a1647] font-semibold bg-slate-50 border border-slate-200 px-2.5 py-0.5 rounded-md">
+                    <Clock size={14} className="text-[#0a1647]" /> Batas Pengumpulan: {selectedTask.deadline}
+                  </span>
+                </div>
+              </div>
+
+              {/* 3. Stepper Dot Connected Timeline Interaktif (Sesuai Konsep 1) */}
+              <div className="p-5 rounded-2xl border border-gray-200/90 bg-slate-50/60 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-[#0a1647] uppercase tracking-wider">
+                      Alur Tahapan Pekerjaan (Sektor {userBidang || "PRAHUM"})
+                    </p>
+                    <p className="text-[11px] text-gray-500 mt-0.5">
+                      Klik tahapan pada timeline di bawah untuk memperbarui status progres kerja Anda
+                    </p>
+                  </div>
+                  <span className="text-xs font-mono font-bold text-[#0a1647] bg-white border border-[#0a1647]/20 px-2.5 py-0.5 rounded-lg shadow-2xs">
+                    Tahap {isCompleted ? totalSteps : stepIndex + 1} dari {totalSteps}
+                  </span>
+                </div>
+
+                <div className="relative flex items-center justify-between px-3 sm:px-6 pt-2 pb-1">
+                  {/* Background Connecting Track */}
+                  <div className="absolute left-6 right-6 top-5 h-0.5 bg-gray-200 z-0" />
+                  {/* Active Progress Track */}
+                  <div
+                    className={`absolute left-6 top-5 h-0.5 transition-all duration-500 z-0 ${
+                      isCompleted ? "bg-emerald-500" : "bg-[#0a1647]"
+                    }`}
+                    style={{
+                      width: `calc(${totalSteps > 1 ? (Math.max(0, stepIndex) / (totalSteps - 1)) * 100 : 100}% - 3rem)`,
+                    }}
+                  />
+
+                  {/* Step Nodes */}
+                  {taskWorkflow.map((step, idx) => {
+                    const isDone = isCompleted || idx < stepIndex;
+                    const isCurrent = !isCompleted && idx === stepIndex;
+
+                    return (
+                      <button
+                        key={step}
+                        type="button"
+                        onClick={() => updateStatus(selectedTask.id, step)}
+                        className="relative z-10 flex flex-col items-center cursor-pointer group focus:outline-none"
+                        title={`Klik untuk ubah status ke ${step.replace("_", " ")}`}
+                      >
+                        {/* Node Circle */}
+                        <div
+                          className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200 ${
+                            isDone
+                              ? "bg-emerald-600 text-white shadow-xs group-hover:bg-emerald-700"
+                              : isCurrent
+                              ? "bg-[#0a1647] text-white ring-4 ring-[#0a1647]/20 shadow-xs scale-110"
+                              : "bg-white border-2 border-gray-300 text-gray-400 group-hover:border-[#0a1647] group-hover:text-[#0a1647]"
+                          }`}
+                        >
+                          {isDone ? (
+                            <CheckCircle2 size={15} className="text-white stroke-[2.5]" />
+                          ) : (
+                            idx + 1
+                          )}
+                        </div>
+
+                        {/* Node Label */}
+                        <span
+                          className={`mt-2 text-[11px] font-semibold tracking-tight transition-colors select-none text-center whitespace-nowrap ${
+                            isDone
+                              ? "text-emerald-700 font-bold"
+                              : isCurrent
+                              ? "text-[#0a1647] font-extrabold"
+                              : "text-gray-400 group-hover:text-gray-700"
+                          }`}
+                        >
+                          {step.replace("_", " ")}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 4. Two-Column Grid: Kiri Lembar Instruksi, Kanan Pengumpulan Luaran */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
+                {/* Kolom Kiri: Lembar Instruksi Tugas */}
+                <div className="bg-slate-50/80 rounded-2xl border border-slate-200 p-5 sm:p-6 space-y-3 flex flex-col justify-between">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-[#0a1647] font-bold text-xs uppercase tracking-wider border-b border-slate-200/80 pb-3">
+                      <FileText size={16} />
+                      <span>Lembar Instruksi Penugasan</span>
+                    </div>
+
+                    <div className="bg-white rounded-xl p-4 border border-slate-200/80 space-y-2">
+                      <p className="text-xs text-gray-700 leading-relaxed">
+                        {selectedTask.instruksi || "Lakukan liputan dan dokumentasi secara menyeluruh sesuai standar operasional penugasan Kominfo."}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-200/60 flex flex-wrap items-center justify-between text-[11px] text-gray-500 gap-2">
+                    <span>Penanggung Jawab: <strong>Admin Diskominfo</strong></span>
+                    <span>Prioritas: <strong>Tinggi</strong></span>
+                  </div>
+                </div>
+
+                {/* Kolom Kanan: Pengumpulan Hasil Luaran Kerja */}
+                <div className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-6 space-y-4 shadow-2xs flex flex-col justify-between">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-[#0a1647] font-bold text-xs uppercase tracking-wider border-b border-gray-100 pb-3">
+                      <Upload size={16} />
+                      <span>Pengumpulan Hasil Luaran Kerja</span>
+                    </div>
+
+                    <p className="text-xs text-gray-500 leading-relaxed">
+                      Masukkan tautan Google Drive / cloud storage hasil liputan atau naskah final. Menyimpan tautan akan menandai tugas ini <strong>SELESAI</strong> dan mengarsipkannya otomatis ke Bank Konten.
+                    </p>
+
+                    <div className="space-y-2">
+                      <input
+                        type="url"
+                        value={uploadLink}
+                        onChange={(e) => setUploadLink(e.target.value)}
+                        placeholder="https://drive.google.com/drive/folders/..."
+                        className="w-full px-3.5 py-2.5 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0a1647]/20 focus:border-[#0a1647] transition placeholder:text-gray-400"
+                      />
+
+                      <button
+                        onClick={handleSaveWorkLink}
+                        className="w-full py-2.5 rounded-lg text-xs font-bold text-white shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2 bg-[#0a1647] hover:bg-[#122368]"
+                      >
+                        <Upload size={14} />
+                        <span>Simpan Tautan &amp; Selesaikan Tugas</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {selectedTask.workLink && (
+                    <div className="pt-3 border-t border-gray-100 flex items-center justify-between gap-2 text-xs">
+                      <span className="font-semibold text-emerald-700 flex items-center gap-1">
+                        <CheckCircle2 size={13} className="text-emerald-600" />
+                        Tersimpan di Bank Konten
+                      </span>
+                      <a
+                        href={selectedTask.workLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-medium text-[#0a1647] hover:underline flex items-center gap-1 truncate max-w-[200px]"
+                      >
+                        <span className="truncate">Buka Link</span>
+                        <ExternalLink size={12} className="shrink-0" />
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })()
       ) : (
         /* TASK LIST VIEW */
         <div className="space-y-4">
