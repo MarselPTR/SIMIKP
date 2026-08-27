@@ -550,67 +550,57 @@ const PetugasPenugasanPage = () => {
                       </button>
                     </div>
 
-                    {/* ── Visual Step Progress Tracker (Penanda Proses Tugas) ── */}
-                    <div className="pt-3 border-t border-gray-100 space-y-2">
-                      <div className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-gray-600">Progres Alur:</span>
-                          <span
-                            className={`font-bold px-2 py-0.5 rounded-md text-[11px] ${
-                              isCompleted
-                                ? "bg-emerald-100 text-emerald-800"
-                                : "bg-blue-100 text-[#0a1647]"
-                            }`}
-                          >
-                            {isCompleted
-                              ? "Tahap 5/5 • Selesai Penuh"
-                              : `Tahap ${stepIndex + 1} dari ${totalSteps} • ${rawStatus.replace("_", " ")}`}
-                          </span>
-                        </div>
-                        <span className="font-mono font-bold text-xs text-gray-500">
-                          {progressPercent}%
-                        </span>
-                      </div>
-
-                      {/* Progress Bar Track */}
-                      <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                    {/* ── OPSI A: Stepper Dot Connected Timeline Ramping & Formal ── */}
+                    <div className="pt-4 border-t border-gray-100/90 mt-1">
+                      <div className="relative flex items-center justify-between px-2 sm:px-4">
+                        {/* Connecting background track */}
+                        <div className="absolute left-4 right-4 top-3 h-0.5 bg-gray-200 z-0" />
+                        {/* Active colored progress track */}
                         <div
-                          className={`h-full transition-all duration-500 rounded-full ${
+                          className={`absolute left-4 top-3 h-0.5 transition-all duration-500 z-0 ${
                             isCompleted ? "bg-emerald-500" : "bg-[#0a1647]"
                           }`}
-                          style={{ width: `${progressPercent}%` }}
+                          style={{
+                            width: `calc(${totalSteps > 1 ? (Math.max(0, stepIndex) / (totalSteps - 1)) * 100 : 100}% - 2rem)`,
+                          }}
                         />
-                      </div>
 
-                      {/* Mini Steps Pipeline Pills */}
-                      <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                        {/* Step Nodes */}
                         {taskWorkflow.map((step, idx) => {
                           const isDone = isCompleted || idx < stepIndex;
                           const isCurrent = !isCompleted && idx === stepIndex;
 
                           return (
-                            <div
-                              key={step}
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all ${
-                                isDone
-                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                  : isCurrent
-                                  ? "bg-[#0a1647] text-white border-[#0a1647] shadow-xs font-bold"
-                                  : "bg-gray-50 text-gray-400 border-gray-200"
-                              }`}
-                            >
-                              {isDone ? (
-                                <CheckCircle2 size={12} className="text-emerald-600" />
-                              ) : (
-                                <span
-                                  className={`w-3.5 h-3.5 rounded-full text-[9px] flex items-center justify-center font-bold ${
-                                    isCurrent ? "bg-white text-[#0a1647]" : "bg-gray-200 text-gray-600"
-                                  }`}
-                                >
-                                  {idx + 1}
-                                </span>
-                              )}
-                              <span>{step.replace("_", " ")}</span>
+                            <div key={step} className="relative z-10 flex flex-col items-center">
+                              {/* Node Circle */}
+                              <div
+                                className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all duration-200 ${
+                                  isDone
+                                    ? "bg-emerald-600 text-white shadow-2xs"
+                                    : isCurrent
+                                    ? "bg-[#0a1647] text-white ring-4 ring-[#0a1647]/20 shadow-xs scale-110"
+                                    : "bg-white border-2 border-gray-300 text-gray-400"
+                                }`}
+                              >
+                                {isDone ? (
+                                  <CheckCircle2 size={13} className="text-white stroke-[2.5]" />
+                                ) : (
+                                  idx + 1
+                                )}
+                              </div>
+
+                              {/* Node Label */}
+                              <span
+                                className={`mt-1.5 text-[10px] font-semibold tracking-tight transition-colors select-none text-center whitespace-nowrap ${
+                                  isDone
+                                    ? "text-emerald-700 font-bold"
+                                    : isCurrent
+                                    ? "text-[#0a1647] font-extrabold"
+                                    : "text-gray-400"
+                                }`}
+                              >
+                                {step.replace("_", " ")}
+                              </span>
                             </div>
                           );
                         })}
