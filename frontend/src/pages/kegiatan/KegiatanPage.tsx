@@ -117,10 +117,24 @@ const KegiatanPage = () => {
     queryKey: ["penugasan"],
     queryFn: async () => await apiFetch<{ data: any[] }>("/assignments"),
   });
-  const penugasanList = penugasanResponse?.data ?? [];
+  // Normalise items from real API or mock – map to shape expected by JSX
+  const penugasanList: MockPenugasan[] = (penugasanResponse?.data ?? []).map((p: any) => ({
+    id: p.id ?? p.id,
+    kegiatanTerkait: p.activityTitle ?? p.kegiatanTerkait ?? "",
+    pic: p.picName ?? p.pic ?? "",
+    picAvatar: p.picAvatar ?? null,
+    jenisKonten: p.contentType ?? p.jenisKonten ?? "",
+    jamMulai: (p.startTime ?? p.jamMulai ?? "").slice(0, 5),
+    jamSelesai: (p.endTime ?? p.jamSelesai ?? "").slice(0, 5),
+    status: p.status ?? p.status ?? "ASSIGNED",
+    tanggal: p.activityDate ?? p.tanggal ?? "",
+  }));
 
   const getAssignedTasks = (title: string): MockPenugasan[] => {
-    return penugasanList.filter((p) => p.kegiatanTerkait.toLowerCase() === title.toLowerCase());
+    if (!title) return [];
+    return penugasanList.filter((p) =>
+      (p.kegiatanTerkait ?? "").toLowerCase() === title.toLowerCase()
+    );
   };
 
   const [items, setItems] = useState<MockKegiatan[]>([]);

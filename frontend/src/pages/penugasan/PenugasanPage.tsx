@@ -38,7 +38,7 @@ export default function PenugasanPage() {
 
   // Query Penugasan Data
   const { data: initialData, isLoading, error, refetch } = useQuery({
-    queryKey: ["penugasan"],
+    queryKey: ["penugasan-page"],
     queryFn: async () => {
       try {
         const res = await apiFetch<{ success: boolean; data: any[] }>("/assignments");
@@ -103,7 +103,9 @@ export default function PenugasanPage() {
     },
   });
 
-  const items = initialData || [];
+  const items: MockPenugasan[] = Array.isArray(initialData) 
+    ? initialData 
+    : (initialData as any)?.data || [];
 
   // Filters, sorting & selection
   const [activeTab, setActiveTab] = useState<string>("all");
