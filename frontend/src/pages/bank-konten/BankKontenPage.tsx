@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { mockApi } from "../../lib/mock-api";
-import { apiFetch } from "../../lib/api-client";
 import type { MockBankKontenFolder, MockBankKontenFile } from "../../lib/mock-data";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
