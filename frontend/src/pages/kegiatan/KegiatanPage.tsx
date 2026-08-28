@@ -13,8 +13,8 @@ import {
   UserPlus,
 } from "lucide-react";
 import { apiFetch } from "../../lib/api-client";
+import { mockKegiatan, KEGIATAN_STATUS_COLORS, KEGIATAN_STATUS_LABELS } from "../../lib/mock-data";
 import type { MockKegiatan, MockPenugasan } from "../../lib/mock-data";
-import { KEGIATAN_STATUS_COLORS, KEGIATAN_STATUS_LABELS } from "../../lib/mock-data";
 import Badge from "../../components/ui/Badge";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
@@ -79,8 +79,13 @@ const KegiatanPage = () => {
   const { data: kegiatanData, isLoading, error, refetch } = useQuery({
     queryKey: ["kegiatan"],
     queryFn: async () => {
-      const res = await apiFetch<{ success: boolean; data: any[] }>("/activities");
-      return res.data;
+      try {
+        const res = await apiFetch<{ success: boolean; data: any[] }>("/activities");
+        if (res.data && res.data.length > 0) return res.data;
+        return mockKegiatan;
+      } catch {
+        return mockKegiatan;
+      }
     },
   });
 
@@ -89,9 +94,18 @@ const KegiatanPage = () => {
     queryFn: async () => {
       try {
         const res = await apiFetch<{ success: boolean; data: any[] }>("/master/opds");
-        return res.data;
+        if (res.data && res.data.length > 0) return res.data;
+        return [
+          { id: "opd1", name: "Diskominfo", singkatan: "Diskominfo" },
+          { id: "opd2", name: "Dinas Kesehatan", singkatan: "Dinkes" },
+          { id: "opd3", name: "Dinas Pendidikan", singkatan: "Disdik" },
+        ];
       } catch {
-        return [];
+        return [
+          { id: "opd1", name: "Diskominfo", singkatan: "Diskominfo" },
+          { id: "opd2", name: "Dinas Kesehatan", singkatan: "Dinkes" },
+          { id: "opd3", name: "Dinas Pendidikan", singkatan: "Disdik" },
+        ];
       }
     },
   });

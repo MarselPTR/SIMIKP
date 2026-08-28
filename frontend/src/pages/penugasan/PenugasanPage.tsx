@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { apiFetch } from "../../lib/api-client";
+import { mockPenugasan, mockKegiatan, mockUsers, Role } from "../../lib/mock-data";
 import type { MockPenugasan } from "../../lib/mock-data";
 import { useToast } from "../../contexts/ToastContext";
 import Dialog from "../../components/ui/Dialog";
@@ -41,7 +42,7 @@ export default function PenugasanPage() {
     queryFn: async () => {
       try {
         const res = await apiFetch<{ success: boolean; data: any[] }>("/assignments");
-        if (res.data) {
+        if (res.data && res.data.length > 0) {
           return res.data.map((a: any) => ({
             id: a.id,
             kegiatanTerkait: a.activityTitle || a.activity?.title || "Kegiatan",
@@ -63,10 +64,10 @@ export default function PenugasanPage() {
             catatan: a.instruction,
           })) as MockPenugasan[];
         }
-        return [];
+        return mockPenugasan;
       } catch (err) {
-        console.error(err);
-        return [];
+        console.warn("Backend unavailable, fallback to mockPenugasan", err);
+        return mockPenugasan;
       }
     },
   });
@@ -76,14 +77,17 @@ export default function PenugasanPage() {
     queryFn: async () => {
       try {
         const res = await apiFetch<{ success: boolean; data: any[] }>("/users/petugas");
-        return res.data;
+        if (res.data && res.data.length > 0) return res.data;
+        return mockUsers
+          .filter((u) => u.role === Role.PETUGAS)
+          .map((u) => ({ id: u.id, name: u.name, staffType: u.bidang }));
       } catch {
-        return [];
+        return mockUsers
+          .filter((u) => u.role === Role.PETUGAS)
+          .map((u) => ({ id: u.id, name: u.name, staffType: u.bidang }));
       }
     },
   });
-
-
 
   // Query Kegiatan Data for real-time synchronization
   const { data: kegiatanList = [] } = useQuery({
@@ -91,9 +95,10 @@ export default function PenugasanPage() {
     queryFn: async () => {
       try {
         const res = await apiFetch<{ success: boolean; data: any[] }>("/activities");
-        return res.data || [];
+        if (res.data && res.data.length > 0) return res.data;
+        return mockKegiatan;
       } catch {
-        return [];
+        return mockKegiatan;
       }
     },
   });

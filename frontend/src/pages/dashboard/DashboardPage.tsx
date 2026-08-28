@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 
 import { apiFetch } from "../../lib/api-client";
-import { KEGIATAN_STATUS_COLORS, KEGIATAN_STATUS_LABELS } from "../../lib/mock-data";
+import { KEGIATAN_STATUS_COLORS, KEGIATAN_STATUS_LABELS, mockKegiatan, mockPenugasan } from "../../lib/mock-data";
 import type { MockKegiatan } from "../../lib/mock-data";
 import EventCalendar, { dateKeyOf } from "../../components/shared/EventCalendar";
 import type { CalendarEvent } from "../../components/shared/EventCalendar";
@@ -616,11 +616,35 @@ const DashboardPage = () => {
   const navigate = useNavigate();
 
   // Fetch real activities and real stats
-  const { data: kegiatanResponse } = useQuery({ queryKey: ["kegiatan-dash"], queryFn: async () => await apiFetch<{ data: any[] }>("/activities") });
-  const kegiatanList = kegiatanResponse?.data ?? [];
+  const { data: kegiatanResponse } = useQuery({
+    queryKey: ["kegiatan-dash"],
+    queryFn: async () => {
+      try {
+        const res = await apiFetch<{ data: any[] }>("/activities");
+        if (res.data && res.data.length > 0) return res;
+        return { data: mockKegiatan };
+      } catch {
+        return { data: mockKegiatan };
+      }
+    },
+  });
+  const kegiatanList =
+    kegiatanResponse?.data && kegiatanResponse.data.length > 0 ? kegiatanResponse.data : mockKegiatan;
 
-  const { data: assignmentsResponse } = useQuery({ queryKey: ["assignments-dash"], queryFn: async () => await apiFetch<{ data: any[] }>("/assignments") });
-  const assignments = assignmentsResponse?.data ?? [];
+  const { data: assignmentsResponse } = useQuery({
+    queryKey: ["assignments-dash"],
+    queryFn: async () => {
+      try {
+        const res = await apiFetch<{ data: any[] }>("/assignments");
+        if (res.data && res.data.length > 0) return res;
+        return { data: mockPenugasan };
+      } catch {
+        return { data: mockPenugasan };
+      }
+    },
+  });
+  const assignments =
+    assignmentsResponse?.data && assignmentsResponse.data.length > 0 ? assignmentsResponse.data : mockPenugasan;
 
   const { data: stats } = useQuery({
     queryKey: ["dashboardStatsReal"],
