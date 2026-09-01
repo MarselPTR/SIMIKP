@@ -68,13 +68,13 @@ const LoginPage = () => {
         <div className="absolute -top-24 -left-24 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
 
-        {/* Large Transparent Watermark Logo in Background */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
+        {/* Large Transparent Watermark Logo anchored to the left */}
+        <div className="absolute -left-16 inset-y-0 flex items-center pointer-events-none overflow-hidden">
           <img
             src={logoKotaBatu}
             alt=""
             aria-hidden="true"
-            className="w-[520px] max-w-none opacity-[0.06] dark:opacity-[0.04] brightness-125 select-none transform scale-110"
+            className="w-[520px] max-w-none opacity-[0.08] dark:opacity-[0.05] brightness-125 select-none"
           />
         </div>
 
