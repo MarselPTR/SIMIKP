@@ -252,7 +252,7 @@ export default function ProfilPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto pb-16 space-y-6 animate-fade-in">
+    <div className="max-w-5xl mx-auto pb-16 space-y-6 transition-all duration-300 ease-out animate-in fade-in-50 slide-in-from-top-1">
       {/* Hidden File Input for Direct Upload */}
       <input
         type="file"
