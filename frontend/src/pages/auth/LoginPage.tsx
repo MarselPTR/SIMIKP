@@ -57,7 +57,7 @@ const LoginPage = () => {
         </button>
       </div>
 
-      {/* ── Left panel – centered logo with modern navy gradient ── */}
+      {/* ── Left panel – centered logo with modern navy gradient & watermark ── */}
       <div
         className="hidden md:flex flex-col items-center justify-center flex-1 px-12 relative overflow-hidden text-white"
         style={{
@@ -67,6 +67,16 @@ const LoginPage = () => {
         {/* Subtle decorative background glow */}
         <div className="absolute -top-24 -left-24 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
+
+        {/* Large Transparent Watermark Logo in Background */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
+          <img
+            src={logoKotaBatu}
+            alt=""
+            aria-hidden="true"
+            className="w-[520px] max-w-none opacity-[0.06] dark:opacity-[0.04] brightness-125 select-none transform scale-110"
+          />
+        </div>
 
         <div className="relative z-10 flex flex-col items-center text-center max-w-md">
           <img
