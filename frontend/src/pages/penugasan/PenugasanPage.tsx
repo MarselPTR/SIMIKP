@@ -34,6 +34,32 @@ const FIELD_CLASS =
   "w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-colors focus:border-[#0f1f5c] focus:outline-none focus:ring-2 focus:ring-[#0f1f5c]/15 disabled:bg-gray-50 disabled:text-gray-500";
 const LABEL_CLASS = "block text-sm font-medium text-gray-700 mb-1.5";
 
+// Shared column layout so the list header and every row across every card line up.
+const ROW_GRID =
+  "grid grid-cols-[1.5rem_minmax(9rem,1.6fr)_minmax(6rem,1fr)_6.5rem_7.5rem_7rem] items-center gap-3 min-w-[640px]";
+
+const STATUS_META: Record<
+  MockPenugasan["status"],
+  { label: string; icon: typeof RiTimeLine; badge: string; accent: string }
+> = {
+  "in-progress": { label: "Proses", icon: RiTimeLine, badge: "bg-amber-50 text-amber-700 border-amber-200", accent: "border-l-amber-400" },
+  done: { label: "Selesai", icon: RiCheckboxCircleFill, badge: "bg-emerald-50 text-emerald-700 border-emerald-200", accent: "border-l-emerald-400" },
+  pending: { label: "Menunggu", icon: RiHourglassLine, badge: "bg-slate-100 text-slate-600 border-slate-200", accent: "border-l-slate-300" },
+  conflict: { label: "Bentrok", icon: RiCloseCircleFill, badge: "bg-rose-50 text-rose-700 border-rose-200", accent: "border-l-rose-400" },
+};
+
+function PenugasanStatusBadge({ status }: { status: MockPenugasan["status"] }) {
+  const m = STATUS_META[status];
+  return (
+    <StatusBadge
+      status="default"
+      leftIcon={m.icon}
+      leftLabel={m.label}
+      className={`${m.badge} shadow-xs`}
+    />
+  );
+}
+
 export default function PenugasanPage() {
   const { addToast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -769,164 +795,165 @@ export default function PenugasanPage() {
         </div>
 
         {/* ── 4. Daftar Wadah per Kegiatan ── */}
-        <div className="p-4 sm:p-5 space-y-4 bg-gray-50/40">
+        <div className="bg-slate-50/60 p-4 sm:p-5">
           {paginatedGroups.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">
-              <p className="font-medium text-gray-500">Tidak ada penugasan ditemukan</p>
-              <p className="text-xs text-gray-400 mt-1">
+            <div className="rounded-xl border border-slate-200 bg-white py-14 text-center">
+              <p className="font-medium text-slate-600">Tidak ada penugasan ditemukan</p>
+              <p className="mt-1 text-xs text-slate-400">
                 Coba ganti filter tab atau kata kunci pencarian.
               </p>
             </div>
           ) : (
-            paginatedGroups.map((group) => {
-              const groupIds = group.rows.map((r) => r.id);
-              const groupAllSelected = groupIds.every((id) => selectedIds.includes(id));
-              const groupSomeSelected =
-                groupIds.some((id) => selectedIds.includes(id)) && !groupAllSelected;
-              const toggleGroup = () =>
-                setSelectedIds((prev) =>
-                  groupAllSelected
-                    ? prev.filter((id) => !groupIds.includes(id))
-                    : [...new Set([...prev, ...groupIds])]
-                );
-              return (
+            <div className="space-y-3">
+              {/* Column header — shared alignment with every row below */}
+              <div className="hidden sm:block overflow-x-auto px-4">
                 <div
-                  key={group.key}
-                  className="bg-white rounded-xl border border-gray-200/80 shadow-sm overflow-hidden"
+                  className={`${ROW_GRID} py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400`}
                 >
-                  {/* Header wadah kegiatan */}
-                  <div className="px-4 py-3 bg-[#0f1f5c]/[0.03] border-b border-gray-100 flex flex-col sm:flex-row sm:items-center gap-3">
-                    <input
-                      type="checkbox"
-                      checked={groupAllSelected}
-                      ref={(el) => {
-                        if (el) el.indeterminate = groupSomeSelected;
-                      }}
-                      onChange={toggleGroup}
-                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-bold text-gray-900 truncate">{group.kegiatan}</div>
-                      <div className="text-xs text-gray-500 mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5">
-                        {group.tanggal && (
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {group.tanggal}
+                  <span />
+                  <span>Petugas</span>
+                  <span>Jenis Konten</span>
+                  <span>Waktu</span>
+                  <span>Status</span>
+                  <span className="text-right">Aksi</span>
+                </div>
+              </div>
+
+              {paginatedGroups.map((group) => {
+                const groupIds = group.rows.map((r) => r.id);
+                const groupAllSelected = groupIds.every((id) => selectedIds.includes(id));
+                const groupSomeSelected =
+                  groupIds.some((id) => selectedIds.includes(id)) && !groupAllSelected;
+                const toggleGroup = () =>
+                  setSelectedIds((prev) =>
+                    groupAllSelected
+                      ? prev.filter((id) => !groupIds.includes(id))
+                      : [...new Set([...prev, ...groupIds])]
+                  );
+                const agg: MockPenugasan["status"] = group.rows.some((r) => r.status === "conflict")
+                  ? "conflict"
+                  : group.rows.some((r) => r.status === "in-progress")
+                    ? "in-progress"
+                    : group.rows.some((r) => r.status === "pending")
+                      ? "pending"
+                      : "done";
+                return (
+                  <div
+                    key={group.key}
+                    className={`overflow-hidden rounded-xl border border-slate-200 border-l-4 bg-white shadow-sm ${STATUS_META[agg].accent}`}
+                  >
+                    {/* Header wadah kegiatan */}
+                    <div className="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/80 px-4 py-3 sm:flex-row sm:items-center">
+                      <label className="flex flex-1 min-w-0 cursor-pointer items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={groupAllSelected}
+                          ref={(el) => {
+                            if (el) el.indeterminate = groupSomeSelected;
+                          }}
+                          onChange={toggleGroup}
+                          className="mt-1 rounded border-slate-300 text-[#0f1f5c] focus:ring-[#0f1f5c]/30 cursor-pointer"
+                        />
+                        <span className="min-w-0">
+                          <span className="block truncate text-[15px] font-semibold text-slate-900">
+                            {group.kegiatan}
                           </span>
-                        )}
-                        {group.lokasi && (
-                          <span className="flex items-center gap-1">
-                            <MapPin className="w-3 h-3" />
-                            {group.lokasi}
+                          <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-500">
+                            {group.tanggal && (
+                              <span className="inline-flex items-center gap-1">
+                                <Clock className="h-3.5 w-3.5" />
+                                {formatIndoDate(group.tanggal)}
+                              </span>
+                            )}
+                            {group.lokasi && (
+                              <span className="inline-flex items-center gap-1">
+                                <MapPin className="h-3.5 w-3.5" />
+                                {group.lokasi}
+                              </span>
+                            )}
                           </span>
-                        )}
-                        <span className="font-medium text-gray-600">
-                          {group.rows.length} petugas ditugaskan
                         </span>
+                      </label>
+                      <div className="flex items-center gap-2.5 self-start sm:self-auto">
+                        <span className="rounded-full bg-slate-200/70 px-2.5 py-1 text-xs font-medium text-slate-600 whitespace-nowrap">
+                          {group.rows.length} petugas
+                        </span>
+                        <button
+                          onClick={() => handleAddPetugasToGroup(group)}
+                          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#0f1f5c] px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-[#0a1540] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1f5c]/40 cursor-pointer"
+                        >
+                          <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
+                          Tambah Petugas
+                        </button>
                       </div>
                     </div>
-                    <button
-                      onClick={() => handleAddPetugasToGroup(group)}
-                      className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#0f1f5c] hover:bg-[#0a1540] text-white text-xs font-semibold rounded-lg shadow-sm transition active:scale-[0.98] cursor-pointer self-start sm:self-auto whitespace-nowrap"
-                    >
-                      <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                      <span>Tambah Petugas</span>
-                    </button>
-                  </div>
 
-                  {/* Daftar petugas dalam wadah */}
-                  <div className="divide-y divide-gray-100">
-                    {group.rows.map((item) => {
-                      const isSelected = selectedIds.includes(item.id);
-                      return (
-                        <div
-                          key={item.id}
-                          className={`px-4 py-3 flex flex-wrap sm:flex-nowrap items-center gap-3 hover:bg-gray-50/80 transition-colors ${
-                            isSelected ? "bg-indigo-50/40" : ""
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => handleSelectRow(item.id)}
-                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                          />
-                          <div className="flex items-center gap-2.5 min-w-[160px]">
-                            <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 text-white font-bold text-xs flex items-center justify-center shadow-2xs shrink-0">
-                              {item.picAvatar ?? item.pic.slice(0, 2).toUpperCase()}
+                    {/* Daftar petugas dalam wadah */}
+                    <div className="overflow-x-auto">
+                      <div className="divide-y divide-slate-100">
+                        {group.rows.map((item) => {
+                          const isSelected = selectedIds.includes(item.id);
+                          return (
+                            <div
+                              key={item.id}
+                              className={`${ROW_GRID} px-4 py-2.5 text-sm transition-colors ${
+                                isSelected ? "bg-[#0f1f5c]/[0.04]" : "hover:bg-slate-50/80"
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => handleSelectRow(item.id)}
+                                className="rounded border-slate-300 text-[#0f1f5c] focus:ring-[#0f1f5c]/30 cursor-pointer"
+                              />
+                              <div className="flex min-w-0 items-center gap-2.5">
+                                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#0f1f5c]/10 text-[11px] font-semibold text-[#0f1f5c]">
+                                  {item.picAvatar ?? item.pic.slice(0, 2).toUpperCase()}
+                                </span>
+                                <span className="truncate font-medium text-slate-800">{item.pic}</span>
+                              </div>
+                              <span className="truncate text-slate-600">{item.jenisKonten}</span>
+                              <span className="font-mono text-xs text-slate-600">
+                                {item.jamMulai}&ndash;{item.jamSelesai}
+                              </span>
+                              <span>
+                                <PenugasanStatusBadge status={item.status} />
+                              </span>
+                              <div className="flex items-center justify-end gap-0.5 text-slate-400">
+                                <button
+                                  onClick={() => handleOpenDetail(item)}
+                                  className="rounded-md p-1.5 transition-colors hover:bg-slate-100 hover:text-[#0f1f5c]"
+                                  title="Detail"
+                                  aria-label="Lihat detail penugasan"
+                                >
+                                  <RiEyeLine className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleOpenEdit(item)}
+                                  className="rounded-md p-1.5 transition-colors hover:bg-slate-100 hover:text-blue-600"
+                                  title="Edit"
+                                  aria-label="Edit penugasan"
+                                >
+                                  <RiEditLine className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleOpenDelete(item)}
+                                  className="rounded-md p-1.5 transition-colors hover:bg-rose-50 hover:text-rose-600"
+                                  title="Hapus"
+                                  aria-label="Hapus penugasan"
+                                >
+                                  <RiDeleteBinLine className="h-4 w-4" />
+                                </button>
+                              </div>
                             </div>
-                            <span className="font-medium text-gray-800 text-sm">{item.pic}</span>
-                          </div>
-                          <div className="text-sm font-medium text-gray-700 min-w-[110px]">
-                            {item.jenisKonten}
-                          </div>
-                          <div className="font-mono text-xs font-semibold text-gray-800 min-w-[100px]">
-                            {item.jamMulai} - {item.jamSelesai}
-                          </div>
-                          <div className="flex-1">
-                            {item.status === "in-progress" && (
-                              <StatusBadge
-                                status="default"
-                                leftIcon={RiTimeLine}
-                                leftLabel="Proses"
-                                className="bg-amber-50 text-amber-800 border-amber-200/90 shadow-xs"
-                              />
-                            )}
-                            {item.status === "done" && (
-                              <StatusBadge
-                                status="success"
-                                leftIcon={RiCheckboxCircleFill}
-                                leftLabel="Selesai"
-                                className="bg-emerald-50 text-emerald-800 border-emerald-200/90 shadow-xs"
-                              />
-                            )}
-                            {item.status === "pending" && (
-                              <StatusBadge
-                                status="default"
-                                leftIcon={RiHourglassLine}
-                                leftLabel="Menunggu"
-                                className="bg-gray-50 text-gray-700 border-gray-200/90 shadow-xs"
-                              />
-                            )}
-                            {item.status === "conflict" && (
-                              <StatusBadge
-                                status="error"
-                                leftIcon={RiCloseCircleFill}
-                                leftLabel="Bentrok"
-                                className="bg-rose-50 text-rose-800 border-rose-200/90 shadow-xs"
-                              />
-                            )}
-                          </div>
-                          <div className="flex items-center justify-end gap-1 text-gray-400">
-                            <button
-                              onClick={() => handleOpenDetail(item)}
-                              className="p-1.5 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition"
-                              title="Detail"
-                            >
-                              <RiEyeLine className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleOpenEdit(item)}
-                              className="p-1.5 hover:text-blue-600 hover:bg-blue-50 rounded-md transition"
-                              title="Edit"
-                            >
-                              <RiEditLine className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleOpenDelete(item)}
-                              className="p-1.5 hover:text-red-600 hover:bg-red-50 rounded-md transition"
-                              title="Hapus"
-                            >
-                              <RiDeleteBinLine className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              );
-            })
+                );
+              })}
+            </div>
           )}
         </div>
 
@@ -1202,44 +1229,12 @@ export default function PenugasanPage() {
                     {selectedItem.kegiatanTerkait}
                   </h3>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    {selectedItem.tanggalKegiatan ?? "Senin, 24 Agustus 2026"}
+                    {selectedItem.tanggalKegiatan
+                      ? formatIndoDate(selectedItem.tanggalKegiatan)
+                      : "—"}
                   </p>
                 </div>
-                {/* Status Badge */}
-                <div>
-                  {selectedItem.status === "in-progress" && (
-                    <StatusBadge
-                      status="default"
-                      leftIcon={RiTimeLine}
-                      leftLabel="Proses"
-                      className="bg-amber-50 text-amber-800 border-amber-200/90 shadow-xs"
-                    />
-                  )}
-                  {selectedItem.status === "done" && (
-                    <StatusBadge
-                      status="success"
-                      leftIcon={RiCheckboxCircleFill}
-                      leftLabel="Selesai"
-                      className="bg-emerald-50 text-emerald-800 border-emerald-200/90 shadow-xs"
-                    />
-                  )}
-                  {selectedItem.status === "pending" && (
-                    <StatusBadge
-                      status="default"
-                      leftIcon={RiHourglassLine}
-                      leftLabel="Menunggu"
-                      className="bg-gray-50 text-gray-700 border-gray-200/90 shadow-xs"
-                    />
-                  )}
-                  {selectedItem.status === "conflict" && (
-                    <StatusBadge
-                      status="error"
-                      leftIcon={RiCloseCircleFill}
-                      leftLabel="Bentrok"
-                      className="bg-rose-50 text-rose-800 border-rose-200/90 shadow-xs"
-                    />
-                  )}
-                </div>
+                <PenugasanStatusBadge status={selectedItem.status} />
               </div>
             </div>
 
