@@ -13,8 +13,12 @@ import ReviewPage from "../pages/produksi/ReviewPage";
 import PublikasiPage from "../pages/produksi/PublikasiPage";
 import BankKontenPage from "../pages/bank-konten/BankKontenPage";
 import LaporanPage from "../pages/laporan/LaporanPage";
+import TambahPetugasPage from "../pages/petugas/TambahPetugasPage";
+import DaftarAnggotaPage from "../pages/petugas/DaftarAnggotaPage";
 import PetugasDashboardPage from "../pages/petugas/PetugasDashboardPage";
 import PetugasPenugasanPage from "../pages/petugas/PetugasPenugasanPage";
+import ProfilPage from "../pages/profil/ProfilPage";
+import PengaturanPage from "../pages/pengaturan/PengaturanPage";
 import { Role } from "../lib/mock-data";
 
 export const router = createBrowserRouter([
@@ -24,9 +28,8 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <HomeRedirect /> },
 
-      // Area manajemen (admin/manager/staff/reviewer) — dari pull terbaru, tidak diubah.
       {
-        element: <RoleRoute allow={[Role.ADMIN, Role.MANAGER, Role.STAFF, Role.REVIEWER]} />,
+        element: <RoleRoute allow={[Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER, Role.STAFF, Role.REVIEWER]} />,
         children: [
           {
             element: <AppLayout />,
@@ -39,6 +42,10 @@ export const router = createBrowserRouter([
               { path: "publikasi", element: <PublikasiPage /> },
               { path: "bank-konten", element: <BankKontenPage /> },
               { path: "laporan", element: <LaporanPage /> },
+              { path: "daftar-anggota", element: <DaftarAnggotaPage /> },
+              { path: "tambah-petugas", element: <TambahPetugasPage /> },
+              { path: "profil", element: <ProfilPage /> },
+              { path: "pengaturan", element: <PengaturanPage /> },
             ],
           },
         ],
@@ -55,6 +62,8 @@ export const router = createBrowserRouter([
               { path: "petugas/dashboard", element: <PetugasDashboardPage /> },
               { path: "petugas/penugasan", element: <PetugasPenugasanPage /> },
               { path: "petugas/bank-konten", element: <BankKontenPage /> },
+              { path: "petugas/profil", element: <ProfilPage /> },
+              { path: "petugas/pengaturan", element: <PengaturanPage /> },
             ],
           },
         ],

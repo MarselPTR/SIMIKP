@@ -1,21 +1,26 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../lib/AuthContext";
 import { Role } from "../../lib/mock-data";
 import logoKotaBatu from "../../assets/Logo_Kota_Batu.png";
 
 const LoginPage = () => {
-  const { login, loading } = useAuth();
+  const { login, loading, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+
+  if (isAuthenticated && user) {
+    const destination = user.role === Role.PETUGAS ? "/petugas/dashboard" : "/dashboard";
+    return <Navigate to={destination} replace />;
+  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
-    const result = await login(email, password);
+    const result = await login(username, password);
     if (!result.success) {
       setError(result.error ?? "Login gagal");
       return;
@@ -23,6 +28,7 @@ const LoginPage = () => {
     const destination = result.user?.role === Role.PETUGAS ? "/petugas/dashboard" : "/dashboard";
     navigate(destination, { replace: true });
   };
+
 
   return (
     <div className="min-h-screen flex">
@@ -54,12 +60,12 @@ const LoginPage = () => {
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Email */}
           <div>
-            <label className="block text-sm font-medium text-gray-800 mb-1.5">Email</label>
+            <label className="block text-sm font-medium text-gray-800 mb-1.5">Username</label>
             <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="nama@kotabatu.go.id"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Masukkan username"
               required
               className="w-full border border-gray-300 rounded-md px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition"
               onFocus={(e) => {
