@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { HelpCircle, Bell, ChevronDown, MoreHorizontal } from "lucide-react";
+import { HelpCircle, Bell, ChevronDown } from "lucide-react";
 import { useAuth } from "../lib/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "../lib/api-client";
@@ -26,6 +26,19 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
+  const { data: notifications = [], refetch: refetchNotifs } = useQuery({
+    queryKey: ["topbar-notifications"],
+    queryFn: async () => {
+      try {
+        const res = await apiFetch<{ success: boolean; data: any[] }>("/system/notifications");
+        return res.data || [];
+      } catch {
+        return [];
+      }
+    },
+    refetchInterval: 30000,
+  });
+
   const { data: recentActivities = [] } = useQuery({
     queryKey: ["topbar-activities"],
     queryFn: async () => {
@@ -36,8 +49,10 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
         return [];
       }
     },
-    enabled: showActivity,
+    enabled: showActivity && notifications.length === 0,
   });
+
+  const unreadCount = notifications.filter((n: any) => !n.readAt).length;
 
   const roleLabel = user?.role ? ROLE_LABELS[user.role] ?? user.role : "Admin/Manager";
   const initials = user?.name ? user.name.slice(0, 2).toUpperCase() : "AU";
@@ -60,7 +75,7 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
       <div className="relative">
         <button type="button" onClick={() => { setShowActivity((v) => !v); setShowProfile(false); }} className="relative w-9 h-9 rounded-full flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition" aria-label="Notifikasi">
           <Bell className="w-5 h-5" strokeWidth={1.8} />
-          {recentActivities.length > 0 && (
+          {(unreadCount > 0 || recentActivities.length > 0) && (
             <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-[#161b22]" />
           )}
         </button>
@@ -70,16 +85,39 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">
               <div className="flex items-center gap-2">
                 <Bell className="w-4 h-4 text-gray-500 dark:text-gray-400" strokeWidth={1.8} />
-                <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Activity Feed</h4>
+                <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Notifikasi &amp; Aktivitas</h4>
               </div>
-              <button type="button" className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" aria-label="Opsi lainnya">
-                <MoreHorizontal className="w-4 h-4" />
+              <button 
+                type="button" 
+                onClick={async () => {
+                  await apiFetch("/system/notifications/read-all", { method: "PATCH" });
+                  refetchNotifs();
+                }}
+                className="text-[11px] text-blue-600 hover:underline font-medium"
+              >
+                Tandai dibaca
               </button>
             </div>
             <div className="max-h-80 overflow-y-auto divide-y divide-gray-50 dark:divide-gray-800">
-              {recentActivities.length === 0 ? (
+              {notifications.length > 0 ? (
+                notifications.slice(0, 8).map((n: any) => (
+                  <div 
+                    key={n.id} 
+                    className={`px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer ${!n.readAt ? "bg-blue-50/40 dark:bg-blue-950/20" : ""}`}
+                    onClick={() => {
+                      if (n.type === "ASSIGNMENT") navigate("/penugasan");
+                      else navigate("/kegiatan");
+                      setShowActivity(false);
+                    }}
+                  >
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">{n.title}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{n.message}</p>
+                    <p className="text-[10px] text-gray-400 mt-1">{new Date(n.createdAt).toLocaleDateString('id-ID', { hour: '2-digit', minute: '2-digit' })}</p>
+                  </div>
+                ))
+              ) : recentActivities.length === 0 ? (
                 <div className="px-4 py-6 text-center text-xs text-gray-400">
-                  Belum ada aktivitas terbaru di database.
+                  Belum ada notifikasi atau aktivitas baru.
                 </div>
               ) : (
                 recentActivities.slice(0, 6).map((item: any) => (

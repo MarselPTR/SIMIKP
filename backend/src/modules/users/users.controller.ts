@@ -2,6 +2,7 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import { db } from "../../db";
 import { users, userRoles, roles } from "../../db/schema";
 import { isNotNull, eq } from "drizzle-orm";
+import { logAudit } from "../system/audit.service";
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
@@ -88,7 +89,6 @@ export class UsersController {
         birthPlace: body.birthPlace,
         birthDate: birthDate,
         pasFotoUrl,
-        scanKtpUrl,
         active: true,
       });
 
@@ -100,6 +100,8 @@ export class UsersController {
           roleId: petugasRole[0].id,
         });
       }
+
+      await logAudit(request, "CREATE_USER", "users", userId);
 
       return reply.send({ success: true, message: "Petugas berhasil ditambahkan", id: userId });
     } catch (error) {

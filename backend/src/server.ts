@@ -11,6 +11,8 @@ const server = Fastify({
 server.register(cors, {
   origin: true, // adjust based on frontend URL
   credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
+  allowedHeaders: ["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With"],
 });
 
 server.register(cookie, {
@@ -55,6 +57,7 @@ import usersRoutes from "./modules/users/users.routes";
 import productionsRoutes from "./modules/productions/productions.routes";
 import { reviewsRoutes } from "./modules/reviews/reviews.routes";
 import { publicationsRoutes } from "./modules/publications/publications.routes";
+import { systemRoutes } from "./modules/system/system.routes";
 
 // Register routes
 server.register(authRoutes, { prefix: "/api/v1/auth" });
@@ -67,6 +70,7 @@ server.register(usersRoutes, { prefix: "/api/v1/users" });
 server.register(productionsRoutes, { prefix: "/api/v1/productions" });
 server.register(reviewsRoutes, { prefix: "/api/v1/reviews" });
 server.register(publicationsRoutes, { prefix: "/api/v1/publications" });
+server.register(systemRoutes, { prefix: "/api/v1/system" });
 
 import path from "path";
 import fastifyStatic from "@fastify/static";

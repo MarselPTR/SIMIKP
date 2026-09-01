@@ -1,5 +1,5 @@
 import { db } from "../../db";
-import { activities, activityStrategicIssues, assignments, strategicIssues, contentTypes, opds, users } from "../../db/schema";
+import { activities, assignments, contentTypes, opds, users } from "../../db/schema";
 import { eq, gte, lte, and, sql } from "drizzle-orm";
 import ExcelJS from "exceljs";
 import PDFDocument from "pdfkit-table";
@@ -92,11 +92,8 @@ export async function getProductionReportData(filter: ReportFilter): Promise<Rep
     periodeTitle = `TAHUN ${currentYear}`;
   }
 
-  // 1. Fetch Strategic Issues & Content Types from Database
-  const dbIssues = await db.select().from(strategicIssues);
-  const issuesList = dbIssues.length > 0
-    ? dbIssues.map(i => i.name.toUpperCase())
-    : ["SOSIAL", "EKONOMI", "LINGKUNGAN"];
+  // 1. Fetch Content Types from Database
+  const issuesList = ["PRODUKSI MEDIA"];
 
   const dbContentTypes = await db.select().from(contentTypes);
   const contentTypesList = dbContentTypes.length > 0
@@ -117,7 +114,6 @@ export async function getProductionReportData(filter: ReportFilter): Promise<Rep
       id: activities.id,
       activityCode: activities.activityCode,
       title: activities.title,
-      strakomNumber: activities.strakomNumber,
       activityDate: activities.activityDate,
       description: activities.description,
       status: activities.status,
@@ -126,7 +122,7 @@ export async function getProductionReportData(filter: ReportFilter): Promise<Rep
     .where(and(...conditions))
     .orderBy(activities.activityDate);
 
-  // 3. For each activity, fetch linked issues and detailed assignments
+  // 3. For each activity, fetch detailed assignments
   const rows: ReportRowData[] = [];
   const columnTotals: Record<string, Record<string, number>> = {};
 
@@ -142,17 +138,7 @@ export async function getProductionReportData(filter: ReportFilter): Promise<Rep
 
   for (let i = 0; i < rawActivities.length; i++) {
     const act = rawActivities[i];
-
-    // Linked issues
-    const actIssues = await db
-      .select({ issueName: strategicIssues.name })
-      .from(activityStrategicIssues)
-      .innerJoin(strategicIssues, eq(activityStrategicIssues.issueId, strategicIssues.id))
-      .where(eq(activityStrategicIssues.activityId, act.id));
-
-    const issueNames = actIssues.length > 0
-      ? actIssues.map(i => i.issueName.toUpperCase())
-      : [issuesList[0] || "SOSIAL"];
+    const issueNames = ["PRODUKSI MEDIA"];
 
     // Detailed linked assignments
     const actAssignments = await db
@@ -217,7 +203,7 @@ export async function getProductionReportData(filter: ReportFilter): Promise<Rep
       id: act.id,
       activityCode: act.activityCode,
       tanggal: formattedDate,
-      noStrakom: act.strakomNumber || "-",
+      noStrakom: act.activityCode || "-",
       judul: act.title,
       description: act.description,
       status: act.status,

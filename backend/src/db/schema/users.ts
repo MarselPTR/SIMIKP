@@ -15,7 +15,6 @@ export const users = mysqlTable("users", {
   religion: varchar("religion", { length: 50 }),
   education: varchar("education", { length: 100 }),
   pasFotoUrl: varchar("pas_foto_url", { length: 500 }),
-  scanKtpUrl: varchar("scan_ktp_url", { length: 500 }),
   active: boolean("active").default(true),
   createdAt: datetime("created_at").default(new Date()),
 });

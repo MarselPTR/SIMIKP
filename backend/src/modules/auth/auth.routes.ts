@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "../../db";
 import { users, userRoles, roles } from "../../db/schema";
 import { eq } from "drizzle-orm";
+import { logAudit } from "../system/audit.service";
 
 const loginSchema = z.object({
   username: z.string(),
@@ -64,6 +65,8 @@ export async function authRoutes(fastify: FastifyInstance) {
         sameSite: "lax",
         maxAge: 24 * 60 * 60, // 1 day
       });
+
+      await logAudit(request, "LOGIN", "users", user.id);
 
       return reply.send({
         success: true,

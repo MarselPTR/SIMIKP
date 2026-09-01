@@ -1,10 +1,12 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { db } from "../../db";
-import { assignments, activities, contentTypes, users } from "../../db/schema";
+import { assignments, activities, contentTypes, users, archiveAssets } from "../../db/schema";
 import { productionItems, productionVersions, productionFiles } from "../../db/schema/production";
 import { eq, and, desc } from "drizzle-orm";
 import { z } from "zod";
 import crypto from "crypto";
+import { logAudit } from "../system/audit.service";
+import { createNotification } from "../system/notifications.service";
 
 const updateStatusSchema = z.object({
   status: z.string(),
@@ -57,6 +59,8 @@ export class ProductionsController {
         });
       });
 
+      await logAudit(request, "CREATE_PRODUCTION", "production_items", newProductionId);
+
       return reply.status(201).send({ success: true, message: "Produksi berhasil dibuat" });
     } catch (error) {
       request.log.error(error);
@@ -102,17 +106,31 @@ export class ProductionsController {
       const ext = filename.includes(".") ? filename.split(".").pop()?.toLowerCase() : "bin";
 
       const newFileId = crypto.randomUUID();
-      await db.insert(productionFiles).values({
-        id: newFileId,
-        productionVersionId: latestVersion[0].id,
-        originalFilename: filename,
-        storedFilename: `bk_${Date.now()}_${filename.replace(/\s/g, "_")}`,
-        storagePath: `/storage/bank-konten/${new Date().getFullYear()}`,
-        mimeType: type || "application/octet-stream",
-        fileExtension: ext || "bin",
-        fileSize: size || 0,
-        uploadedBy,
+      const newArchiveId = crypto.randomUUID();
+
+      await db.transaction(async (tx) => {
+        await tx.insert(productionFiles).values({
+          id: newFileId,
+          productionVersionId: latestVersion[0].id,
+          originalFilename: filename,
+          storedFilename: `bk_${Date.now()}_${filename.replace(/\s/g, "_")}`,
+          storagePath: `/storage/bank-konten/${new Date().getFullYear()}`,
+          mimeType: type || "application/octet-stream",
+          fileExtension: ext || "bin",
+          fileSize: size || 0,
+          uploadedBy,
+        });
+
+        await tx.insert(archiveAssets).values({
+          id: newArchiveId,
+          productionFileId: newFileId,
+          title: filename,
+          description: `Aset arsip file ${filename}`,
+          isPublic: false,
+        });
       });
+
+      await logAudit(request, "UPLOAD_BANK_KONTEN", "production_files", newFileId);
 
       return reply.status(201).send({
         success: true,
@@ -139,8 +157,8 @@ export class ProductionsController {
           status: assignments.status,
         })
         .from(assignments)
-        .innerJoin(activities, eq(assignments.activityId, activities.id))
-        .innerJoin(contentTypes, eq(assignments.contentTypeId, contentTypes.id))
+        .leftJoin(activities, eq(assignments.activityId, activities.id))
+        .leftJoin(contentTypes, eq(assignments.contentTypeId, contentTypes.id))
         .leftJoin(productionItems, eq(productionItems.assignmentId, assignments.id))
         .leftJoin(productionVersions, and(
           eq(productionVersions.productionItemId, productionItems.id),
