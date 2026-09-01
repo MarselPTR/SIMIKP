@@ -12,9 +12,6 @@ import {
   Eye, 
   EyeOff, 
   ShieldCheck, 
-  CalendarCheck, 
-  Film, 
-  FolderArchive, 
   HelpCircle,
   X
 } from "lucide-react";
@@ -61,72 +58,37 @@ const LoginPage = () => {
         </button>
       </div>
 
-      {/* ── Left panel – Premium Diskominfo Hero ── */}
+      {/* ── Left panel – centered logo with modern navy gradient ── */}
       <div
-        className="hidden lg:flex flex-col justify-between flex-1 p-12 relative overflow-hidden text-white"
+        className="hidden md:flex flex-col items-center justify-center flex-1 px-12 relative overflow-hidden text-white"
         style={{
           background: "linear-gradient(135deg, #091338 0%, #0f1f5c 50%, #173282 100%)",
         }}
       >
-        {/* Subtle decorative background circles */}
+        {/* Subtle decorative background glow */}
         <div className="absolute -top-24 -left-24 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
 
-        {/* Top Branding Badge */}
-        <div className="flex items-center gap-3">
-          <img src={logoKotaBatu} alt="Logo Kota Batu" className="w-12 h-auto drop-shadow-md" />
-          <div>
-            <span className="text-xs font-semibold uppercase tracking-widest text-blue-300">
-              {t("login_hero_tagline")}
-            </span>
-            <p className="text-sm font-bold text-white tracking-wide">Pemerintah Kota Batu</p>
-          </div>
-        </div>
+        <div className="relative z-10 flex flex-col items-center text-center max-w-md">
+          <img
+            src={logoKotaBatu}
+            alt="Logo Kota Batu"
+            className="w-44 h-auto mb-8 drop-shadow-2xl transition hover:scale-105 duration-300"
+          />
 
-        {/* Center Content */}
-        <div className="max-w-lg my-auto space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs font-semibold text-blue-200">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>Platform Komunikasi Publik Resmi</span>
-          </div>
-
-          <h1 className="text-4xl font-extrabold text-white leading-tight tracking-tight">
-            {t("login_hero_title")}
+          <h1 className="text-3xl font-extrabold text-white text-center leading-snug tracking-tight">
+            SIMIKP Kota Batu
           </h1>
 
-          <p className="text-blue-100/90 text-base leading-relaxed font-normal">
-            {t("login_hero_desc")}
+          <p className="mt-4 text-blue-100 text-center text-base leading-relaxed">
+            {language === "en"
+              ? "Public Information and Communication Management Information System"
+              : "Sistem Informasi Manajemen Informasi dan Komunikasi Publik"}
           </p>
 
-          {/* Feature Highlights Grid */}
-          <div className="pt-4 grid grid-cols-1 gap-3.5">
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm">
-              <div className="p-2 rounded-lg bg-blue-500/20 text-blue-300">
-                <CalendarCheck className="w-5 h-5" />
-              </div>
-              <span className="text-sm font-medium text-blue-100">{t("login_feature_1")}</span>
-            </div>
-
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm">
-              <div className="p-2 rounded-lg bg-indigo-500/20 text-indigo-300">
-                <Film className="w-5 h-5" />
-              </div>
-              <span className="text-sm font-medium text-blue-100">{t("login_feature_2")}</span>
-            </div>
-
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm">
-              <div className="p-2 rounded-lg bg-sky-500/20 text-sky-300">
-                <FolderArchive className="w-5 h-5" />
-              </div>
-              <span className="text-sm font-medium text-blue-100">{t("login_feature_3")}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Footer Note */}
-        <div className="flex items-center justify-between text-xs text-blue-200/70 border-t border-white/10 pt-6">
-          <p>© {new Date().getFullYear()} {t("login_footer_secured")}</p>
-          <span className="font-mono text-blue-300/80">v1.0-Release</span>
+          <p className="mt-3 text-xs font-semibold uppercase tracking-widest text-blue-300">
+            {t("login_hero_tagline")}
+          </p>
         </div>
       </div>
 
