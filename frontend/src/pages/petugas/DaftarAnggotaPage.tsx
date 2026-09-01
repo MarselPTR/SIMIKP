@@ -176,7 +176,7 @@ export default function DaftarAnggotaPage() {
           <p className="text-gray-500 text-sm">Belum ada anggota yang terdaftar atau cocok dengan pencarian.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
           {filteredAnggota.map((petugas) => {
             const IconComponent = PROGRAM_ICONS[petugas.staffType] || User;
             const imageUrl = getProfileImageUrl(petugas.pasFotoUrl);

@@ -288,7 +288,7 @@ const BankKontenPage = () => {
           description="Tidak ada arsip kegiatan yang sesuai dengan kriteria filter."
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-5">
           {filtered.map((folder) => {
             const summary = summarizeJenis(folder);
             const initial = folder.petugas.slice(0, 2).toUpperCase();

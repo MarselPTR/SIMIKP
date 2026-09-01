@@ -406,7 +406,7 @@ const KegiatanPage = () => {
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
         {filtered.length === 0 ? (
           <div className="col-span-full py-12 text-center text-gray-400">
             <Inbox className="w-12 h-12 mx-auto mb-2 opacity-50" />
@@ -420,26 +420,26 @@ const KegiatanPage = () => {
               className="bg-white border border-gray-200 hover:border-blue-300 rounded-xl p-4 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col justify-between"
             >
               <div>
-                <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex items-start justify-between gap-1.5 flex-wrap mb-2">
                   <Badge variant={STATUS_BADGE_VARIANT[item.status]}>{STATUS_LABELS[item.status]}</Badge>
                   <Badge variant={PRIORITAS_BADGE_VARIANT[item.prioritas]}>{item.prioritas}</Badge>
                 </div>
-                <h3 className="font-bold text-gray-900 text-sm mb-2">{item.title}</h3>
+                <h3 className="font-bold text-gray-900 text-sm mb-2 break-words">{item.title}</h3>
                 <div className="space-y-1 text-xs text-gray-500">
                   <div className="flex items-center gap-1.5">
-                    <CalendarDays className="w-3.5 h-3.5" />
+                    <CalendarDays className="w-3.5 h-3.5 flex-shrink-0" />
                     <span>{formatTanggal(item.deadline)}</span>
                   </div>
                   {item.lokasi && (
                     <div className="flex items-center gap-1.5">
-                      <MapPin className="w-3.5 h-3.5" />
-                      <span>{item.lokasi}</span>
+                      <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span className="break-words min-w-0">{item.lokasi}</span>
                     </div>
                   )}
                   {item.opdPenyelenggara && (
                     <div className="flex items-center gap-1.5">
-                      <Building2 className="w-3.5 h-3.5" />
-                      <span>{item.opdPenyelenggara}</span>
+                      <Building2 className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span className="break-words min-w-0">{item.opdPenyelenggara}</span>
                     </div>
                   )}
                 </div>

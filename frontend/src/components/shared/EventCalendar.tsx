@@ -89,9 +89,9 @@ const EventCalendar = ({
   };
 
   return (
-    <div className="bg-white dark:bg-[#161b22] rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm p-5 transition-colors">
+    <div className="bg-white dark:bg-[#161b22] rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm p-3 sm:p-5 transition-colors">
       {/* Header */}
-      <div className="flex items-start justify-between mb-5 flex-wrap gap-3">
+      <div className="flex items-start justify-between mb-4 sm:mb-5 flex-wrap gap-3">
         <div className="flex items-start gap-3">
           <div
             className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm"
@@ -145,7 +145,7 @@ const EventCalendar = ({
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <span className="text-sm font-semibold text-gray-700 dark:text-gray-200 min-w-[8.5rem] text-center select-none">
+              <span className="text-[13px] sm:text-sm font-semibold text-gray-700 dark:text-gray-200 min-w-[6.5rem] sm:min-w-[8.5rem] text-center select-none">
                 {monthLabels[month]} {year}
               </span>
               <button
@@ -185,7 +185,7 @@ const EventCalendar = ({
       </div>
 
       {/* Bento grid */}
-      <div key={`${year}-${month}-${language}`} className="grid grid-cols-7 gap-1.5 pt-1 animate-in fade-in slide-in-from-right-2 duration-300">
+      <div key={`${year}-${month}-${language}`} className="grid grid-cols-7 gap-1 sm:gap-1.5 pt-1 animate-in fade-in slide-in-from-right-2 duration-300">
         {cells.map((day, idx) => {
           const dateKey = day ? dateKeyOf(year, month, day) : null;
           const dayEvents = dateKey ? events[dateKey] ?? [] : [];
@@ -196,7 +196,7 @@ const EventCalendar = ({
           const clickable = day !== null && !!onDayClick;
 
           if (!day) {
-            return <div key={idx} className="min-h-[88px]" />;
+            return <div key={idx} className="min-h-[60px] sm:min-h-[88px]" />;
           }
 
           let cellClass = "bg-white dark:bg-gray-900/80 border-gray-200 dark:border-gray-800 shadow-2xs";
@@ -216,7 +216,7 @@ const EventCalendar = ({
               onClick={() => {
                 if (dateKey) onDayClick?.(dateKey, day);
               }}
-              className={`group relative rounded-xl min-h-[88px] px-2 py-1.5 text-xs border transition-all duration-200 ease-out ${cellClass} ${
+              className={`group relative rounded-xl min-h-[60px] sm:min-h-[88px] px-1.5 py-1 sm:px-2 sm:py-1.5 text-xs border transition-all duration-200 ease-out ${cellClass} ${
                 clickable ? "cursor-pointer hover:-translate-y-0.5 hover:shadow-md hover:border-blue-400 dark:hover:border-sky-500 hover:z-10" : ""
               }`}
             >
@@ -262,30 +262,49 @@ const EventCalendar = ({
                     )}
                   </div>
                 ) : null
-              ) : (
-                <div className="mt-1 space-y-[3px]">
-                  {dayEvents.slice(0, maxEventsPerDay).map((ev, i) => (
-                    <div
-                      key={i}
-                      title={ev.label}
-                      className="flex items-center gap-1.5 rounded-full px-2 py-[3.5px] leading-none bg-[#0f1f5c] dark:bg-slate-800 shadow-2xs transition-transform hover:scale-[1.02] border dark:border-slate-700"
-                    >
+              ) : dayEvents.length > 0 ? (
+                <>
+                  {/* Mobile: compact colored dots */}
+                  <div className="mt-1 flex flex-wrap gap-1 sm:hidden">
+                    {dayEvents.slice(0, 3).map((ev, i) => (
                       <span
+                        key={i}
+                        title={ev.label}
                         className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                         style={{ backgroundColor: ev.color || "#38bdf8" }}
                       />
-                      <span className="text-[10px] font-semibold text-white dark:text-gray-100 truncate">
-                        {ev.label}
+                    ))}
+                    {dayEvents.length > 3 && (
+                      <span className="text-[8px] font-bold text-gray-400 dark:text-gray-500 leading-none">
+                        +{dayEvents.length - 3}
                       </span>
-                    </div>
-                  ))}
-                  {dayEvents.length > maxEventsPerDay && (
-                    <div className="text-[10px] font-semibold text-slate-500 dark:text-gray-400 px-1.5">
-                      +{dayEvents.length - maxEventsPerDay} {language === "en" ? "more" : "lainnya"}
-                    </div>
-                  )}
-                </div>
-              )}
+                    )}
+                  </div>
+                  {/* Desktop: labeled pills */}
+                  <div className="mt-1 space-y-[3px] hidden sm:block">
+                    {dayEvents.slice(0, maxEventsPerDay).map((ev, i) => (
+                      <div
+                        key={i}
+                        title={ev.label}
+                        className="flex items-center gap-1.5 rounded-full px-2 py-[3.5px] leading-none bg-[#0f1f5c] dark:bg-slate-800 shadow-2xs transition-transform hover:scale-[1.02] border dark:border-slate-700"
+                      >
+                        <span
+                          className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: ev.color || "#38bdf8" }}
+                        />
+                        <span className="text-[10px] font-semibold text-white dark:text-gray-100 truncate">
+                          {ev.label}
+                        </span>
+                      </div>
+                    ))}
+                    {dayEvents.length > maxEventsPerDay && (
+                      <div className="text-[10px] font-semibold text-slate-500 dark:text-gray-400 px-1.5">
+                        +{dayEvents.length - maxEventsPerDay} {language === "en" ? "more" : "lainnya"}
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : null}
             </div>
           );
         })}

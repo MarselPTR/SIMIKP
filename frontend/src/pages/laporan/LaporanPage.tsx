@@ -382,7 +382,7 @@ const LaporanPage = () => {
         </Card>
       ) : viewMode === "cards" ? (
         /* GRID CARDS VIEW */
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
           {reportData.rows.map((row) => (
             <div
               key={row.id}

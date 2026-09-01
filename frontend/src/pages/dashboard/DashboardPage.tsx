@@ -85,7 +85,7 @@ const SpotlightStatCard = ({ card, onClick }: SpotlightStatCardProps) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onMouseMove={handleMouseMove}
-      className="relative text-left w-full rounded-2xl p-5 overflow-hidden transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl active:translate-y-0 active:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1f5c] focus-visible:ring-offset-2 border border-slate-100/80 group"
+      className="relative text-left w-full rounded-2xl p-4 sm:p-5 overflow-hidden transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl active:translate-y-0 active:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1f5c] focus-visible:ring-offset-2 border border-slate-100/80 group"
       style={{
         backgroundColor: "#ffffff",
         boxShadow: isHovered
@@ -109,14 +109,14 @@ const SpotlightStatCard = ({ card, onClick }: SpotlightStatCardProps) => {
         }}
       />
       <div className="relative z-10">
-        <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-3.5 transition-all duration-300 bg-[#0f1f5c]/5 group-hover:bg-[#0f1f5c] group-hover:scale-105 shadow-2xs">
-          <Icon className="w-5 h-5 text-[#0f1f5c] group-hover:text-white transition-colors duration-300" strokeWidth={2} />
+        <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center mb-2.5 sm:mb-3.5 transition-all duration-300 bg-[#0f1f5c]/5 group-hover:bg-[#0f1f5c] group-hover:scale-105 shadow-2xs">
+          <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-[#0f1f5c] group-hover:text-white transition-colors duration-300" strokeWidth={2} />
         </div>
-        <p className="text-xs font-semibold text-slate-500 tracking-tight group-hover:text-slate-700 transition-colors">
+        <p className="text-[11px] sm:text-xs font-semibold text-slate-500 tracking-tight group-hover:text-slate-700 transition-colors">
           {card.label}
         </p>
         <div className="flex items-end gap-2 mt-1">
-          <span className="text-3xl font-black text-[#0f1f5c] tracking-tight group-hover:scale-102 transition-transform duration-200">
+          <span className="text-2xl sm:text-3xl font-black text-[#0f1f5c] tracking-tight group-hover:scale-102 transition-transform duration-200">
             {card.value}
           </span>
         </div>
@@ -185,7 +185,7 @@ const TugasTerbaruTable = ({ items }: { items: MockKegiatan[] }) => {
         </button>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full text-xs table-fixed">
+        <table className="w-full min-w-[560px] text-xs table-fixed">
           <colgroup>
             <col className="w-[30%]" />
             <col className="w-[20%]" />
@@ -712,17 +712,17 @@ const DashboardPage = () => {
   const maxOpdCount = Math.max(...(stats?.opdProduction?.map((o) => o.count) ?? [1]), 1);
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-5 sm:space-y-6 pb-12">
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-bold" style={{ color: NAVY }}>
+        <h1 className="text-xl sm:text-2xl font-bold" style={{ color: NAVY }}>
           Dashboard
         </h1>
-        <p className="text-sm text-gray-400 mt-0.5">Ringkasan Kegiatan &amp; Publikasi Real-Time</p>
+        <p className="text-xs sm:text-sm text-gray-400 mt-0.5">Ringkasan Kegiatan &amp; Publikasi Real-Time</p>
       </div>
 
       {/* Stat cards — interactive cursor-following spotlight glow */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
         {statCards.map((card) => (
           <SpotlightStatCard
             key={card.label}
@@ -733,9 +733,9 @@ const DashboardPage = () => {
       </div>
 
       {/* Main grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start">
         {/* Left: calendar + tugas table */}
-        <div className="lg:col-span-6 space-y-6">
+        <div className="lg:col-span-6 space-y-4 sm:space-y-6">
           <EventCalendar
             year={calYear}
             month={calMonth}
@@ -756,7 +756,7 @@ const DashboardPage = () => {
         {/* Right: status alur kerja produksi */}
         <div className="lg:col-span-6 space-y-4">
           <h3 className="text-base font-semibold text-gray-900">Status Alur Kerja Produksi</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <PrahumPanel assignments={assignments} />
             <FotoPanel assignments={assignments} />
             <VideoPanel assignments={assignments} />
