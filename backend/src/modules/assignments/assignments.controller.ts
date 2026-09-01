@@ -5,12 +5,34 @@ import { eq, and, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
 const createAssignmentSchema = z.object({
-  activityId: z.string(), // can be ID or name
-  userId: z.string(), // can be ID or name
-  contentTypeId: z.string(), // can be ID or name
-  startTime: z.string(), // format: HH:mm:ss
-  endTime: z.string(),   // format: HH:mm:ss
-  deadline: z.string().optional(), // For full Date objects
+  activityId: z.string().optional(),
+  userId: z.string().optional(),
+  picId: z.string().optional(),
+  contentTypeId: z.string().optional(),
+  contentType: z.string().optional(),
+  startTime: z.string().optional(),
+  endTime: z.string().optional(),
+  deadline: z.string().optional(),
+  status: z.string().optional(),
+  instruction: z.string().optional(),
+  location: z.string().optional(),
+  activityDate: z.string().optional(),
+});
+
+const updateAssignmentSchema = z.object({
+  activityId: z.string().optional(),
+  userId: z.string().optional(),
+  picId: z.string().optional(),
+  contentTypeId: z.string().optional(),
+  contentType: z.string().optional(),
+  startTime: z.string().optional(),
+  endTime: z.string().optional(),
+  deadline: z.string().optional(),
+  status: z.string().optional(),
+  instruction: z.string().optional(),
+  location: z.string().optional(),
+  activityDate: z.string().optional(),
+  workLink: z.string().optional(),
 });
 
 export class AssignmentsController {
@@ -19,13 +41,16 @@ export class AssignmentsController {
       const data = await db
         .select({
           id: assignments.id,
+          activityId: assignments.activityId,
           activityTitle: activities.title,
           activityDate: activities.activityDate,
           picName: users.name,
+          staffType: users.staffType,
           contentType: contentTypes.name,
           startTime: assignments.startTime,
           endTime: assignments.endTime,
           status: assignments.status,
+          instruction: assignments.instruction,
         })
         .from(assignments)
         .leftJoin(activities, eq(assignments.activityId, activities.id))
@@ -44,70 +69,78 @@ export class AssignmentsController {
     try {
       const body = createAssignmentSchema.parse(request.body);
 
-      // Lookup IDs if names are provided
-      let finalActivityId = body.activityId;
-      let finalUserId = body.userId;
-      let finalContentTypeId = body.contentTypeId;
+      const targetActivityKey = body.activityId;
+      const targetUserKey = body.userId || body.picId;
+      const targetContentTypeKey = body.contentTypeId || body.contentType;
 
-      const actMatches = await db.select().from(activities).where(or(eq(activities.id, body.activityId), eq(activities.title, body.activityId))).limit(1);
-      if (actMatches.length) finalActivityId = actMatches[0].id;
+      let finalActivityId = targetActivityKey || "";
+      let finalUserId = targetUserKey || "";
+      let finalContentTypeId = targetContentTypeKey || "";
 
-      const userMatches = await db.select().from(users).where(or(eq(users.id, body.userId), eq(users.name, body.userId))).limit(1);
-      if (userMatches.length) finalUserId = userMatches[0].id;
+      if (targetActivityKey) {
+        const actMatches = await db.select().from(activities).where(or(eq(activities.id, targetActivityKey), eq(activities.title, targetActivityKey))).limit(1);
+        if (actMatches.length) finalActivityId = actMatches[0].id;
+      }
 
-      const ctMatches = await db.select().from(contentTypes).where(or(eq(contentTypes.id, body.contentTypeId), eq(contentTypes.name, body.contentTypeId))).limit(1);
-      if (ctMatches.length) finalContentTypeId = ctMatches[0].id;
+      if (targetUserKey) {
+        const userMatches = await db.select().from(users).where(or(eq(users.id, targetUserKey), eq(users.name, targetUserKey))).limit(1);
+        if (userMatches.length) finalUserId = userMatches[0].id;
+      }
+
+      if (targetContentTypeKey) {
+        const ctMatches = await db.select().from(contentTypes).where(or(eq(contentTypes.id, targetContentTypeKey), eq(contentTypes.name, targetContentTypeKey))).limit(1);
+        if (ctMatches.length) finalContentTypeId = ctMatches[0].id;
+      }
 
       // Check conflict for the exact same ActivityDate and overlapping time
-      // First, get the activity date for the target assignment
-      const targetActivity = await db
-        .select({ activityDate: activities.activityDate })
-        .from(activities)
-        .where(eq(activities.id, finalActivityId))
-        .limit(1);
+      if (finalActivityId && finalUserId && body.startTime && body.endTime) {
+        const targetActivity = await db
+          .select({ activityDate: activities.activityDate })
+          .from(activities)
+          .where(eq(activities.id, finalActivityId))
+          .limit(1);
 
-      if (targetActivity.length > 0) {
-        const tDate = targetActivity[0].activityDate;
-        
-        // Find existing assignments for this user on this exact date
-        const existingOnSameDate = await db
-          .select({
-            id: assignments.id,
-            startTime: assignments.startTime,
-            endTime: assignments.endTime,
-            activityTitle: activities.title,
-          })
-          .from(assignments)
-          .innerJoin(activities, eq(assignments.activityId, activities.id))
-          .where(
-            and(
-              eq(assignments.userId, finalUserId),
-              eq(activities.activityDate, tDate)
-            )
+        if (targetActivity.length > 0) {
+          const tDate = targetActivity[0].activityDate;
+          
+          const existingOnSameDate = await db
+            .select({
+              id: assignments.id,
+              startTime: assignments.startTime,
+              endTime: assignments.endTime,
+              activityTitle: activities.title,
+            })
+            .from(assignments)
+            .innerJoin(activities, eq(assignments.activityId, activities.id))
+            .where(
+              and(
+                eq(assignments.userId, finalUserId),
+                eq(activities.activityDate, tDate)
+              )
+            );
+          
+          const isOverlap = (start1: string, end1: string, start2: string, end2: string) => {
+            return start1 < end2 && start2 < end1;
+          };
+
+          const conflicts = existingOnSameDate.filter(ex => 
+            ex.startTime && ex.endTime && 
+            isOverlap(body.startTime!, body.endTime!, ex.startTime.toString(), ex.endTime.toString())
           );
-        
-        const isOverlap = (start1: string, end1: string, start2: string, end2: string) => {
-          return start1 < end2 && start2 < end1;
-        };
 
-        const conflicts = existingOnSameDate.filter(ex => 
-          ex.startTime && ex.endTime && 
-          isOverlap(body.startTime, body.endTime, ex.startTime.toString(), ex.endTime.toString())
-        );
-
-        if (conflicts.length > 0) {
-          return reply.status(409).send({
-            success: false,
-            error: "Bentrok Jadwal",
-            message: `User sudah memiliki penugasan lain ("${conflicts[0].activityTitle}") pada rentang waktu tersebut.`,
-            conflicts
-          });
+          if (conflicts.length > 0) {
+            return reply.status(409).send({
+              success: false,
+              error: "Bentrok Jadwal",
+              message: `User sudah memiliki penugasan lain ("${conflicts[0].activityTitle}") pada rentang waktu tersebut.`,
+              conflicts
+            });
+          }
         }
       }
 
-      // No conflict, safe to create
       const cookieSession = request.cookies["simikp_session"];
-      let createdBy = "system";
+      let createdBy = finalUserId || "system";
       if (cookieSession) {
         try {
           const session = JSON.parse(Buffer.from(cookieSession, "base64").toString("utf-8"));
@@ -124,7 +157,8 @@ export class AssignmentsController {
         startTime: body.startTime,
         endTime: body.endTime,
         deadline: body.deadline ? new Date(body.deadline) : null,
-        status: "ASSIGNED",
+        status: body.status || "ASSIGNED",
+        instruction: body.instruction,
         createdBy,
       });
 
@@ -141,34 +175,38 @@ export class AssignmentsController {
   static async updateAssignment(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
     try {
       const { id } = request.params;
-      const body = createAssignmentSchema.parse(request.body);
+      const body = updateAssignmentSchema.parse(request.body);
 
-      let finalActivityId = body.activityId;
-      let finalUserId = body.userId;
-      let finalContentTypeId = body.contentTypeId;
+      const updateData: Record<string, any> = {};
 
-      const actMatches = await db.select().from(activities).where(or(eq(activities.id, body.activityId), eq(activities.title, body.activityId))).limit(1);
-      if (actMatches.length) finalActivityId = actMatches[0].id;
+      if (body.activityId) {
+        const actMatches = await db.select().from(activities).where(or(eq(activities.id, body.activityId), eq(activities.title, body.activityId))).limit(1);
+        updateData.activityId = actMatches.length ? actMatches[0].id : body.activityId;
+      }
 
-      const userMatches = await db.select().from(users).where(or(eq(users.id, body.userId), eq(users.name, body.userId))).limit(1);
-      if (userMatches.length) finalUserId = userMatches[0].id;
+      const targetUser = body.userId || body.picId;
+      if (targetUser) {
+        const userMatches = await db.select().from(users).where(or(eq(users.id, targetUser), eq(users.name, targetUser))).limit(1);
+        updateData.userId = userMatches.length ? userMatches[0].id : targetUser;
+      }
 
-      const ctMatches = await db.select().from(contentTypes).where(or(eq(contentTypes.id, body.contentTypeId), eq(contentTypes.name, body.contentTypeId))).limit(1);
-      if (ctMatches.length) finalContentTypeId = ctMatches[0].id;
+      const targetContentType = body.contentTypeId || body.contentType;
+      if (targetContentType) {
+        const ctMatches = await db.select().from(contentTypes).where(or(eq(contentTypes.id, targetContentType), eq(contentTypes.name, targetContentType))).limit(1);
+        updateData.contentTypeId = ctMatches.length ? ctMatches[0].id : targetContentType;
+      }
 
-      // Note: we're skipping conflict check here for simplicity during update,
-      // but in a real app we'd do the same overlap check excluding this current ID.
+      if (body.startTime !== undefined) updateData.startTime = body.startTime;
+      if (body.endTime !== undefined) updateData.endTime = body.endTime;
+      if (body.deadline !== undefined) updateData.deadline = body.deadline ? new Date(body.deadline) : null;
+      if (body.status !== undefined) updateData.status = body.status;
+      if (body.instruction !== undefined) updateData.instruction = body.instruction;
 
-      await db.update(assignments)
-        .set({
-          activityId: finalActivityId,
-          userId: finalUserId,
-          contentTypeId: finalContentTypeId,
-          startTime: body.startTime,
-          endTime: body.endTime,
-          deadline: body.deadline ? new Date(body.deadline) : null,
-        })
-        .where(eq(assignments.id, id));
+      if (Object.keys(updateData).length > 0) {
+        await db.update(assignments)
+          .set(updateData)
+          .where(eq(assignments.id, id));
+      }
 
       return reply.send({ success: true, message: "Penugasan berhasil diperbarui" });
     } catch (error) {
@@ -183,14 +221,11 @@ export class AssignmentsController {
   static async deleteAssignment(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
     try {
       const { id } = request.params;
-      
-      // Should delete production items linked first in real app, but for now we'll rely on FK cascades or just try
       await db.delete(assignments).where(eq(assignments.id, id));
-
       return reply.send({ success: true, message: "Penugasan berhasil dihapus" });
     } catch (error) {
       request.log.error(error);
-      return reply.status(500).send({ success: false, error: "Gagal menghapus penugasan (mungkin data sudah berelasi)" });
+      return reply.status(500).send({ success: false, error: "Gagal menghapus penugasan" });
     }
   }
 }

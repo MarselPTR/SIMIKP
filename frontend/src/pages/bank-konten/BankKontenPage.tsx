@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import { mockApi } from "../../lib/mock-api";
+import { apiFetch } from "../../lib/api-client";
 import type { MockBankKontenFolder, MockBankKontenFile } from "../../lib/mock-data";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
@@ -35,20 +35,24 @@ const getCategoryBadgeColor = (kategori?: string) => {
 };
 
 const summarizeJenis = (folder: MockBankKontenFolder) => {
-  const jumlahFoto = folder.files.filter((f) => f.jenisKonten === "foto").length;
-  const jumlahVideo = folder.files.filter((f) => f.jenisKonten === "video").length;
-  const totalFiles = folder.files.length;
+  const jumlahFoto = (folder.files || []).filter((f) => f.jenisKonten === "foto").length;
+  const jumlahVideo = (folder.files || []).filter((f) => f.jenisKonten === "video").length;
+  const totalFiles = (folder.files || []).length;
   return { jumlahFoto, jumlahVideo, totalFiles };
 };
 
 const BankKontenPage = () => {
   const { addToast } = useToast();
 
-  const { data: folders, isLoading, error, refetch } = useQuery({
+  const { data: folders = [], isLoading, error, refetch } = useQuery({
     queryKey: ["bank-konten"],
     queryFn: async () => {
-      // Endpoint belum dibuat di backend, gunakan data dummy langsung untuk menghindari error 404 di console
-      return mockApi.bankKonten.getAll();
+      try {
+        const res = await apiFetch<{ success: boolean; data: MockBankKontenFolder[] }>("/productions/bank-konten");
+        return res.data || [];
+      } catch {
+        return [];
+      }
     },
   });
 
