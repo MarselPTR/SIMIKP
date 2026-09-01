@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { HelpCircle, Bell, ChevronDown } from "lucide-react";
+import { HelpCircle, Bell, ChevronDown, Globe } from "lucide-react";
 import { useAuth } from "../lib/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "../lib/api-client";
+import { useLanguage, type Language } from "../lib/LanguageContext";
+import { useToast } from "../contexts/ToastContext";
 
 const NAVY = "#0f1f5c";
 
@@ -11,7 +13,7 @@ interface TopbarProps {
   onMenuClick: () => void;
 }
 
-const ROLE_LABELS: Record<string, string> = {
+const ROLE_LABELS_ID: Record<string, string> = {
   super_admin: "Super Admin",
   admin: "Admin",
   manager: "Manager",
@@ -20,10 +22,21 @@ const ROLE_LABELS: Record<string, string> = {
   petugas: "Petugas Lapangan",
 };
 
+const ROLE_LABELS_EN: Record<string, string> = {
+  super_admin: "Super Admin",
+  admin: "Admin",
+  manager: "Manager",
+  staff: "Staff",
+  reviewer: "Reviewer",
+  petugas: "Field Officer",
+};
+
 const Topbar = ({ onMenuClick }: TopbarProps) => {
   const [showProfile, setShowProfile] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
   const { user, logout } = useAuth();
+  const { t, language, setLanguage } = useLanguage();
+  const { addToast } = useToast();
   const navigate = useNavigate();
 
   const { data: notifications = [], refetch: refetchNotifs } = useQuery({
@@ -54,26 +67,46 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
 
   const unreadCount = notifications.filter((n: any) => !n.readAt).length;
 
-  const roleLabel = user?.role ? ROLE_LABELS[user.role] ?? user.role : "Admin/Manager";
-  const initials = user?.name ? user.name.slice(0, 2).toUpperCase() : "AU";
+  const isPetugas = user?.role?.toLowerCase() === "petugas";
+  const roleKey = user?.role?.toLowerCase() ?? "";
+  const roleMap = language === "en" ? ROLE_LABELS_EN : ROLE_LABELS_ID;
+  const roleLabel = roleMap[roleKey] ?? roleMap[user?.role ?? ""] ?? user?.role ?? (language === "en" ? "Field Officer" : "Petugas Lapangan");
+  const initials = user?.name ? user.name.slice(0, 2).toUpperCase() : "US";
+
+  const toggleLanguage = () => {
+    const next: Language = language === "id" ? "en" : "id";
+    setLanguage(next);
+    addToast(next === "en" ? "Language switched to English" : "Bahasa diubah ke Bahasa Indonesia", "info");
+  };
 
   return (
-    <header className="h-16 bg-white dark:bg-[#161b22] border-b border-gray-100 dark:border-gray-800 flex items-center justify-end gap-1 px-6 sticky top-0 z-30">
+    <header className="h-16 bg-white dark:bg-[#161b22] border-b border-gray-100 dark:border-gray-800 flex items-center justify-end gap-2 px-6 sticky top-0 z-30 transition-colors">
       {/* Mobile hamburger */}
-      <button onClick={onMenuClick} className="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 mr-auto">
+      <button onClick={onMenuClick} className="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 mr-auto" aria-label="Menu">
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
 
+      {/* Quick Language Switcher Button */}
+      <button
+        type="button"
+        onClick={toggleLanguage}
+        title={language === "id" ? "Ganti ke Bahasa Inggris (Switch to English)" : "Switch to Indonesian (Ganti ke Bahasa Indonesia)"}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/80 text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-gray-700 hover:border-blue-300 dark:hover:border-sky-500 transition-all cursor-pointer shadow-2xs"
+      >
+        <Globe className="w-3.5 h-3.5 text-[#0f1f5c] dark:text-sky-400" />
+        <span className="tracking-wide">{language === "id" ? "🇮🇩 ID" : "🇬🇧 EN"}</span>
+      </button>
+
       {/* Help */}
-      <button type="button" className="w-9 h-9 rounded-full flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition" aria-label="Bantuan">
+      <button type="button" className="w-9 h-9 rounded-full flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition" aria-label={t("help")}>
         <HelpCircle className="w-5 h-5" strokeWidth={1.8} />
       </button>
 
       {/* Notification bell */}
       <div className="relative">
-        <button type="button" onClick={() => { setShowActivity((v) => !v); setShowProfile(false); }} className="relative w-9 h-9 rounded-full flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition" aria-label="Notifikasi">
+        <button type="button" onClick={() => { setShowActivity((v) => !v); setShowProfile(false); }} className="relative w-9 h-9 rounded-full flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition" aria-label={t("notifications")}>
           <Bell className="w-5 h-5" strokeWidth={1.8} />
           {(unreadCount > 0 || recentActivities.length > 0) && (
             <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-[#161b22]" />
@@ -85,7 +118,9 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">
               <div className="flex items-center gap-2">
                 <Bell className="w-4 h-4 text-gray-500 dark:text-gray-400" strokeWidth={1.8} />
-                <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Notifikasi &amp; Aktivitas</h4>
+                <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  {language === "en" ? "Notifications & Activity" : "Notifikasi & Aktivitas"}
+                </h4>
               </div>
               <button 
                 type="button" 
@@ -133,43 +168,118 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
       </div>
 
       {/* User profile */}
-      <div className="relative ml-1">
-        <button onClick={() => { setShowProfile((v) => !v); setShowActivity(false); }} className="flex items-center gap-2 rounded-lg pl-3 pr-1.5 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+      <div className="relative ml-1 flex items-center">
+        {/* Tombol Nama & Avatar: Langsung masuk ke Halaman Profil */}
+        <button
+          type="button"
+          onClick={() => {
+            setShowProfile(false);
+            navigate(isPetugas ? "/petugas/profil" : "/profil");
+          }}
+          title={t("profile")}
+          className="flex items-center gap-2 rounded-lg pl-3 pr-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 transition cursor-pointer group"
+        >
           <div className="hidden sm:block text-right leading-tight">
-            <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{user?.name ?? roleLabel}</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500">Diskominfo Pemerintah Kota Batu</p>
+            <p className="text-sm font-bold text-gray-900 dark:text-gray-100 group-hover:text-[#0f1f5c] dark:group-hover:text-sky-400 transition">
+              {user?.name ?? roleLabel}
+            </p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">
+              {language === "en" ? "Batu City Government Diskominfo" : "Diskominfo Pemerintah Kota Batu"}
+            </p>
           </div>
-          <div className="w-8 h-8 rounded-full bg-[#0f1f5c] text-white flex items-center justify-center font-bold text-xs">{initials}</div>
-          <ChevronDown className="w-4 h-4 text-gray-400 dark:text-gray-500" strokeWidth={2} />
+          <div className="w-8 h-8 rounded-full bg-[#0f1f5c] text-white flex items-center justify-center font-bold text-xs shadow-xs group-hover:scale-105 transition overflow-hidden">
+            {user?.avatar ? (
+              <img src={user.avatar} alt={user?.name ?? "Avatar"} className="w-full h-full object-cover" />
+            ) : (
+              initials
+            )}
+          </div>
+        </button>
+
+        {/* Tombol Chevron Panah: Buka Dropdown Opsi */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowProfile((v) => !v);
+            setShowActivity(false);
+          }}
+          title={t("settings")}
+          className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition cursor-pointer"
+        >
+          <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showProfile ? "rotate-180" : ""}`} strokeWidth={2} />
         </button>
 
         {showProfile && (
-          <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-[#1c2128] rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 py-2 z-50">
-            <div className="px-4 py-2.5 border-b border-gray-100 dark:border-gray-700">
+          <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-[#1c2128] rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 py-2 z-50">
+            {/* Header Profil dalam Dropdown: Klik langsung ke Profil */}
+            <div
+              onClick={() => {
+                setShowProfile(false);
+                navigate(isPetugas ? "/petugas/profil" : "/profil");
+              }}
+              className="px-4 py-2.5 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50/80 dark:hover:bg-gray-800/60 cursor-pointer transition group"
+            >
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-[#0f1f5c] text-white flex items-center justify-center font-bold text-xs">{initials}</div>
+                <div className="w-8 h-8 rounded-full bg-[#0f1f5c] text-white flex items-center justify-center font-bold text-xs overflow-hidden">
+                  {user?.avatar ? (
+                    <img src={user.avatar} alt={user?.name ?? "Avatar"} className="w-full h-full object-cover" />
+                  ) : (
+                    initials
+                  )}
+                </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{user?.name ?? "User"}</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate group-hover:text-[#0f1f5c] transition">
+                    {user?.name ?? "User"}
+                  </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.username ?? ""}</p>
                 </div>
               </div>
-              <span className="inline-block mt-2 text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${NAVY}20`, color: NAVY }}>
-                {user?.role ?? "admin"}
-              </span>
+              <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                <span className="inline-block text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${NAVY}15`, color: NAVY }}>
+                  {roleLabel}
+                </span>
+                {user?.staffType && (
+                  <span className="inline-block text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                    {user.staffType}
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="py-1 border-b border-gray-100 dark:border-gray-700">
-              <button type="button" onClick={() => { setShowProfile(false); navigate("/profil"); }} className="w-full text-left px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
-                Profil
+              <button
+                type="button"
+                onClick={() => {
+                  setShowProfile(false);
+                  navigate(isPetugas ? "/petugas/profil" : "/profil");
+                }}
+                className="w-full text-left px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer"
+              >
+                {t("profile")}
               </button>
-              <button type="button" onClick={() => { setShowProfile(false); navigate("/pengaturan"); }} className="w-full text-left px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
-                Pengaturan
+              <button
+                type="button"
+                onClick={() => {
+                  setShowProfile(false);
+                  navigate(isPetugas ? "/petugas/pengaturan" : "/pengaturan");
+                }}
+                className="w-full text-left px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer"
+              >
+                {t("settings")}
               </button>
             </div>
 
             <div className="py-1">
-              <button type="button" onClick={() => { setShowProfile(false); logout(); }} className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition">
-                Keluar
+              <button
+                type="button"
+                onClick={() => {
+                  setShowProfile(false);
+                  logout();
+                }}
+                className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition cursor-pointer font-medium"
+              >
+                {t("logout")}
               </button>
             </div>
           </div>

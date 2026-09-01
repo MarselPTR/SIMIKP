@@ -4,12 +4,12 @@ import { apiFetch } from "../../lib/api-client";
 import { useToast } from "../../contexts/ToastContext";
 import { ArrowLeft } from "lucide-react";
 import logoKotaBatu from "../../assets/Logo_Kota_Batu.png";
-
-const NAVY = "#0f1f5c";
+import { useLanguage } from "../../lib/LanguageContext";
 
 export default function TambahPetugasPage() {
   const navigate = useNavigate();
   const { addToast } = useToast();
+  const { t, language } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
 
   const [form, setForm] = useState({
@@ -24,7 +24,6 @@ export default function TambahPetugasPage() {
   });
 
   const [showPassword, setShowPassword] = useState(false);
-
   const [pasFoto, setPasFoto] = useState<File | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -40,11 +39,11 @@ export default function TambahPetugasPage() {
       const formData = new FormData();
       formData.append("program", form.program);
       formData.append("name", form.namaLengkap);
-      formData.append("username", form.email); // using email as username
+      formData.append("username", form.email);
       formData.append("email", form.email);
       formData.append("password", form.password);
       formData.append("gender", form.jenisKelamin);
-      formData.append("nik", form.pic); // Using the same nik field in backend
+      formData.append("nik", form.pic);
       formData.append("birthPlace", form.tempatLahir);
       formData.append("birthDate", form.tanggalLahir);
 
@@ -52,13 +51,11 @@ export default function TambahPetugasPage() {
 
       const res = await apiFetch<{ success: boolean; message: string }>("/users/petugas", {
         method: "POST",
-        // Do NOT set Content-Type header when using FormData; fetch does it automatically
         body: formData,
       });
 
       if (res.success) {
         addToast(res.message, "success");
-        // Bersihkan form setelah sukses agar admin bisa langsung menambahkan petugas lain
         setForm({
           program: "",
           namaLengkap: "",
@@ -72,7 +69,7 @@ export default function TambahPetugasPage() {
         setPasFoto(null);
       }
     } catch (err: any) {
-      addToast(err.message || "Gagal menambahkan petugas", "error");
+      addToast(err.message || (language === "en" ? "Failed to add officer" : "Gagal menambahkan petugas"), "error");
     } finally {
       setIsLoading(false);
     }
@@ -83,19 +80,23 @@ export default function TambahPetugasPage() {
       <button
         type="button"
         onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 transition mb-6 group"
+        className="flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 transition mb-6 group cursor-pointer"
       >
         <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" strokeWidth={2} />
-        Kembali
+        {language === "en" ? "Back" : "Kembali"}
       </button>
 
       <div className="bg-white dark:bg-[#161b22] border border-gray-200 dark:border-gray-800 shadow-sm rounded-xl p-8 lg:p-12">
-        {/* Header matching reference style slightly */}
+        {/* Header */}
         <div className="flex items-center gap-6 border-b border-gray-200 dark:border-gray-800 pb-8 mb-8">
           <img src={logoKotaBatu} alt="Logo" className="w-16 h-16 object-contain" />
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Form Registrasi</h1>
-            <h2 className="text-2xl font-bold mb-2" style={{ color: NAVY }}>Petugas SIMIKP</h2>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+              {language === "en" ? "Registration Form" : "Form Registrasi"}
+            </h1>
+            <h2 className="text-2xl font-bold mb-2 text-[#0f1f5c] dark:text-sky-400">
+              {language === "en" ? "SIMIKP Field Officer" : "Petugas SIMIKP"}
+            </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Diskominfo Pemerintah Kota Batu</p>
           </div>
         </div>
@@ -104,7 +105,7 @@ export default function TambahPetugasPage() {
           {/* Row: Program */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 items-center">
             <label className="md:col-span-4 text-sm font-bold text-gray-800 dark:text-gray-200">
-              Tipe Petugas <span className="text-red-500">*</span>
+              {language === "en" ? "Officer Role" : "Tipe Petugas"} <span className="text-red-500">*</span>
             </label>
             <div className="md:col-span-8">
               <select
@@ -114,10 +115,10 @@ export default function TambahPetugasPage() {
                 required
                 className="w-full md:w-64 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm bg-white dark:bg-[#0d1117] text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1"
               >
-                <option value="">Please Select</option>
-                <option value="FOTO_VIDEO">Foto & Video</option>
-                <option value="PRAHUM">Pranata Humas (Berita)</option>
-                <option value="DESAINER_EDITOR">Desainer & Editor</option>
+                <option value="">{language === "en" ? "Please Select" : "Pilih Jabatan"}</option>
+                <option value="FOTO_VIDEO">{language === "en" ? "Photo & Video" : "Foto & Video"}</option>
+                <option value="PRAHUM">{language === "en" ? "Public Relations (News)" : "Pranata Humas (Berita)"}</option>
+                <option value="DESAINER_EDITOR">{language === "en" ? "Designer & Editor" : "Desainer & Editor"}</option>
               </select>
             </div>
           </div>
@@ -125,11 +126,11 @@ export default function TambahPetugasPage() {
           {/* Row: Pas Foto */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 items-center">
             <label className="md:col-span-4 text-sm font-bold text-gray-800 dark:text-gray-200">
-              Masukkan Pas Foto 3x4
+              {language === "en" ? "Upload Photo (3x4)" : "Masukkan Pas Foto 3x4"}
             </label>
             <div className="md:col-span-8 flex items-center gap-3">
               <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded px-6 py-2 text-sm font-medium transition">
-                Select Image
+                {language === "en" ? "Select Image" : "Pilih Foto"}
                 <input
                   type="file"
                   accept="image/*"
@@ -137,11 +138,11 @@ export default function TambahPetugasPage() {
                   onChange={(e) => setPasFoto(e.target.files?.[0] || null)}
                 />
               </label>
-              <span className="text-xs text-gray-500 truncate max-w-xs">{pasFoto ? pasFoto.name : "No file chosen"}</span>
+              <span className="text-xs text-gray-500 truncate max-w-xs">
+                {pasFoto ? pasFoto.name : language === "en" ? "No file chosen" : "Tidak ada file dipilih"}
+              </span>
             </div>
           </div>
-
-
 
           {/* Row: Password */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 items-center">
@@ -176,7 +177,7 @@ export default function TambahPetugasPage() {
           {/* Row: Email */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 items-center">
             <label className="md:col-span-4 text-sm font-bold text-gray-800 dark:text-gray-200">
-              Alamat Email <span className="text-red-500">*</span>
+              {language === "en" ? "Email Address" : "Alamat Email"} <span className="text-red-500">*</span>
             </label>
             <div className="md:col-span-8">
               <input
@@ -193,7 +194,7 @@ export default function TambahPetugasPage() {
           {/* Row: Nama Lengkap */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 items-center">
             <label className="md:col-span-4 text-sm font-bold text-gray-800 dark:text-gray-200">
-              Nama Lengkap <span className="text-red-500">*</span>
+              {language === "en" ? "Full Name" : "Nama Lengkap"} <span className="text-red-500">*</span>
             </label>
             <div className="md:col-span-8">
               <input
@@ -210,7 +211,7 @@ export default function TambahPetugasPage() {
           {/* Row: Jenis Kelamin */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 items-center">
             <label className="md:col-span-4 text-sm font-bold text-gray-800 dark:text-gray-200">
-              Jenis Kelamin <span className="text-red-500">*</span>
+              {language === "en" ? "Gender" : "Jenis Kelamin"} <span className="text-red-500">*</span>
             </label>
             <div className="md:col-span-8 flex items-center gap-8">
               <label className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300 cursor-pointer">
@@ -223,7 +224,7 @@ export default function TambahPetugasPage() {
                   required
                   className="w-4 h-4 text-blue-600"
                 />
-                Laki - Laki
+                {language === "en" ? "Male" : "Laki - Laki"}
               </label>
               <label className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300 cursor-pointer">
                 <input
@@ -235,7 +236,7 @@ export default function TambahPetugasPage() {
                   required
                   className="w-4 h-4 text-blue-600"
                 />
-                Perempuan
+                {language === "en" ? "Female" : "Perempuan"}
               </label>
             </div>
           </div>
@@ -252,7 +253,7 @@ export default function TambahPetugasPage() {
                 value={form.pic}
                 onChange={handleInputChange}
                 required
-                placeholder="Masukkan PIC"
+                placeholder={language === "en" ? "Enter PIC identifier" : "Masukkan PIC"}
                 className="w-full md:w-80 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm bg-white dark:bg-[#0d1117] text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1"
               />
             </div>
@@ -261,7 +262,7 @@ export default function TambahPetugasPage() {
           {/* Row: Tempat Lahir */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 items-center">
             <label className="md:col-span-4 text-sm font-bold text-gray-800 dark:text-gray-200">
-              Tempat Lahir <span className="text-red-500">*</span>
+              {language === "en" ? "Place of Birth" : "Tempat Lahir"} <span className="text-red-500">*</span>
             </label>
             <div className="md:col-span-8">
               <input
@@ -278,7 +279,7 @@ export default function TambahPetugasPage() {
           {/* Row: Tanggal Lahir */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 items-center">
             <label className="md:col-span-4 text-sm font-bold text-gray-800 dark:text-gray-200">
-              Tanggal Lahir <span className="text-red-500">*</span>
+              {language === "en" ? "Date of Birth" : "Tanggal Lahir"} <span className="text-red-500">*</span>
             </label>
             <div className="md:col-span-8">
               <input
@@ -292,15 +293,13 @@ export default function TambahPetugasPage() {
             </div>
           </div>
 
-
-
           <div className="pt-8 border-t border-gray-100 dark:border-gray-800 flex justify-end">
             <button
               type="submit"
               disabled={isLoading}
-              className="bg-[#0f1f5c] hover:bg-blue-900 text-white px-8 py-2.5 rounded-lg text-sm font-semibold shadow-sm transition disabled:opacity-50"
+              className="bg-[#0f1f5c] hover:bg-blue-900 text-white px-8 py-2.5 rounded-lg text-sm font-semibold shadow-sm transition disabled:opacity-50 cursor-pointer"
             >
-              {isLoading ? "Menyimpan..." : "Daftarkan Petugas"}
+              {isLoading ? t("saving") : language === "en" ? "Register Officer" : "Daftarkan Petugas"}
             </button>
           </div>
         </form>

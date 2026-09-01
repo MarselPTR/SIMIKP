@@ -69,6 +69,18 @@ body {
   background: #94a3b8;
 }
 
+/* Entrance animation used across pages (animate-fade-in) */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in { animation: none; }
+}
+
 /* Global transition for smooth theme switch */
 *, *::before, *::after {
   transition: background-color 0.25s ease, border-color 0.25s ease, color 0.2s ease;

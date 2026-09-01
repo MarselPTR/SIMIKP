@@ -4,24 +4,25 @@ import {
   Megaphone, FolderOpen, BarChart3, Settings, UserPlus, Contact
 } from "lucide-react";
 import logoKotaBatu from "../assets/Logo_Kota_Batu.png";
+import { useLanguage, type TranslationKey } from "../lib/LanguageContext";
 
-interface MenuItem {
+interface NavItemConfig {
   path: string;
-  label: string;
+  key: TranslationKey;
   icon: typeof Home;
 }
 
-export const menuItems: MenuItem[] = [
-  { path: "/dashboard", label: "Beranda", icon: Home },
-  { path: "/kegiatan", label: "Manajemen Kegiatan", icon: CalendarDays },
-  { path: "/penugasan", label: "Penugasan Tim", icon: Users },
-  { path: "/produksi", label: "Produksi Konten", icon: Video },
-  { path: "/review", label: "Review & Persetujuan", icon: CheckSquare },
-  { path: "/publikasi", label: "Publikasi Media", icon: Megaphone },
-  { path: "/bank-konten", label: "Bank Konten", icon: FolderOpen },
-  { path: "/laporan", label: "Laporan & Statistik", icon: BarChart3 },
-  { path: "/daftar-anggota", label: "Daftar Anggota", icon: Contact },
-  { path: "/tambah-petugas", label: "Tambah Petugas", icon: UserPlus },
+export const navConfig: NavItemConfig[] = [
+  { path: "/dashboard", key: "dashboard", icon: Home },
+  { path: "/kegiatan", key: "activities", icon: CalendarDays },
+  { path: "/penugasan", key: "assignments", icon: Users },
+  { path: "/produksi", key: "production", icon: Video },
+  { path: "/review", key: "review_approval", icon: CheckSquare },
+  { path: "/publikasi", key: "media_pub", icon: Megaphone },
+  { path: "/bank-konten", key: "content_bank", icon: FolderOpen },
+  { path: "/laporan", key: "reports_stats", icon: BarChart3 },
+  { path: "/daftar-anggota", key: "member_list", icon: Contact },
+  { path: "/tambah-petugas", key: "add_officer", icon: UserPlus },
 ];
 
 const NAVY = "#0f1f5c";
@@ -32,9 +33,10 @@ interface SidebarProps {
 
 const Sidebar = ({ onClose }: SidebarProps) => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   return (
-    <aside className="h-full w-64 flex flex-col border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-[#161b22] shadow-2xl lg:shadow-none">
+    <aside className="h-full w-64 flex flex-col border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-[#161b22] shadow-2xl lg:shadow-none transition-colors">
       {/* Brand */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
         <div className="flex items-center gap-3">
@@ -45,7 +47,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
           </div>
         </div>
         {onClose && (
-          <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 lg:hidden" aria-label="Tutup Menu">
+          <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 lg:hidden" aria-label={t("close")}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -55,8 +57,9 @@ const Sidebar = ({ onClose }: SidebarProps) => {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-3 px-3 space-y-0.5">
-        {menuItems.map((item) => {
+        {navConfig.map((item) => {
           const Icon = item.icon;
+          const label = t(item.key);
           return (
             <NavLink
               key={item.path}
@@ -71,7 +74,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               }
             >
               <Icon className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={2} />
-              <span>{item.label}</span>
+              <span>{label}</span>
             </NavLink>
           );
         })}
@@ -82,10 +85,10 @@ const Sidebar = ({ onClose }: SidebarProps) => {
         <button
           type="button"
           onClick={() => navigate("/pengaturan")}
-          className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-gray-100 transition-all"
+          className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-gray-100 transition-all cursor-pointer"
         >
           <Settings className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={2} />
-          <span>Pengaturan</span>
+          <span>{t("settings")}</span>
         </button>
       </div>
     </aside>

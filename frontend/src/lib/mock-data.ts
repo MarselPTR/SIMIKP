@@ -41,6 +41,9 @@ export interface MockTugasPetugas {
   instruksi: string;
   hasConflict?: boolean;
   conflictMessage?: string;
+  workLink?: string;
+  prioritas?: "Tinggi" | "Sedang" | "Rendah";
+  waktuPelaksanaan?: string;
 }
 
 export const mockTugasPetugas: MockTugasPetugas[] = [];

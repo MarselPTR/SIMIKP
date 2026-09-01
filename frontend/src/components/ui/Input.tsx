@@ -9,15 +9,15 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ className = "", label, error, ...props }, ref) => (
     <div className="w-full">
-      {label && <label className="block text-sm font-medium text-gray-700 mb-1.5">{label}</label>}
+      {label && <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">{label}</label>}
       <input
         ref={ref}
-        className={`w-full rounded-lg border ${
-          error ? "border-red-500" : "border-gray-300"
-        } px-4 py-2.5 text-sm transition-all focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 disabled:bg-gray-100 disabled:cursor-not-allowed ${className}`}
+        className={`w-full rounded-xl border ${
+          error ? "border-rose-500" : "border-gray-200 dark:border-gray-700"
+        } bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-3.5 py-2.5 text-xs sm:text-sm transition-all focus:border-[#0f1f5c] dark:focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-[#0f1f5c]/20 dark:focus:ring-sky-500/20 disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed ${className}`}
         {...props}
       />
-      {error && <p className="mt-1.5 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-1.5 text-xs text-rose-500">{error}</p>}
     </div>
   ),
 );
