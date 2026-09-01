@@ -2,8 +2,11 @@
   "name": "simikp-root",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
-    "dev:web": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\""
+    "dev:web": "concurrently -k -p \"[{name}]\" -n \"BACKEND,FRONTEND\" -c \"cyan.bold,magenta.bold\" \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "dev": "npm run dev:web",
+    "backend": "npm run dev --prefix backend",
+    "frontend": "npm run dev --prefix frontend",
+    "build:all": "npm run build --prefix backend && npm run build --prefix frontend"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

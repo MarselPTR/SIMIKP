@@ -25,6 +25,7 @@ interface AuthContextValue {
   login: (username: string, password: string) => Promise<LoginResult>;
   logout: () => Promise<void>;
   switchUser: (mockUserOrId: MockUser | string) => void;
+  updateUser: (updatedData: Partial<AuthUser>) => void;
 }
 
 const AuthContext = ((globalThis as unknown as { __SIMIKP_AUTH_CTX__?: React.Context<AuthContextValue | null> })
@@ -45,6 +46,12 @@ export const useAuth = (): AuthContextValue => {
           localStorage.removeItem("simikp_user");
         },
         switchUser: () => {},
+        updateUser: (data) => {
+          if (parsedUser) {
+            const next = { ...parsedUser, ...data };
+            localStorage.setItem("simikp_user", JSON.stringify(next));
+          }
+        },
       };
     } catch {
       return {
@@ -54,6 +61,7 @@ export const useAuth = (): AuthContextValue => {
         login: async () => ({ success: false, error: "AuthProvider belum siap" }),
         logout: async () => {},
         switchUser: () => {},
+        updateUser: () => {},
       };
     }
   }
@@ -171,8 +179,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updateUser = (updatedData: Partial<AuthUser>) => {
+    setUser((prev) => {
+      if (!prev) return null;
+      const next = { ...prev, ...updatedData };
+      localStorage.setItem("simikp_user", JSON.stringify(next));
+      return next;
+    });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, isAuthenticated: user !== null, login, logout, switchUser }}>
+    <AuthContext.Provider value={{ user, loading, isAuthenticated: user !== null, login, logout, switchUser, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

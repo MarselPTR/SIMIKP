@@ -5,6 +5,7 @@ import { apiFetch } from "../../lib/api-client";
 import { mockPenugasan, mockKegiatan, mockUsers, Role } from "../../lib/mock-data";
 import type { MockPenugasan } from "../../lib/mock-data";
 import { useToast } from "../../contexts/ToastContext";
+import { useLanguage } from "../../lib/LanguageContext";
 import Dialog from "../../components/ui/Dialog";
 import Button from "../../components/ui/Button";
 import { LoadingSpinner, ErrorState } from "../../components/shared/StateComponents";
@@ -33,6 +34,7 @@ import {
 
 export default function PenugasanPage() {
   const { addToast } = useToast();
+  const { t, language } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -501,34 +503,34 @@ export default function PenugasanPage() {
     }
   };
 
-  if (isLoading) return <LoadingSpinner />;
+  if (isLoading) return <LoadingSpinner text={t("loading")} />;
   if (error) return <ErrorState message={error.message} onRetry={refetch} />;
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-6 pb-12 animate-fade-in text-gray-900 dark:text-gray-100">
       {/* ── Header Title & Description ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
-            Penugasan Tim
+          <h1 className="text-2xl sm:text-3xl font-black text-[#0f1f5c] dark:text-sky-400 tracking-tight">
+            {t("penugasan_title")}
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Kelola dan pantau jadwal liputan penugasan staf konten dengan data yang rapi dan terorganisir.
+          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+            {t("penugasan_subtitle")}
           </p>
         </div>
         <button
           onClick={handleOpenCreate}
-          className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-[#0f1f5c] hover:bg-[#0a1540] text-white text-sm font-semibold rounded-lg shadow-sm transition active:scale-[0.98] self-start sm:self-auto cursor-pointer"
+          className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-[#0f1f5c] dark:bg-blue-600 hover:bg-[#0a1540] dark:hover:bg-blue-700 text-white text-xs sm:text-sm font-bold rounded-xl shadow-xs transition active:scale-[0.98] self-start sm:self-auto cursor-pointer"
         >
           <Plus className="w-4 h-4 stroke-[2.5]" />
-          <span>Tugas Baru</span>
+          <span>{t("penugasan_add_btn")}</span>
         </button>
       </div>
 
       {/* ── Main Container / Card ── */}
-      <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-[#161b22] rounded-3xl border border-gray-200 dark:border-gray-800 shadow-xs overflow-hidden">
         {/* ── 1. Top Tabs dengan Counter Real-Time ── */}
-        <div className="flex items-center gap-8 px-6 pt-4 border-b border-gray-200/70 overflow-x-auto text-sm">
+        <div className="flex items-center gap-8 px-6 pt-4 border-b border-gray-200 dark:border-gray-800 overflow-x-auto text-xs sm:text-sm">
           {/* Tab Semua */}
           <button
             type="button"
@@ -536,18 +538,18 @@ export default function PenugasanPage() {
               setActiveTab("all");
               setCurrentPage(1);
             }}
-            className={`pb-3.5 flex items-center gap-2 font-medium transition relative whitespace-nowrap cursor-pointer ${
+            className={`pb-3.5 flex items-center gap-2 font-bold transition relative whitespace-nowrap cursor-pointer ${
               activeTab === "all"
-                ? "text-[#0f1f5c] font-bold border-b-2 border-[#0f1f5c]"
-                : "text-gray-500 hover:text-gray-800"
+                ? "text-[#0f1f5c] dark:text-sky-400 border-b-2 border-[#0f1f5c] dark:border-sky-400"
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
             }`}
           >
-            <span>Semua</span>
+            <span>{t("all")}</span>
             <span
-              className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+              className={`px-2 py-0.5 rounded-full text-xs font-bold ${
                 activeTab === "all"
-                  ? "bg-blue-50 text-blue-600"
-                  : "bg-gray-100 text-gray-500"
+                  ? "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-sky-300"
+                  : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
               }`}
             >
               {counts.all}
@@ -561,18 +563,18 @@ export default function PenugasanPage() {
               setActiveTab("in-progress");
               setCurrentPage(1);
             }}
-            className={`pb-3.5 flex items-center gap-2 font-medium transition relative whitespace-nowrap cursor-pointer ${
+            className={`pb-3.5 flex items-center gap-2 font-bold transition relative whitespace-nowrap cursor-pointer ${
               activeTab === "in-progress"
-                ? "text-[#0f1f5c] font-bold border-b-2 border-[#0f1f5c]"
-                : "text-gray-500 hover:text-gray-800"
+                ? "text-[#0f1f5c] dark:text-sky-400 border-b-2 border-[#0f1f5c] dark:border-sky-400"
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
             }`}
           >
-            <span>Proses</span>
+            <span>{t("in_progress")}</span>
             <span
-              className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+              className={`px-2 py-0.5 rounded-full text-xs font-bold ${
                 activeTab === "in-progress"
-                  ? "bg-amber-100 text-amber-800"
-                  : "bg-gray-100 text-gray-500"
+                  ? "bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300"
+                  : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
               }`}
             >
               {counts.inProgress}
@@ -586,18 +588,18 @@ export default function PenugasanPage() {
               setActiveTab("done");
               setCurrentPage(1);
             }}
-            className={`pb-3.5 flex items-center gap-2 font-medium transition relative whitespace-nowrap cursor-pointer ${
+            className={`pb-3.5 flex items-center gap-2 font-bold transition relative whitespace-nowrap cursor-pointer ${
               activeTab === "done"
-                ? "text-[#0f1f5c] font-bold border-b-2 border-[#0f1f5c]"
-                : "text-gray-500 hover:text-gray-800"
+                ? "text-[#0f1f5c] dark:text-sky-400 border-b-2 border-[#0f1f5c] dark:border-sky-400"
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
             }`}
           >
-            <span>Selesai</span>
+            <span>{t("done")}</span>
             <span
-              className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+              className={`px-2 py-0.5 rounded-full text-xs font-bold ${
                 activeTab === "done"
-                  ? "bg-emerald-100 text-emerald-800"
-                  : "bg-gray-100 text-gray-500"
+                  ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300"
+                  : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
               }`}
             >
               {counts.done}
@@ -611,18 +613,18 @@ export default function PenugasanPage() {
               setActiveTab("pending");
               setCurrentPage(1);
             }}
-            className={`pb-3.5 flex items-center gap-2 font-medium transition relative whitespace-nowrap cursor-pointer ${
+            className={`pb-3.5 flex items-center gap-2 font-bold transition relative whitespace-nowrap cursor-pointer ${
               activeTab === "pending"
-                ? "text-[#0f1f5c] font-bold border-b-2 border-[#0f1f5c]"
-                : "text-gray-500 hover:text-gray-800"
+                ? "text-[#0f1f5c] dark:text-sky-400 border-b-2 border-[#0f1f5c] dark:border-sky-400"
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
             }`}
           >
-            <span>Menunggu</span>
+            <span>{t("pending")}</span>
             <span
-              className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+              className={`px-2 py-0.5 rounded-full text-xs font-bold ${
                 activeTab === "pending"
-                  ? "bg-gray-200 text-gray-700"
-                  : "bg-gray-100 text-gray-500"
+                  ? "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                  : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
               }`}
             >
               {counts.pending}
@@ -636,18 +638,18 @@ export default function PenugasanPage() {
               setActiveTab("conflict");
               setCurrentPage(1);
             }}
-            className={`pb-3.5 flex items-center gap-2 font-medium transition relative whitespace-nowrap cursor-pointer ${
+            className={`pb-3.5 flex items-center gap-2 font-bold transition relative whitespace-nowrap cursor-pointer ${
               activeTab === "conflict"
-                ? "text-rose-600 font-bold border-b-2 border-rose-600"
-                : "text-gray-500 hover:text-rose-600"
+                ? "text-rose-600 dark:text-rose-400 border-b-2 border-rose-600 dark:border-rose-400"
+                : "text-gray-500 dark:text-gray-400 hover:text-rose-600 dark:hover:text-rose-400"
             }`}
           >
-            <span>Bentrok</span>
+            <span>{t("conflict")}</span>
             <span
-              className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+              className={`px-2 py-0.5 rounded-full text-xs font-bold ${
                 activeTab === "conflict"
-                  ? "bg-rose-100 text-rose-800"
-                  : "bg-gray-100 text-gray-500"
+                  ? "bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300"
+                  : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
               }`}
             >
               {counts.conflict}
@@ -656,47 +658,47 @@ export default function PenugasanPage() {
         </div>
 
         {/* ── 2. Toolbar: Search + Bulk Actions Bar ── */}
-        <div className="p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-3 border-b border-gray-100 bg-gray-50/50">
+        <div className="p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/40">
           <div className="relative w-full sm:w-80">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
-              placeholder="Cari kegiatan, staf, jenis..."
+              placeholder={t("penugasan_search_ph")}
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full pl-10 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition placeholder:text-gray-400"
+              className="w-full pl-10 pr-4 py-2 text-xs sm:text-sm bg-white dark:bg-[#161b22] border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition placeholder:text-gray-400"
             />
           </div>
 
           {/* Bulk Action Controls */}
           {selectedIds.length > 0 && (
             <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 animate-fadeIn">
-              <span className="text-xs font-semibold text-gray-600 whitespace-nowrap">
-                {selectedIds.length} dipilih:
+              <span className="text-xs font-bold text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                {selectedIds.length} {language === "en" ? "selected:" : "dipilih:"}
               </span>
               <button
                 onClick={() => handleBulkMarkStatus("done")}
-                className="px-2.5 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg flex items-center gap-1 transition cursor-pointer"
+                className="px-2.5 py-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800 rounded-lg flex items-center gap-1 transition cursor-pointer"
               >
                 <RiCheckLine className="w-3.5 h-3.5" />
-                <span>Selesai</span>
+                <span>{t("done")}</span>
               </button>
               <button
                 onClick={() => handleBulkMarkStatus("in-progress")}
-                className="px-2.5 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg flex items-center gap-1 transition cursor-pointer"
+                className="px-2.5 py-1.5 text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 border border-amber-200 dark:border-amber-800 rounded-lg flex items-center gap-1 transition cursor-pointer"
               >
                 <RiTimeLine className="w-3.5 h-3.5" />
-                <span>Proses</span>
+                <span>{t("in_progress")}</span>
               </button>
               <button
                 onClick={handleBulkDelete}
-                className="px-2.5 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg flex items-center gap-1 transition cursor-pointer"
+                className="px-2.5 py-1.5 text-xs font-bold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800 rounded-lg flex items-center gap-1 transition cursor-pointer"
               >
                 <RiDeleteBinLine className="w-3.5 h-3.5" />
-                <span>Hapus</span>
+                <span>{t("delete")}</span>
               </button>
             </div>
           )}
@@ -706,7 +708,7 @@ export default function PenugasanPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-[#0f1f5c] text-white text-xs font-semibold uppercase tracking-wider">
+              <tr className="bg-[#0f1f5c] dark:bg-slate-900 text-white text-xs font-bold uppercase tracking-wider border-b border-gray-200 dark:border-gray-800">
                 <th className="py-3.5 px-4 w-10 text-center">
                   <input
                     type="checkbox"
@@ -723,7 +725,7 @@ export default function PenugasanPage() {
                   className="py-3.5 px-4 cursor-pointer select-none hover:text-blue-200 transition"
                 >
                   <div className="flex items-center gap-1.5">
-                    <span>Kegiatan Terkait</span>
+                    <span>{t("penugasan_col_activity")}</span>
                     <RiArrowUpDownLine className="w-3.5 h-3.5 text-gray-300" />
                   </div>
                 </th>
@@ -732,7 +734,7 @@ export default function PenugasanPage() {
                   className="py-3.5 px-4 cursor-pointer select-none hover:text-blue-200 transition"
                 >
                   <div className="flex items-center gap-1.5">
-                    <span>Petugas PIC</span>
+                    <span>{t("penugasan_col_officer")}</span>
                     <RiArrowUpDownLine className="w-3.5 h-3.5 text-gray-300" />
                   </div>
                 </th>
@@ -741,7 +743,7 @@ export default function PenugasanPage() {
                   className="py-3.5 px-4 cursor-pointer select-none hover:text-blue-200 transition"
                 >
                   <div className="flex items-center gap-1.5">
-                    <span>Jenis Konten</span>
+                    <span>{t("penugasan_col_output")}</span>
                     <RiArrowUpDownLine className="w-3.5 h-3.5 text-gray-300" />
                   </div>
                 </th>
@@ -750,7 +752,7 @@ export default function PenugasanPage() {
                   className="py-3.5 px-4 cursor-pointer select-none hover:text-blue-200 transition"
                 >
                   <div className="flex items-center gap-1.5">
-                    <span>Waktu Penugasan</span>
+                    <span>{t("penugasan_col_time")}</span>
                     <RiArrowUpDownLine className="w-3.5 h-3.5 text-gray-300" />
                   </div>
                 </th>
@@ -766,12 +768,12 @@ export default function PenugasanPage() {
                 <th className="py-3.5 px-4 text-right pr-6">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 text-sm">
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-800 text-xs sm:text-sm">
               {paginatedItems.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-12 text-gray-400">
-                    <p className="font-medium text-gray-500">Tidak ada penugasan ditemukan</p>
-                    <p className="text-xs text-gray-400 mt-1">
+                  <td colSpan={7} className="text-center py-12 text-gray-400 dark:text-gray-500">
+                    <p className="font-bold text-gray-600 dark:text-gray-400">Tidak ada penugasan ditemukan</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                       Coba ganti filter tab atau kata kunci pencarian.
                     </p>
                   </td>
@@ -782,8 +784,8 @@ export default function PenugasanPage() {
                   return (
                     <tr
                       key={item.id}
-                      className={`hover:bg-gray-50/80 transition-colors ${
-                        isSelected ? "bg-indigo-50/40" : ""
+                      className={`hover:bg-gray-50/80 dark:hover:bg-gray-800/40 transition-colors ${
+                        isSelected ? "bg-indigo-50/40 dark:bg-blue-950/30" : ""
                       }`}
                     >
                       {/* Checkbox */}
@@ -798,10 +800,10 @@ export default function PenugasanPage() {
 
                       {/* Kegiatan Terkait */}
                       <td className="py-4 px-4">
-                        <div className="font-semibold text-gray-900">{item.kegiatanTerkait}</div>
+                        <div className="font-bold text-gray-900 dark:text-gray-100">{item.kegiatanTerkait}</div>
                         {item.lokasi && (
-                          <div className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
-                            <MapPin className="w-3 h-3 text-gray-400" />
+                          <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
                             <span>{item.lokasi}</span>
                           </div>
                         )}
@@ -813,22 +815,22 @@ export default function PenugasanPage() {
                           <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 text-white font-bold text-xs flex items-center justify-center shadow-2xs">
                             {item.picAvatar ?? item.pic.slice(0, 2).toUpperCase()}
                           </div>
-                          <span className="font-medium text-gray-800">{item.pic}</span>
+                          <span className="font-semibold text-gray-800 dark:text-gray-200">{item.pic}</span>
                         </div>
                       </td>
 
                       {/* Jenis Konten */}
-                      <td className="py-4 px-4 font-medium text-gray-700">
+                      <td className="py-4 px-4 font-semibold text-gray-700 dark:text-gray-300">
                         {item.jenisKonten}
                       </td>
 
                       {/* Waktu Penugasan */}
                       <td className="py-4 px-4">
-                        <div className="font-mono text-xs font-semibold text-gray-800">
+                        <div className="font-mono text-xs font-bold text-gray-800 dark:text-gray-200">
                           {item.jamMulai} - {item.jamSelesai}
                         </div>
                         {item.waktuSubtitle && (
-                          <div className="text-[11px] text-gray-400 mt-0.5">
+                          <div className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
                             {item.waktuSubtitle}
                           </div>
                         )}
@@ -841,7 +843,7 @@ export default function PenugasanPage() {
                             status="default"
                             leftIcon={RiTimeLine}
                             leftLabel="Proses"
-                            className="bg-amber-50 text-amber-800 border-amber-200/90 shadow-xs"
+                            className="bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border-amber-200/90 dark:border-amber-800 shadow-xs"
                           />
                         )}
                         {item.status === "done" && (
@@ -849,7 +851,7 @@ export default function PenugasanPage() {
                             status="success"
                             leftIcon={RiCheckboxCircleFill}
                             leftLabel="Selesai"
-                            className="bg-emerald-50 text-emerald-800 border-emerald-200/90 shadow-xs"
+                            className="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border-emerald-200/90 dark:border-emerald-800 shadow-xs"
                           />
                         )}
                         {item.status === "pending" && (
@@ -857,7 +859,7 @@ export default function PenugasanPage() {
                             status="default"
                             leftIcon={RiHourglassLine}
                             leftLabel="Menunggu"
-                            className="bg-gray-50 text-gray-700 border-gray-200/90 shadow-xs"
+                            className="bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200/90 dark:border-gray-700 shadow-xs"
                           />
                         )}
                         {item.status === "conflict" && (
@@ -865,7 +867,7 @@ export default function PenugasanPage() {
                             status="error"
                             leftIcon={RiCloseCircleFill}
                             leftLabel="Bentrok"
-                            className="bg-rose-50 text-rose-800 border-rose-200/90 shadow-xs"
+                            className="bg-rose-50 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border-rose-200/90 dark:border-rose-800 shadow-xs"
                           />
                         )}
                       </td>
@@ -875,21 +877,21 @@ export default function PenugasanPage() {
                         <div className="flex items-center justify-end gap-1 text-gray-400">
                           <button
                             onClick={() => handleOpenDetail(item)}
-                            className="p-1.5 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition"
+                            className="p-1.5 hover:text-indigo-600 dark:hover:text-sky-400 hover:bg-indigo-50 dark:hover:bg-gray-800 rounded-lg transition cursor-pointer"
                             title="Detail"
                           >
                             <RiEyeLine className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleOpenEdit(item)}
-                            className="p-1.5 hover:text-blue-600 hover:bg-blue-50 rounded-md transition"
+                            className="p-1.5 hover:text-blue-600 dark:hover:text-sky-400 hover:bg-blue-50 dark:hover:bg-gray-800 rounded-lg transition cursor-pointer"
                             title="Edit"
                           >
                             <RiEditLine className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleOpenDelete(item)}
-                            className="p-1.5 hover:text-red-600 hover:bg-red-50 rounded-md transition"
+                            className="p-1.5 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition cursor-pointer"
                             title="Hapus"
                           >
                             <RiDeleteBinLine className="w-4 h-4" />
@@ -905,7 +907,7 @@ export default function PenugasanPage() {
         </div>
 
         {/* ── 4. Pagination Footer ── */}
-        <div className="p-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
+        <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500 dark:text-gray-400">
           <div className="flex items-center gap-2">
             <span>Tampilkan</span>
             <select
@@ -914,7 +916,7 @@ export default function PenugasanPage() {
                 setPageSize(Number(e.target.value));
                 setCurrentPage(1);
               }}
-              className="border border-gray-200 rounded px-2 py-1 bg-white text-gray-700 focus:outline-none"
+              className="border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none"
             >
               <option value={5}>5</option>
               <option value={10}>10</option>
@@ -927,17 +929,17 @@ export default function PenugasanPage() {
             <button
               disabled={currentPage === 1}
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              className="px-2.5 py-1 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-40 disabled:pointer-events-none rounded hover:bg-gray-50 transition cursor-pointer"
+              className="px-2.5 py-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 disabled:opacity-40 disabled:pointer-events-none rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer"
             >
               Sebelumnya
             </button>
-            <span className="px-3 py-1 font-semibold text-gray-800 bg-gray-100 rounded">
+            <span className="px-3 py-1 font-bold text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 rounded-lg">
               {currentPage}
             </span>
             <button
               disabled={currentPage * pageSize >= filteredItems.length}
               onClick={() => setCurrentPage((p) => p + 1)}
-              className="px-2.5 py-1 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-40 disabled:pointer-events-none rounded hover:bg-gray-50 transition cursor-pointer"
+              className="px-2.5 py-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 disabled:opacity-40 disabled:pointer-events-none rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer"
             >
               Selanjutnya
             </button>
@@ -954,33 +956,33 @@ export default function PenugasanPage() {
         }}
         title={isCreateOpen ? "Buat Penugasan Baru" : "Edit Penugasan Tim"}
       >
-        <div className="space-y-4 mt-3">
+        <div className="space-y-4 mt-3 text-gray-900 dark:text-gray-100">
           {/* Real-time Conflict Alert Box */}
           {formConflict && (
-            <div className="flex items-start gap-3 bg-rose-50 border border-rose-200 rounded-xl p-3.5 text-rose-800 animate-fadeIn">
-              <AlertTriangle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
+            <div className="flex items-start gap-3 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 rounded-2xl p-3.5 text-rose-800 dark:text-rose-300 animate-fadeIn">
+              <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-xs font-bold text-rose-900 uppercase tracking-wide">
+                <p className="text-xs font-bold text-rose-900 dark:text-rose-200 uppercase tracking-wide">
                   ⚠️ Peringatan Deteksi Bentrok Jadwal
                 </p>
-                <p className="text-xs text-rose-700 mt-1 leading-relaxed">{formConflict}</p>
-                <p className="text-[11px] text-rose-600 mt-1 italic">
+                <p className="text-xs text-rose-700 dark:text-rose-300 mt-1 leading-relaxed">{formConflict}</p>
+                <p className="text-[11px] text-rose-600 dark:text-rose-400 mt-1 italic">
                   Status akan otomatis ditandai sebagai Bentrok jika disimpan.
                 </p>
               </div>
             </div>
           )}
 
-          {/* Nama Kegiatan (Dropdown Sinkron dari Manajemen Kegiatan) */}
+          {/* Nama Kegiatan */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                 Kegiatan Terkait (Sinkron dari Agenda) *
               </label>
               <button
                 type="button"
                 onClick={() => navigate("/kegiatan")}
-                className="text-[11px] text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1"
+                className="text-[11px] text-indigo-600 dark:text-sky-400 hover:underline font-bold flex items-center gap-1 cursor-pointer"
               >
                 <span>Kelola Agenda</span>
                 <ExternalLink className="w-3 h-3" />
@@ -1005,7 +1007,7 @@ export default function PenugasanPage() {
                   setFormData({ ...formData, kegiatanTerkait: e.target.value });
                 }
               }}
-              className="w-full px-3.5 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 bg-white font-medium text-gray-800"
+              className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-gray-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white dark:bg-[#161b22] text-gray-900 dark:text-gray-100 font-bold cursor-pointer"
             >
               {kegiatanList.map((keg) => (
                 <option key={keg.id} value={keg.title}>
@@ -1022,7 +1024,7 @@ export default function PenugasanPage() {
 
           {/* PIC Selection */}
           <div>
-            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+            <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
               Pilih PIC (Petugas Staf) *
             </label>
             <select
@@ -1035,7 +1037,7 @@ export default function PenugasanPage() {
                   picAvatar: opt?.avatar ?? "ST",
                 });
               }}
-              className="w-full px-3.5 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 bg-white"
+              className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-gray-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white dark:bg-[#161b22] text-gray-900 dark:text-gray-100 font-semibold cursor-pointer"
             >
               {PIC_OPTIONS.map((p) => (
                 <option key={p.name} value={p.name}>
@@ -1048,13 +1050,13 @@ export default function PenugasanPage() {
           {/* Output & Tanggal */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
                 Output / Jenis Konten
               </label>
               <select
                 value={formData.jenisKonten}
                 onChange={(e) => setFormData({ ...formData, jenisKonten: e.target.value })}
-                className="w-full px-3.5 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 bg-white"
+                className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-gray-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white dark:bg-[#161b22] text-gray-900 dark:text-gray-100 font-semibold cursor-pointer"
               >
                 {JENIS_KONTEN_OPTIONS.map((jk) => (
                   <option key={jk} value={jk}>
@@ -1065,7 +1067,7 @@ export default function PenugasanPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
                 Hari / Tanggal Penugasan
               </label>
               <input
@@ -1073,7 +1075,7 @@ export default function PenugasanPage() {
                 placeholder="Senin, 24 Agustus 2026"
                 value={formData.tanggalKegiatan}
                 onChange={(e) => setFormData({ ...formData, tanggalKegiatan: e.target.value })}
-                className="w-full px-3.5 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+                className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-gray-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white dark:bg-[#161b22] text-gray-900 dark:text-gray-100"
               />
             </div>
           </div>
@@ -1081,25 +1083,25 @@ export default function PenugasanPage() {
           {/* Jam Mulai & Selesai */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
                 Jam Mulai *
               </label>
               <input
                 type="time"
                 value={formData.jamMulai}
                 onChange={(e) => setFormData({ ...formData, jamMulai: e.target.value })}
-                className="w-full px-3.5 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+                className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-gray-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white dark:bg-[#161b22] text-gray-900 dark:text-gray-100"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
                 Jam Selesai *
               </label>
               <input
                 type="time"
                 value={formData.jamSelesai}
                 onChange={(e) => setFormData({ ...formData, jamSelesai: e.target.value })}
-                className="w-full px-3.5 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+                className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-gray-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white dark:bg-[#161b22] text-gray-900 dark:text-gray-100"
               />
             </div>
           </div>
@@ -1107,7 +1109,7 @@ export default function PenugasanPage() {
           {/* Lokasi & Status */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
                 Lokasi Liputan/Tugas
               </label>
               <input
@@ -1115,11 +1117,11 @@ export default function PenugasanPage() {
                 placeholder="Balaikota Among Tani"
                 value={formData.lokasi}
                 onChange={(e) => setFormData({ ...formData, lokasi: e.target.value })}
-                className="w-full px-3.5 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+                className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-gray-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white dark:bg-[#161b22] text-gray-900 dark:text-gray-100"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
                 Status
               </label>
               <select
@@ -1130,7 +1132,7 @@ export default function PenugasanPage() {
                     status: e.target.value as MockPenugasan["status"],
                   })
                 }
-                className="w-full px-3.5 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 bg-white"
+                className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-gray-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white dark:bg-[#161b22] text-gray-900 dark:text-gray-100 font-semibold cursor-pointer"
               >
                 <option value="in-progress">Proses</option>
                 <option value="done">Selesai</option>
@@ -1142,7 +1144,7 @@ export default function PenugasanPage() {
 
           {/* Catatan / Instruksi */}
           <div>
-            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+            <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
               Catatan / Instruksi Tambahan
             </label>
             <textarea
@@ -1150,12 +1152,12 @@ export default function PenugasanPage() {
               placeholder="Instruksi khusus liputan atau batas pengumpulan..."
               value={formData.catatan}
               onChange={(e) => setFormData({ ...formData, catatan: e.target.value })}
-              className="w-full px-3.5 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 resize-none"
+              className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-gray-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white dark:bg-[#161b22] text-gray-900 dark:text-gray-100 resize-none"
             />
           </div>
 
           {/* Modal Action Buttons */}
-          <div className="pt-3 flex justify-end gap-2 border-t border-gray-100">
+          <div className="pt-3 flex justify-end gap-2 border-t border-gray-100 dark:border-gray-800">
             <Button
               variant="outline"
               onClick={() => {
@@ -1167,7 +1169,7 @@ export default function PenugasanPage() {
             </Button>
             <button
               onClick={isCreateOpen ? handleSaveCreate : handleSaveEdit}
-              className="px-4 py-2 text-sm font-semibold text-white rounded-lg shadow-sm transition bg-[#0f1f5c] hover:bg-[#0a1540] cursor-pointer"
+              className="px-4 py-2.5 text-xs sm:text-sm font-bold text-white rounded-xl shadow-xs transition bg-[#0f1f5c] dark:bg-blue-600 hover:bg-[#0a1540] dark:hover:bg-blue-700 cursor-pointer"
             >
               {isCreateOpen ? "Simpan Penugasan" : "Simpan Perubahan"}
             </button>
@@ -1182,15 +1184,15 @@ export default function PenugasanPage() {
         title="Detail Informasi Penugasan"
       >
         {selectedItem && (
-          <div className="space-y-4 mt-2">
+          <div className="space-y-4 mt-2 text-gray-900 dark:text-gray-100">
             {/* Header info card */}
-            <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+            <div className="bg-gray-50 dark:bg-gray-900/60 rounded-2xl p-4 border border-gray-100 dark:border-gray-800">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="font-bold text-gray-900 text-base">
+                  <h3 className="font-bold text-gray-900 dark:text-gray-100 text-base">
                     {selectedItem.kegiatanTerkait}
                   </h3>
-                  <p className="text-xs text-gray-500 mt-0.5">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     {selectedItem.tanggalKegiatan ?? "Senin, 24 Agustus 2026"}
                   </p>
                 </div>
@@ -1201,7 +1203,7 @@ export default function PenugasanPage() {
                       status="default"
                       leftIcon={RiTimeLine}
                       leftLabel="Proses"
-                      className="bg-amber-50 text-amber-800 border-amber-200/90 shadow-xs"
+                      className="bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border-amber-200/90 dark:border-amber-800 shadow-xs"
                     />
                   )}
                   {selectedItem.status === "done" && (
@@ -1209,7 +1211,7 @@ export default function PenugasanPage() {
                       status="success"
                       leftIcon={RiCheckboxCircleFill}
                       leftLabel="Selesai"
-                      className="bg-emerald-50 text-emerald-800 border-emerald-200/90 shadow-xs"
+                      className="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border-emerald-200/90 dark:border-emerald-800 shadow-xs"
                     />
                   )}
                   {selectedItem.status === "pending" && (
@@ -1217,7 +1219,7 @@ export default function PenugasanPage() {
                       status="default"
                       leftIcon={RiHourglassLine}
                       leftLabel="Menunggu"
-                      className="bg-gray-50 text-gray-700 border-gray-200/90 shadow-xs"
+                      className="bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200/90 dark:border-gray-700 shadow-xs"
                     />
                   )}
                   {selectedItem.status === "conflict" && (
@@ -1225,7 +1227,7 @@ export default function PenugasanPage() {
                       status="error"
                       leftIcon={RiCloseCircleFill}
                       leftLabel="Bentrok"
-                      className="bg-rose-50 text-rose-800 border-rose-200/90 shadow-xs"
+                      className="bg-rose-50 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border-rose-200/90 dark:border-rose-800 shadow-xs"
                     />
                   )}
                 </div>
@@ -1234,13 +1236,13 @@ export default function PenugasanPage() {
 
             {/* Conflict Warning if status is conflict */}
             {selectedItem.status === "conflict" && (
-              <div className="flex items-start gap-3 bg-rose-50 border border-rose-200 rounded-xl p-3.5 text-rose-800">
-                <AlertTriangle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
+              <div className="flex items-start gap-3 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 rounded-2xl p-3.5 text-rose-800 dark:text-rose-300">
+                <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-xs font-bold text-rose-900 uppercase">
+                  <p className="text-xs font-bold text-rose-900 dark:text-rose-200 uppercase">
                     Status Bentrok Jadwal Terdeteksi
                   </p>
-                  <p className="text-xs text-rose-700 mt-1 leading-relaxed">
+                  <p className="text-xs text-rose-700 dark:text-rose-300 mt-1 leading-relaxed">
                     {selectedItem.conflictMessage ??
                       "Petugas PIC memiliki jadwal bertabrakan pada jam yang sama."}
                   </p>
@@ -1249,38 +1251,38 @@ export default function PenugasanPage() {
             )}
 
             {/* Grid detail */}
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="bg-white p-3 rounded-xl border border-gray-100 flex items-start gap-2.5">
+            <div className="grid grid-cols-2 gap-3 text-xs sm:text-sm">
+              <div className="bg-white dark:bg-gray-800/80 p-3.5 rounded-2xl border border-gray-100 dark:border-gray-700 flex items-start gap-2.5">
                 <User className="w-4 h-4 text-gray-400 mt-0.5" />
                 <div>
-                  <p className="text-[11px] text-gray-400 font-semibold uppercase">Petugas PIC</p>
-                  <p className="font-semibold text-gray-800 mt-0.5">{selectedItem.pic}</p>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase">Petugas PIC</p>
+                  <p className="font-bold text-gray-800 dark:text-gray-200 mt-0.5">{selectedItem.pic}</p>
                 </div>
               </div>
 
-              <div className="bg-white p-3 rounded-xl border border-gray-100 flex items-start gap-2.5">
+              <div className="bg-white dark:bg-gray-800/80 p-3.5 rounded-2xl border border-gray-100 dark:border-gray-700 flex items-start gap-2.5">
                 <FileText className="w-4 h-4 text-gray-400 mt-0.5" />
                 <div>
-                  <p className="text-[11px] text-gray-400 font-semibold uppercase">Output Konten</p>
-                  <p className="font-semibold text-gray-800 mt-0.5">{selectedItem.jenisKonten}</p>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase">Output Konten</p>
+                  <p className="font-bold text-gray-800 dark:text-gray-200 mt-0.5">{selectedItem.jenisKonten}</p>
                 </div>
               </div>
 
-              <div className="bg-white p-3 rounded-xl border border-gray-100 flex items-start gap-2.5">
+              <div className="bg-white dark:bg-gray-800/80 p-3.5 rounded-2xl border border-gray-100 dark:border-gray-700 flex items-start gap-2.5">
                 <Clock className="w-4 h-4 text-gray-400 mt-0.5" />
                 <div>
-                  <p className="text-[11px] text-gray-400 font-semibold uppercase">Waktu Penugasan</p>
-                  <p className="font-semibold text-gray-800 mt-0.5">
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase">Waktu Penugasan</p>
+                  <p className="font-bold text-gray-800 dark:text-gray-200 mt-0.5">
                     {selectedItem.jamMulai} - {selectedItem.jamSelesai}
                   </p>
                 </div>
               </div>
 
-              <div className="bg-white p-3 rounded-xl border border-gray-100 flex items-start gap-2.5">
+              <div className="bg-white dark:bg-gray-800/80 p-3.5 rounded-2xl border border-gray-100 dark:border-gray-700 flex items-start gap-2.5">
                 <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
                 <div>
-                  <p className="text-[11px] text-gray-400 font-semibold uppercase">Lokasi</p>
-                  <p className="font-semibold text-gray-800 mt-0.5">
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase">Lokasi</p>
+                  <p className="font-bold text-gray-800 dark:text-gray-200 mt-0.5">
                     {selectedItem.lokasi ?? "Balaikota Among Tani"}
                   </p>
                 </div>
@@ -1289,11 +1291,11 @@ export default function PenugasanPage() {
 
             {/* Catatan / Instruksi */}
             {selectedItem.catatan && (
-              <div className="bg-gray-50 p-3.5 rounded-xl border border-gray-100">
-                <p className="text-[11px] text-gray-400 font-semibold uppercase">
+              <div className="bg-gray-50 dark:bg-gray-900/60 p-3.5 rounded-2xl border border-gray-100 dark:border-gray-800">
+                <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase">
                   Catatan / Instruksi Penugasan
                 </p>
-                <p className="text-xs text-gray-700 mt-1 leading-relaxed">
+                <p className="text-xs text-gray-700 dark:text-gray-300 mt-1 leading-relaxed">
                   {selectedItem.catatan}
                 </p>
               </div>
@@ -1315,20 +1317,20 @@ export default function PenugasanPage() {
         title="Konfirmasi Hapus Penugasan"
       >
         <div className="space-y-4 mt-2">
-          <p className="text-sm text-gray-600 leading-relaxed">
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
             Apakah Anda yakin ingin menghapus penugasan{" "}
-            <span className="font-bold text-gray-900">
+            <span className="font-bold text-gray-900 dark:text-gray-100">
               "{selectedItem?.kegiatanTerkait}"
             </span>{" "}
-            untuk <span className="font-semibold text-gray-800">{selectedItem?.pic}</span>?
+            untuk <span className="font-semibold text-gray-800 dark:text-gray-200">{selectedItem?.pic}</span>?
           </p>
-          <div className="pt-3 flex justify-end gap-2 border-t border-gray-100">
+          <div className="pt-3 flex justify-end gap-2 border-t border-gray-100 dark:border-gray-800">
             <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
               Batal
             </Button>
             <button
               onClick={handleConfirmDelete}
-              className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-sm transition cursor-pointer"
+              className="px-4 py-2 text-xs sm:text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition cursor-pointer"
             >
               Hapus Penugasan
             </button>
