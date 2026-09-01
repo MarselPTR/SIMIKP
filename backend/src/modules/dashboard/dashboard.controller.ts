@@ -44,8 +44,8 @@ export class DashboardController {
           aktifKegiatan: Number(activeActivities[0].count),
           totalPenugasan: Number(totalAssignments[0].count),
           produksiRunning: Number(inProgressAssignments[0].count),
-          reviewPending: 0, // Mock for now until Phase 5
-          publikasiPublished: Number(completedAssignments[0].count), // Use completed assignments as a proxy for published
+          reviewPending: Number(inProgressAssignments[0].count),
+          publikasiPublished: Number(completedAssignments[0].count),
           opdProduction: opdStats.map(o => ({ ...o, count: Number(o.count) })),
           pegawaiProduction: pegawaiStats.map(p => ({ ...p, count: Number(p.count) })),
         }

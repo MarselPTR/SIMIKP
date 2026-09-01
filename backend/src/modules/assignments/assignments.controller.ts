@@ -3,6 +3,8 @@ import { db } from "../../db";
 import { assignments, activities, users, contentTypes } from "../../db/schema";
 import { eq, and, or, sql } from "drizzle-orm";
 import { z } from "zod";
+import { createNotification } from "../system/notifications.service";
+import { logAudit } from "../system/audit.service";
 
 const createAssignmentSchema = z.object({
   activityId: z.string().optional(),
@@ -162,6 +164,19 @@ export class AssignmentsController {
         createdBy,
       });
 
+      if (finalUserId) {
+        const act = await db.select({ title: activities.title }).from(activities).where(eq(activities.id, finalActivityId)).limit(1);
+        const actTitle = act[0]?.title || "Kegiatan Baru";
+        await createNotification({
+          userId: finalUserId,
+          type: "ASSIGNMENT",
+          title: "Penugasan Baru",
+          message: `Anda ditugaskan pada agenda "${actTitle}"`,
+          metadata: { assignmentId: newId, activityId: finalActivityId },
+        });
+      }
+      await logAudit(request, "CREATE_ASSIGNMENT", "assignments", newId);
+
       return reply.send({ success: true, message: "Penugasan berhasil dibuat", id: newId });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -206,6 +221,7 @@ export class AssignmentsController {
         await db.update(assignments)
           .set(updateData)
           .where(eq(assignments.id, id));
+        await logAudit(request, "UPDATE_ASSIGNMENT", "assignments", id);
       }
 
       return reply.send({ success: true, message: "Penugasan berhasil diperbarui" });
@@ -222,6 +238,7 @@ export class AssignmentsController {
     try {
       const { id } = request.params;
       await db.delete(assignments).where(eq(assignments.id, id));
+      await logAudit(request, "DELETE_ASSIGNMENT", "assignments", id);
       return reply.send({ success: true, message: "Penugasan berhasil dihapus" });
     } catch (error) {
       request.log.error(error);

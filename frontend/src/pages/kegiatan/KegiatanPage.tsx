@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
@@ -42,6 +42,42 @@ const PRIORITAS_BADGE_VARIANT: Record<MockKegiatan["prioritas"], "warning" | "in
 
 const OUTPUT_OPTIONS = ["Naskah Berita", "Foto", "Video", "Reels", "Infografis", "Audio"];
 
+export const KOTA_BATU_DISTRICTS: Record<string, string[]> = {
+  "Kecamatan Batu": [
+    "Kelurahan Sisir",
+    "Kelurahan Ngaglik",
+    "Kelurahan Temas",
+    "Kelurahan Songgokerto",
+    "Desa Sumberejo",
+    "Desa Sidomulyo",
+    "Desa Pesanggrahan",
+    "Desa Oro-oro Ombo",
+  ],
+  "Kecamatan Bumiaji": [
+    "Desa Bumiaji",
+    "Desa Bulukerto",
+    "Desa Giripurno",
+    "Desa Gunungsari",
+    "Desa Pandanrejo",
+    "Desa Punten",
+    "Desa Sumber Brantas",
+    "Desa Sumbergondo",
+    "Desa Tulungrejo",
+  ],
+  "Kecamatan Junrejo": [
+    "Kelurahan Dadaprejo",
+    "Desa Beji",
+    "Desa Junrejo",
+    "Desa Mojorejo",
+    "Desa Pendem",
+    "Desa Tlekung",
+    "Desa Torongrejo",
+  ],
+  "Lainnya / Luar Kota": [
+    "Luar Kota Batu",
+  ],
+};
+
 const todayStr = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -51,6 +87,9 @@ const emptyForm = {
   title: "",
   deadline: todayStr(),
   lokasi: "",
+  kecamatan: "Kecamatan Batu",
+  desaKelurahan: "Kelurahan Sisir",
+  alamat: "",
   opdPenyelenggara: "",
   prioritas: "Sedang" as MockKegiatan["prioritas"],
   outputDibutuhkan: [] as string[],
@@ -76,7 +115,7 @@ const formatTanggalPanjang = (iso: string) => {
 const KegiatanPage = () => {
   const navigate = useNavigate();
 
-  const { data: kegiatanData = [], isLoading, error, refetch } = useQuery({
+  const { data: rawKegiatanData, isLoading, error, refetch } = useQuery({
     queryKey: ["kegiatan"],
     queryFn: async () => {
       try {
@@ -107,18 +146,21 @@ const KegiatanPage = () => {
     queryKey: ["penugasan"],
     queryFn: async () => await apiFetch<{ data: any[] }>("/assignments"),
   });
+  
   // Normalise items from real API or mock – map to shape expected by JSX
-  const penugasanList: MockPenugasan[] = (penugasanResponse?.data ?? []).map((p: any) => ({
-    id: p.id ?? p.id,
-    kegiatanTerkait: p.activityTitle ?? p.kegiatanTerkait ?? "",
-    pic: p.picName ?? p.pic ?? "",
-    picAvatar: p.picAvatar ?? null,
-    jenisKonten: p.contentType ?? p.jenisKonten ?? "",
-    jamMulai: (p.startTime ?? p.jamMulai ?? "").slice(0, 5),
-    jamSelesai: (p.endTime ?? p.jamSelesai ?? "").slice(0, 5),
-    status: p.status ?? p.status ?? "ASSIGNED",
-    tanggal: p.activityDate ?? p.tanggal ?? "",
-  }));
+  const penugasanList: MockPenugasan[] = useMemo(() => {
+    return (penugasanResponse?.data ?? []).map((p: any) => ({
+      id: p.id,
+      kegiatanTerkait: p.activityTitle ?? p.kegiatanTerkait ?? "",
+      pic: p.picName ?? p.pic ?? "",
+      picAvatar: p.picAvatar ?? null,
+      jenisKonten: p.contentType ?? p.jenisKonten ?? "",
+      jamMulai: (p.startTime ?? p.jamMulai ?? "").slice(0, 5),
+      jamSelesai: (p.endTime ?? p.jamSelesai ?? "").slice(0, 5),
+      status: p.status ?? "ASSIGNED",
+      tanggal: p.activityDate ?? p.tanggal ?? "",
+    }));
+  }, [penugasanResponse?.data]);
 
   const getAssignedTasks = (title: string): MockPenugasan[] => {
     if (!title) return [];
@@ -127,10 +169,10 @@ const KegiatanPage = () => {
     );
   };
 
-  const [items, setItems] = useState<MockKegiatan[]>([]);
-  useEffect(() => {
-    if (kegiatanData) setItems(kegiatanData);
-  }, [kegiatanData]);
+  const items: MockKegiatan[] = useMemo(
+    () => (Array.isArray(rawKegiatanData) ? (rawKegiatanData as MockKegiatan[]) : []),
+    [rawKegiatanData]
+  );
 
   const [search, setSearch] = useState("");
   const [filterDate, setFilterDate] = useState("all");
@@ -190,12 +232,17 @@ const KegiatanPage = () => {
     setIsModalOpen(true);
   };
 
-  const openEditDialog = (item: MockKegiatan) => {
+  const openEditDialog = (item: MockKegiatan & any) => {
     setEditingId(item.id);
+    const kec = item.kecamatan || "Kecamatan Batu";
+    const defaultDesa = KOTA_BATU_DISTRICTS[kec]?.[0] || "Kelurahan Sisir";
     setForm({
       title: item.title,
       deadline: item.deadline,
       lokasi: item.lokasi ?? "",
+      kecamatan: kec,
+      desaKelurahan: item.desaKelurahan || defaultDesa,
+      alamat: item.alamat ?? "",
       opdPenyelenggara: item.opdPenyelenggara ?? "",
       prioritas: item.prioritas,
       outputDibutuhkan: item.outputDibutuhkan ?? [],
@@ -254,8 +301,14 @@ const KegiatanPage = () => {
       title: form.title.trim(),
       activityDate: form.deadline,
       opdId: opdId || undefined,
+      opdPenyelenggara: form.opdPenyelenggara.trim() || undefined,
       location: form.lokasi.trim() || undefined,
+      locationName: form.lokasi.trim() || undefined,
+      kecamatan: form.kecamatan,
+      desaKelurahan: form.desaKelurahan,
+      address: form.alamat.trim() || undefined,
       priority: form.prioritas,
+      outputDibutuhkan: form.outputDibutuhkan,
     });
   };
 
@@ -413,8 +466,23 @@ const KegiatanPage = () => {
         )}
       </div>
 
-      <Dialog open={isModalOpen} onClose={closeDialog} title={editingId ? "Edit Kegiatan" : "Tambah Kegiatan Baru"}>
-        <div className="space-y-4 mt-2">
+      <Dialog 
+        open={isModalOpen} 
+        onClose={closeDialog} 
+        title={editingId ? "Edit Kegiatan" : "Tambah Kegiatan Baru"}
+        size="lg"
+        actions={
+          <>
+            <Button variant="outline" onClick={closeDialog}>
+              Batal
+            </Button>
+            <Button variant="default" disabled={!form.title.trim() || !form.deadline} onClick={handleSave} className="bg-[#0f1f5c] text-white">
+              {editingId ? "Simpan Perubahan" : "Simpan Kegiatan"}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
           <div>
             <label className="text-sm font-medium text-gray-700">Nama Kegiatan</label>
             <Input
@@ -448,23 +516,78 @@ const KegiatanPage = () => {
               />
             </div>
           </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700">Lokasi</label>
-            <Input
-              placeholder="Contoh: Ruang Rapat Lt. 2 Balai Kota"
-              value={form.lokasi}
-              onChange={(e) => setForm((f) => ({ ...f, lokasi: e.target.value }))}
-              className="mt-1"
-            />
+          <div className="bg-slate-50 dark:bg-slate-900/50 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-3">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wide">
+              <MapPin className="w-3.5 h-3.5 text-blue-600" />
+              <span>Detail Lokasi Pelaksanaan</span>
+            </div>
+            
+            <div>
+              <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Nama Gedung / Ruangan *</label>
+              <Input
+                placeholder="Contoh: Ruang Rapat Lt. 2 Balai Kota Among Tani"
+                value={form.lokasi}
+                onChange={(e) => setForm((f) => ({ ...f, lokasi: e.target.value }))}
+                className="mt-1"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Kecamatan</label>
+                <select
+                  value={form.kecamatan}
+                  onChange={(e) => {
+                    const newKec = e.target.value;
+                    const firstDesa = KOTA_BATU_DISTRICTS[newKec]?.[0] || "";
+                    setForm((f) => ({ ...f, kecamatan: newKec, desaKelurahan: firstDesa }));
+                  }}
+                  className="mt-1 w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 bg-white"
+                >
+                  {Object.keys(KOTA_BATU_DISTRICTS).map((kec) => (
+                    <option key={kec} value={kec}>{kec}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Kelurahan / Desa</label>
+                <select
+                  value={form.desaKelurahan}
+                  onChange={(e) => setForm((f) => ({ ...f, desaKelurahan: e.target.value }))}
+                  className="mt-1 w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 bg-white"
+                >
+                  {(KOTA_BATU_DISTRICTS[form.kecamatan] || []).map((desa) => (
+                    <option key={desa} value={desa}>{desa}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Alamat Lengkap (Opsional)</label>
+              <Input
+                placeholder="Contoh: Jl. Panglima Sudirman No. 507, Kec. Batu"
+                value={form.alamat}
+                onChange={(e) => setForm((f) => ({ ...f, alamat: e.target.value }))}
+                className="mt-1"
+              />
+            </div>
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700">OPD Penyelenggara</label>
-            <Input
-              placeholder="Contoh: Diskominfo / Dispendik"
+            <input
+              list="opd-options"
+              placeholder="Pilih atau ketik OPD (Contoh: Diskominfo / Dinkes)"
               value={form.opdPenyelenggara}
               onChange={(e) => setForm((f) => ({ ...f, opdPenyelenggara: e.target.value }))}
-              className="mt-1"
+              className="mt-1 w-full px-3.5 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 bg-white"
             />
+            <datalist id="opd-options">
+              {Array.isArray(opds) && opds.map((o: any) => (
+                <option key={o.id} value={o.name} />
+              ))}
+            </datalist>
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700 mb-2 block">Output yang Dibutuhkan</label>
@@ -527,15 +650,6 @@ const KegiatanPage = () => {
               )}
             </div>
           )}
-
-          <div className="pt-4 flex justify-end gap-2">
-            <Button variant="outline" onClick={closeDialog}>
-              Batal
-            </Button>
-            <Button variant="default" disabled={!form.title.trim() || !form.deadline} onClick={handleSave} className="bg-[#0f1f5c] text-white">
-              {editingId ? "Simpan Perubahan" : "Simpan Kegiatan"}
-            </Button>
-          </div>
         </div>
       </Dialog>
 

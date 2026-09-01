@@ -142,66 +142,6 @@ export default function PenugasanPage() {
     }
   };
 
-  // Form state
-  const [formData, setFormData] = useState({
-    kegiatanTerkait: "",
-    tanggalKegiatan: "",
-    jenisKonten: "Foto",
-    pic: "Budi Fotografer",
-    picAvatar: "BF",
-    jamMulai: "08:00",
-    jamSelesai: "10:00",
-    waktuSubtitle: "(Senin, 24/8)",
-    status: "in-progress" as MockPenugasan["status"],
-    lokasi: "Balaikota Among Tani",
-    catatan: "",
-  });
-
-  // Handle URL pre-fill from Kegiatan Page
-  useEffect(() => {
-    const kegParam = searchParams.get("kegiatan");
-    const actionParam = searchParams.get("action");
-    if (kegParam) {
-      const found = kegiatanList.find(
-        (k) => k.title.toLowerCase() === kegParam.toLowerCase()
-      );
-      if (found) {
-        setFormData({
-          kegiatanTerkait: found.title,
-          tanggalKegiatan: formatIndoDate(found.deadline),
-          waktuSubtitle: formatSubtitleDate(found.deadline),
-          jenisKonten: found.outputDibutuhkan?.[0] ?? "Foto",
-          pic: "Budi Fotografer",
-          picAvatar: "BF",
-          jamMulai: "08:30",
-          jamSelesai: "11:00",
-          status: "in-progress",
-          lokasi: found.lokasi ?? "Balaikota Among Tani",
-          catatan: `Penugasan untuk kegiatan ${found.title} (${found.opdPenyelenggara ?? "OPD"})`,
-        });
-      } else {
-        setFormData((prev) => ({
-          ...prev,
-          kegiatanTerkait: kegParam,
-          catatan: `Penugasan untuk agenda ${kegParam}`,
-        }));
-      }
-
-      if (actionParam === "create") {
-        setIsCreateOpen(true);
-      }
-    }
-  }, [searchParams, kegiatanList]);
-
-  // Sync search state with URL params
-  useEffect(() => {
-    if (searchQuery) {
-      setSearchParams({ search: searchQuery });
-    } else {
-      setSearchParams({});
-    }
-  }, [searchQuery, setSearchParams]);
-
   // Dynamic Options from real database
   const PIC_OPTIONS = useMemo(() => {
     if (Array.isArray(petugasList) && petugasList.length > 0) {
@@ -223,6 +163,70 @@ export default function PenugasanPage() {
     "Infografis",
     "Live Streaming",
   ];
+
+  // Form state
+  const [formData, setFormData] = useState({
+    kegiatanTerkait: "",
+    tanggalKegiatan: "",
+    jenisKonten: "Foto",
+    pic: "",
+    picAvatar: "PT",
+    jamMulai: "08:00",
+    jamSelesai: "10:00",
+    waktuSubtitle: "",
+    status: "in-progress" as MockPenugasan["status"],
+    lokasi: "Balaikota Among Tani",
+    catatan: "",
+  });
+
+  // Handle URL pre-fill from Kegiatan Page
+  useEffect(() => {
+    const kegParam = searchParams.get("kegiatan");
+    const actionParam = searchParams.get("action");
+    if (kegParam) {
+      const found = kegiatanList.find(
+        (k) => k.title.toLowerCase() === kegParam.toLowerCase()
+      );
+      const defaultPic = PIC_OPTIONS.length > 0 ? PIC_OPTIONS[0].name : "";
+      const defaultAvatar = PIC_OPTIONS.length > 0 ? PIC_OPTIONS[0].avatar : "PT";
+      if (found) {
+        setFormData({
+          kegiatanTerkait: found.title,
+          tanggalKegiatan: formatIndoDate(found.deadline),
+          waktuSubtitle: formatSubtitleDate(found.deadline),
+          jenisKonten: found.outputDibutuhkan?.[0] ?? "Foto",
+          pic: defaultPic,
+          picAvatar: defaultAvatar,
+          jamMulai: "08:30",
+          jamSelesai: "11:00",
+          status: "in-progress",
+          lokasi: found.lokasi ?? "Balaikota Among Tani",
+          catatan: `Penugasan untuk kegiatan ${found.title} (${found.opdPenyelenggara ?? "OPD"})`,
+        });
+      } else {
+        setFormData((prev) => ({
+          ...prev,
+          kegiatanTerkait: kegParam,
+          pic: defaultPic,
+          picAvatar: defaultAvatar,
+          catatan: `Penugasan untuk agenda ${kegParam}`,
+        }));
+      }
+
+      if (actionParam === "create") {
+        setIsCreateOpen(true);
+      }
+    }
+  }, [searchParams, kegiatanList, PIC_OPTIONS]);
+
+  // Sync search state with URL params
+  useEffect(() => {
+    if (searchQuery) {
+      setSearchParams({ search: searchQuery });
+    } else {
+      setSearchParams({});
+    }
+  }, [searchQuery, setSearchParams]);
 
   // Tab Status Counts (Solid & Real-time by item.status)
   const counts = useMemo(() => {
