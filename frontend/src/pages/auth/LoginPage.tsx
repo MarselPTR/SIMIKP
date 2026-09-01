@@ -11,7 +11,6 @@ import {
   User, 
   Eye, 
   EyeOff, 
-  ShieldCheck, 
   HelpCircle,
   X
 } from "lucide-react";
@@ -193,14 +192,6 @@ const LoginPage = () => {
             {loading ? t("login_submitting") : t("login_submit_btn")}
           </button>
         </form>
-
-        {/* Security / Organization Badge at Bottom */}
-        <div className="mt-10 pt-6 border-t border-gray-100 dark:border-gray-800 text-center">
-          <div className="inline-flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500 font-medium">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span>{t("login_footer_secured")}</span>
-          </div>
-        </div>
       </div>
 
       {/* ── Forgot Password Modal ── */}
