@@ -321,11 +321,11 @@ const FotoPanel = () => {
 
   return (
     <PanelShell title="FOTO" onMoreClick={() => navigate("/produksi")}>
-      <div className="flex items-center gap-5 mt-4">
+      <div className="flex flex-col items-center gap-3 mt-4">
         <button
           type="button"
           onClick={() => navigate("/produksi")}
-          className="relative w-36 h-36 flex-shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+          className="relative w-32 h-32 flex-shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
           aria-label="Lihat detail produksi foto"
         >
           <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
@@ -350,17 +350,17 @@ const FotoPanel = () => {
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none px-3">
             <span
-              className="text-3xl font-bold transition-colors duration-200"
+              className="text-2xl font-bold transition-colors duration-200"
               style={{ color: active ? active.color : NAVY }}
             >
               {active ? active.value : total}
             </span>
-            <span className="text-[11px] text-gray-400 text-center leading-tight">
+            <span className="text-[10px] text-gray-400 text-center leading-tight">
               {active ? active.label : "Total"}
             </span>
           </div>
         </button>
-        <div className="space-y-1.5">
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
           {fotoData.map((d, i) => (
             <button
               type="button"
@@ -370,11 +370,11 @@ const FotoPanel = () => {
               onFocus={() => setHovered(i)}
               onBlur={() => setHovered(null)}
               onClick={() => navigate("/produksi")}
-              className={`flex items-center gap-2 text-sm rounded px-2 -mx-2 py-1.5 transition-colors duration-150 focus-visible:outline-none ${
+              className={`flex items-center gap-1.5 text-xs whitespace-nowrap rounded px-1.5 py-1 transition-colors duration-150 focus-visible:outline-none ${
                 hovered === i ? "bg-gray-50 text-gray-900 font-semibold" : "text-gray-600"
               }`}
             >
-              <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: d.color }} />
+              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: d.color }} />
               <span>
                 {Math.round((d.value / total) * 100)}% {d.label}
               </span>
