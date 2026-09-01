@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
@@ -76,7 +76,7 @@ const formatTanggalPanjang = (iso: string) => {
 const KegiatanPage = () => {
   const navigate = useNavigate();
 
-  const { data: kegiatanData = [], isLoading, error, refetch } = useQuery({
+  const { data: rawKegiatanData, isLoading, error, refetch } = useQuery({
     queryKey: ["kegiatan"],
     queryFn: async () => {
       try {
@@ -127,10 +127,7 @@ const KegiatanPage = () => {
     );
   };
 
-  const [items, setItems] = useState<MockKegiatan[]>([]);
-  useEffect(() => {
-    if (kegiatanData) setItems(kegiatanData);
-  }, [kegiatanData]);
+  const items: MockKegiatan[] = useMemo(() => rawKegiatanData ?? [], [rawKegiatanData]);
 
   const [search, setSearch] = useState("");
   const [filterDate, setFilterDate] = useState("all");
