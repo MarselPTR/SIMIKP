@@ -10,6 +10,10 @@ export interface AuthUser {
   username: string;
   role: string;
   staffType?: string | null;
+  avatar?: string | null;
+  phone?: string | null;
+  nip?: string | null;
+  bio?: string | null;
 }
 
 interface LoginResult {

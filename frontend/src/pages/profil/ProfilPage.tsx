@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -19,6 +19,12 @@ import {
   KeyRound,
   FileCheck2,
   Globe,
+  Camera,
+  Pencil,
+  Trash2,
+  Upload,
+  X,
+  Phone,
 } from "lucide-react";
 import { useAuth } from "../../lib/AuthContext";
 import { useToast } from "../../contexts/ToastContext";
@@ -102,11 +108,23 @@ const BIDANG_CONFIG_EN: Record<
 
 export default function ProfilPage() {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const { addToast } = useToast();
   const { language, setLanguage, t } = useLanguage();
   const [copied, setCopied] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+
+  // Edit form states
+  const [editName, setEditName] = useState(user?.name ?? "");
+  const [editUsername, setEditUsername] = useState(user?.username ?? "");
+  const [editPhone, setEditPhone] = useState(user?.phone ?? "");
+  const [editNip, setEditNip] = useState(user?.nip ?? "");
+  const [editBio, setEditBio] = useState(user?.bio ?? "");
+  const [previewAvatar, setPreviewAvatar] = useState<string | null>(user?.avatar ?? null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const modalFileInputRef = useRef<HTMLInputElement>(null);
 
   const isPetugas = user?.role?.toLowerCase() === "petugas";
   const userBidang = user?.staffType || (user as { bidang?: string })?.bidang;
@@ -147,8 +165,103 @@ export default function ProfilPage() {
     }
   };
 
+  const handleDirectPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      addToast(
+        language === "en" ? "Image size exceeds 5MB limit" : "Ukuran gambar melebihi batas 5MB",
+        "warning"
+      );
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      updateUser({ avatar: base64 });
+      setPreviewAvatar(base64);
+      addToast(
+        language === "en" ? "Profile photo updated successfully!" : "Foto profil berhasil diperbarui!",
+        "success"
+      );
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleModalPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      addToast(
+        language === "en" ? "Image size exceeds 5MB limit" : "Ukuran gambar melebihi batas 5MB",
+        "warning"
+      );
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreviewAvatar(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleOpenEditModal = () => {
+    setEditName(user?.name ?? "");
+    setEditUsername(user?.username ?? "");
+    setEditPhone(user?.phone ?? "");
+    setEditNip(user?.nip ?? "");
+    setEditBio(user?.bio ?? "");
+    setPreviewAvatar(user?.avatar ?? null);
+    setShowEditModal(true);
+  };
+
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editName.trim()) {
+      addToast(language === "en" ? "Full name cannot be empty" : "Nama lengkap tidak boleh kosong", "warning");
+      return;
+    }
+
+    updateUser({
+      name: editName.trim(),
+      username: editUsername.trim(),
+      phone: editPhone.trim() || null,
+      nip: editNip.trim() || null,
+      bio: editBio.trim() || null,
+      avatar: previewAvatar,
+    });
+
+    setShowEditModal(false);
+    addToast(
+      language === "en" ? "Profile and photo saved successfully!" : "Data profil & foto berhasil disimpan!",
+      "success"
+    );
+  };
+
+  const handleRemovePhoto = () => {
+    setPreviewAvatar(null);
+    updateUser({ avatar: null });
+    addToast(
+      language === "en" ? "Profile photo removed" : "Foto profil telah dihapus",
+      "info"
+    );
+  };
+
   return (
     <div className="max-w-5xl mx-auto pb-16 space-y-6 animate-fade-in">
+      {/* Hidden File Input for Direct Upload */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleDirectPhotoUpload}
+        accept="image/png, image/jpeg, image/jpg, image/webp"
+        className="hidden"
+      />
+
       {/* ── Top Navigation Bar ── */}
       <div className="flex items-center justify-between">
         <button
@@ -200,15 +313,33 @@ export default function ProfilPage() {
         </div>
 
         <div className="relative z-10 flex flex-col md:flex-row items-center md:items-start gap-6 text-center md:text-left">
-          {/* Avatar with Halo Ring */}
-          <div className="relative group">
-            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-gradient-to-tr from-amber-400 via-sky-300 to-indigo-400 p-1 shadow-2xl">
-              <div className="w-full h-full rounded-[14px] bg-[#0a1647] flex items-center justify-center text-white text-3xl font-extrabold tracking-wider shadow-inner">
-                {initials}
+          {/* Avatar with Interactive Photo Upload Overlay */}
+          <div className="relative group/avatar cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-gradient-to-tr from-amber-400 via-sky-300 to-indigo-400 p-1 shadow-2xl transition-transform group-hover/avatar:scale-105 duration-200">
+              <div className="w-full h-full rounded-[14px] bg-[#0a1647] flex items-center justify-center text-white text-3xl font-extrabold tracking-wider shadow-inner overflow-hidden relative">
+                {user?.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt={user.name}
+                    className="w-full h-full object-cover rounded-[14px]"
+                  />
+                ) : (
+                  initials
+                )}
+
+                {/* Hover Camera Overlay */}
+                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex flex-col items-center justify-center text-white gap-1 rounded-[14px] backdrop-blur-2xs">
+                  <Camera className="w-5 h-5 text-sky-300" />
+                  <span className="text-[10px] font-bold tracking-tight">
+                    {language === "en" ? "Change Photo" : "Ganti Foto"}
+                  </span>
+                </div>
               </div>
             </div>
+
+            {/* Online Status Badge */}
             <div
-              className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-full bg-emerald-500 border-3 border-[#0a1647] flex items-center justify-center shadow-md"
+              className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-full bg-emerald-500 border-3 border-[#0a1647] flex items-center justify-center shadow-md z-10"
               title="Status: Online"
             >
               <BadgeCheck className="w-4 h-4 text-white" />
@@ -241,7 +372,8 @@ export default function ProfilPage() {
             </div>
 
             <p className="text-xs text-slate-300/90 max-w-xl leading-relaxed">
-              {bidangData?.desc ??
+              {user?.bio ||
+                bidangData?.desc ||
                 (language === "en"
                   ? "Public information technical officer and public communications dissemination Diskominfo Batu City."
                   : "Petugas pelaksana teknis komunikasi dan diseminasi informasi publik Diskominfo Kota Batu.")}
@@ -250,6 +382,14 @@ export default function ProfilPage() {
 
           {/* Quick Header Actions */}
           <div className="flex flex-row md:flex-col gap-2.5 self-center md:self-start w-full md:w-auto">
+            <button
+              type="button"
+              onClick={handleOpenEditModal}
+              className="flex-1 md:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-sky-500/20 hover:bg-sky-500/35 text-sky-200 backdrop-blur-md border border-sky-400/30 transition cursor-pointer shadow-xs active:scale-98"
+            >
+              <Pencil className="w-4 h-4" />
+              <span>{language === "en" ? "Edit Profile & Photo" : "Edit Profil & Foto"}</span>
+            </button>
             <button
               type="button"
               onClick={() =>
@@ -366,6 +506,30 @@ export default function ProfilPage() {
                   {user?.username ?? "-"}
                 </span>
               </div>
+
+              {/* Row: Nomor Telepon */}
+              {user?.phone && (
+                <div className="flex items-center justify-between py-2 border-b border-gray-50 dark:border-gray-800/60">
+                  <span className="text-gray-500 dark:text-gray-400 font-medium">
+                    {language === "en" ? "Phone Number" : "Nomor Telepon"}
+                  </span>
+                  <span className="font-semibold text-gray-800 dark:text-gray-200">
+                    {user.phone}
+                  </span>
+                </div>
+              )}
+
+              {/* Row: NIP */}
+              {user?.nip && (
+                <div className="flex items-center justify-between py-2 border-b border-gray-50 dark:border-gray-800/60">
+                  <span className="text-gray-500 dark:text-gray-400 font-medium">
+                    NIP / ID Pegawai
+                  </span>
+                  <span className="font-semibold text-gray-800 dark:text-gray-200">
+                    {user.nip}
+                  </span>
+                </div>
+              )}
 
               {/* Row: Role */}
               <div className="flex items-center justify-between py-2 border-b border-gray-50 dark:border-gray-800/60">
@@ -549,6 +713,198 @@ export default function ProfilPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Modal Edit Profil & Foto ── */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fade-in">
+          <div className="bg-white dark:bg-[#161b22] rounded-3xl max-w-lg w-full p-6 sm:p-7 border border-gray-200 dark:border-gray-700 shadow-2xl space-y-5 animate-scale-in max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-[#0f1f5c] dark:text-sky-400 flex items-center justify-center">
+                  <Pencil className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">
+                    {language === "en" ? "Edit Profile & Photo" : "Edit Data & Foto Profil"}
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {language === "en" ? "Update your personal details and photo" : "Perbarui informasi identitas & foto Anda"}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowEditModal(false)}
+                className="p-1.5 rounded-xl text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Hidden File Input for Modal */}
+            <input
+              type="file"
+              ref={modalFileInputRef}
+              onChange={handleModalPhotoUpload}
+              accept="image/png, image/jpeg, image/jpg, image/webp"
+              className="hidden"
+            />
+
+            <form onSubmit={handleSaveProfile} className="space-y-4">
+              {/* Photo Management Section */}
+              <div className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800">
+                <div className="relative group/modalphoto cursor-pointer" onClick={() => modalFileInputRef.current?.click()}>
+                  <div className="w-20 h-20 rounded-2xl bg-[#0a1647] flex items-center justify-center text-white text-2xl font-black shadow-md overflow-hidden border-2 border-sky-400/40">
+                    {previewAvatar ? (
+                      <img src={previewAvatar} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      initials
+                    )}
+                  </div>
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/modalphoto:opacity-100 transition-opacity flex items-center justify-center rounded-2xl text-white">
+                    <Camera className="w-5 h-5 text-sky-300" />
+                  </div>
+                </div>
+
+                <div className="flex-1 text-center sm:text-left space-y-2">
+                  <div>
+                    <p className="text-xs font-bold text-gray-900 dark:text-gray-100">
+                      {language === "en" ? "Profile Photo" : "Foto Profil"}
+                    </p>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                      Format JPG, PNG, WEBP (Maks. 5MB)
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                    <button
+                      type="button"
+                      onClick={() => modalFileInputRef.current?.click()}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#0f1f5c] hover:bg-[#162a7a] text-white shadow-xs transition cursor-pointer"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>{language === "en" ? "Upload Photo" : "Pilih Foto"}</span>
+                    </button>
+                    {previewAvatar && (
+                      <button
+                        type="button"
+                        onClick={handleRemovePhoto}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-800 transition cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>{language === "en" ? "Remove" : "Hapus Foto"}</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Form Input: Nama Lengkap */}
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">
+                  {t("full_name")} <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    required
+                    placeholder="Nama Lengkap"
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl text-xs sm:text-sm border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0f1f5c] dark:focus:ring-sky-500"
+                  />
+                </div>
+              </div>
+
+              {/* Form Input: Username / Email */}
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">
+                  {t("username_email")}
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={editUsername}
+                    onChange={(e) => setEditUsername(e.target.value)}
+                    placeholder="username@diskominfo.go.id"
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl text-xs sm:text-sm border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0f1f5c] dark:focus:ring-sky-500"
+                  />
+                </div>
+              </div>
+
+              {/* Grid: Telepon & NIP */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">
+                    {language === "en" ? "Phone Number" : "Nomor WhatsApp / HP"}
+                  </label>
+                  <div className="relative">
+                    <Phone className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="tel"
+                      value={editPhone}
+                      onChange={(e) => setEditPhone(e.target.value)}
+                      placeholder="0812-xxxx-xxxx"
+                      className="w-full pl-10 pr-3.5 py-2.5 rounded-xl text-xs sm:text-sm border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0f1f5c] dark:focus:ring-sky-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">
+                    NIP / ID Pegawai
+                  </label>
+                  <input
+                    type="text"
+                    value={editNip}
+                    onChange={(e) => setEditNip(e.target.value)}
+                    placeholder="1990xxxx xxxxxxxx"
+                    className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0f1f5c] dark:focus:ring-sky-500"
+                  />
+                </div>
+              </div>
+
+              {/* Form Input: Bio / Catatan */}
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">
+                  {language === "en" ? "Short Bio / Note" : "Bio Singkat / Catatan Petugas"}
+                </label>
+                <textarea
+                  rows={2}
+                  value={editBio}
+                  onChange={(e) => setEditBio(e.target.value)}
+                  placeholder={
+                    language === "en"
+                      ? "Describe your duties and specializations..."
+                      : "Jelaskan tugas dan spesialisasi liputan Anda..."
+                  }
+                  className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0f1f5c] dark:focus:ring-sky-500 resize-none"
+                />
+              </div>
+
+              {/* Modal Buttons */}
+              <div className="flex gap-2.5 pt-3 border-t border-gray-100 dark:border-gray-800">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="flex-1 py-2.5 text-xs font-semibold rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer"
+                >
+                  {t("cancel")}
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 text-xs font-bold rounded-xl bg-[#0f1f5c] hover:bg-[#162a7a] text-white transition cursor-pointer shadow-xs"
+                >
+                  {t("save_changes")}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* ── Logout Confirmation Modal ── */}
       {showLogoutConfirm && (

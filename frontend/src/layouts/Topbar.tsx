@@ -133,8 +133,12 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
               {language === "en" ? "Batu City Government Diskominfo" : "Diskominfo Pemerintah Kota Batu"}
             </p>
           </div>
-          <div className="w-8 h-8 rounded-full bg-[#0f1f5c] text-white flex items-center justify-center font-bold text-xs shadow-xs group-hover:scale-105 transition">
-            {initials}
+          <div className="w-8 h-8 rounded-full bg-[#0f1f5c] text-white flex items-center justify-center font-bold text-xs shadow-xs group-hover:scale-105 transition overflow-hidden">
+            {user?.avatar ? (
+              <img src={user.avatar} alt={user?.name ?? "Avatar"} className="w-full h-full object-cover" />
+            ) : (
+              initials
+            )}
           </div>
         </button>
 
@@ -163,7 +167,13 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
               className="px-4 py-2.5 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50/80 dark:hover:bg-gray-800/60 cursor-pointer transition group"
             >
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-[#0f1f5c] text-white flex items-center justify-center font-bold text-xs">{initials}</div>
+                <div className="w-8 h-8 rounded-full bg-[#0f1f5c] text-white flex items-center justify-center font-bold text-xs overflow-hidden">
+                  {user?.avatar ? (
+                    <img src={user.avatar} alt={user?.name ?? "Avatar"} className="w-full h-full object-cover" />
+                  ) : (
+                    initials
+                  )}
+                </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate group-hover:text-[#0f1f5c] transition">
                     {user?.name ?? "User"}
