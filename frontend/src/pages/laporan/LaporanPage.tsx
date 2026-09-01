@@ -319,42 +319,42 @@ const LaporanPage = () => {
 
       {/* Summary Headline Stats */}
       {reportData && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Card className="p-4 bg-gradient-to-br from-indigo-50/80 dark:from-blue-950/40 to-white dark:to-[#161b22] border border-indigo-100 dark:border-blue-900/60">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[11px] font-bold text-indigo-600 dark:text-sky-400 uppercase tracking-wider">Total Kegiatan</p>
-                <p className="text-2xl font-black text-indigo-950 dark:text-gray-100 mt-0.5">{reportData.rows.length}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{reportData.periodeTitle}</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4">
+          <Card className="p-3 sm:p-4 bg-gradient-to-br from-indigo-50/80 dark:from-blue-950/40 to-white dark:to-[#161b22] border border-indigo-100 dark:border-blue-900/60">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[9px] sm:text-[11px] font-bold text-indigo-600 dark:text-sky-400 uppercase tracking-wider truncate">Total Kegiatan</p>
+                <p className="text-lg sm:text-2xl font-black text-indigo-950 dark:text-gray-100 mt-0.5">{reportData.rows.length}</p>
+                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{reportData.periodeTitle}</p>
               </div>
-              <div className="p-3 bg-indigo-100/60 dark:bg-blue-900/60 text-indigo-600 dark:text-sky-300 rounded-xl">
-                <Calendar className="w-5 h-5" />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-4 bg-gradient-to-br from-emerald-50/80 dark:from-emerald-950/40 to-white dark:to-[#161b22] border border-emerald-100 dark:border-emerald-900/60">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Total Produksi Konten</p>
-                <p className="text-2xl font-black text-emerald-950 dark:text-gray-100 mt-0.5">{reportData.totalProduksiKeseluruhan}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Item media diproduksi</p>
-              </div>
-              <div className="p-3 bg-emerald-100/60 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-300 rounded-xl">
-                <FileSpreadsheet className="w-5 h-5" />
+              <div className="p-2 sm:p-3 bg-indigo-100/60 dark:bg-blue-900/60 text-indigo-600 dark:text-sky-300 rounded-xl shrink-0">
+                <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
             </div>
           </Card>
 
-          <Card className="p-4 bg-gradient-to-br from-slate-50 dark:from-slate-900/40 to-white dark:to-[#161b22] border border-slate-200 dark:border-gray-800">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[11px] font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">Isu Strategis Aktif</p>
-                <p className="text-2xl font-black text-slate-800 dark:text-gray-100 mt-0.5">{reportData.issues.length}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate max-w-[160px]">{reportData.issues.join(", ")}</p>
+          <Card className="p-3 sm:p-4 bg-gradient-to-br from-emerald-50/80 dark:from-emerald-950/40 to-white dark:to-[#161b22] border border-emerald-100 dark:border-emerald-900/60">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[9px] sm:text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider truncate">Total Produksi Konten</p>
+                <p className="text-lg sm:text-2xl font-black text-emerald-950 dark:text-gray-100 mt-0.5">{reportData.totalProduksiKeseluruhan}</p>
+                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">Item media diproduksi</p>
               </div>
-              <div className="p-3 bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300 rounded-xl">
-                <FileText className="w-5 h-5" />
+              <div className="p-2 sm:p-3 bg-emerald-100/60 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-300 rounded-xl shrink-0">
+                <FileSpreadsheet className="w-4 h-4 sm:w-5 sm:h-5" />
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-3 sm:p-4 bg-gradient-to-br from-slate-50 dark:from-slate-900/40 to-white dark:to-[#161b22] border border-slate-200 dark:border-gray-800 col-span-2 sm:col-span-1">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[9px] sm:text-[11px] font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider truncate">Isu Strategis Aktif</p>
+                <p className="text-lg sm:text-2xl font-black text-slate-800 dark:text-gray-100 mt-0.5">{reportData.issues.length}</p>
+                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{reportData.issues.join(", ")}</p>
+              </div>
+              <div className="p-2 sm:p-3 bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300 rounded-xl shrink-0">
+                <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
             </div>
           </Card>
@@ -382,27 +382,27 @@ const LaporanPage = () => {
         </Card>
       ) : viewMode === "cards" ? (
         /* GRID CARDS VIEW */
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {reportData.rows.map((row) => (
             <div
               key={row.id}
               onClick={() => setSelectedActivity(row)}
-              className="bg-white dark:bg-[#161b22] border border-gray-200 dark:border-gray-800 hover:border-indigo-300 dark:hover:border-sky-500 rounded-3xl p-5 shadow-xs hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between"
+              className="bg-white dark:bg-[#161b22] border border-gray-200 dark:border-gray-800 hover:border-indigo-300 dark:hover:border-sky-500 rounded-2xl sm:rounded-3xl p-3 sm:p-5 shadow-xs hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between min-w-0"
             >
-              <div>
+              <div className="min-w-0">
                 {/* Header Badge */}
-                <div className="flex items-center justify-between gap-2 mb-2.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                <div className="flex items-center flex-wrap justify-between gap-1.5 mb-2.5">
+                  <div className="flex items-center flex-wrap gap-1.5 min-w-0">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 shrink-0">
                       <Calendar className="w-3 h-3 mr-1 text-gray-500" />
                       {row.tanggal}
                     </span>
-                    <span className="text-[10px] font-mono text-gray-500 dark:text-gray-400 bg-slate-50 dark:bg-gray-800/80 px-2 py-0.5 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <span className="text-[10px] font-mono text-gray-500 dark:text-gray-400 bg-slate-50 dark:bg-gray-800/80 px-2 py-0.5 rounded-lg border border-gray-200 dark:border-gray-700 truncate max-w-[5.5rem] sm:max-w-[9rem]">
                       {row.noStrakom}
                     </span>
                   </div>
 
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shrink-0">
                     {row.jumlahProduksi} Produksi
                   </span>
                 </div>
@@ -434,16 +434,16 @@ const LaporanPage = () => {
 
                   <div className="space-y-1">
                     {row.assignmentsList.slice(0, 3).map((asgn) => (
-                      <div key={asgn.id} className="flex items-center justify-between text-xs text-gray-700 dark:text-gray-300 bg-gray-50/80 dark:bg-gray-800/60 px-2 py-1 rounded-lg">
-                        <div className="flex items-center gap-1.5 truncate">
-                          <span className="font-semibold truncate">{asgn.userName}</span>
+                      <div key={asgn.id} className="flex items-center justify-between gap-2 text-xs text-gray-700 dark:text-gray-300 bg-gray-50/80 dark:bg-gray-800/60 px-2 py-1 rounded-lg">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="font-semibold truncate min-w-0">{asgn.userName}</span>
                           {asgn.staffType && (
-                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-sky-300 font-bold">
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-sky-300 font-bold shrink-0">
                               {asgn.staffType}
                             </span>
                           )}
                         </div>
-                        <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium shrink-0 ml-2">
+                        <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium shrink-0 truncate max-w-[35%]">
                           {asgn.contentTypeName}
                         </span>
                       </div>
