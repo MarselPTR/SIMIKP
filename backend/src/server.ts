@@ -73,6 +73,11 @@ server.register(reviewsRoutes, { prefix: "/api/v1/reviews" });
 server.register(publicationsRoutes, { prefix: "/api/v1/publications" });
 server.register(systemRoutes, { prefix: "/api/v1/system" });
 
+// Health check endpoint for cloud monitoring (Render, etc.)
+server.get("/healthz", async () => {
+  return { status: "ok", timestamp: new Date().toISOString() };
+});
+
 import path from "path";
 import fastifyStatic from "@fastify/static";
 import fs from "fs";
