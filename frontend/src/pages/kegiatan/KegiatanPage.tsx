@@ -13,7 +13,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import { apiFetch } from "../../lib/api-client";
-import { mockKegiatan, KEGIATAN_STATUS_COLORS, KEGIATAN_STATUS_LABELS } from "../../lib/mock-data";
+import { KEGIATAN_STATUS_COLORS, KEGIATAN_STATUS_LABELS } from "../../lib/mock-data";
 import type { MockKegiatan, MockPenugasan } from "../../lib/mock-data";
 import Badge from "../../components/ui/Badge";
 import Input from "../../components/ui/Input";
@@ -76,36 +76,26 @@ const formatTanggalPanjang = (iso: string) => {
 const KegiatanPage = () => {
   const navigate = useNavigate();
 
-  const { data: kegiatanData, isLoading, error, refetch } = useQuery({
+  const { data: kegiatanData = [], isLoading, error, refetch } = useQuery({
     queryKey: ["kegiatan"],
     queryFn: async () => {
       try {
         const res = await apiFetch<{ success: boolean; data: any[] }>("/activities");
-        if (res.data && res.data.length > 0) return res.data;
-        return mockKegiatan;
+        return res.data || [];
       } catch {
-        return mockKegiatan;
+        return [];
       }
     },
   });
 
-  const { data: opds } = useQuery({
+  const { data: opds = [] } = useQuery({
     queryKey: ["opds"],
     queryFn: async () => {
       try {
         const res = await apiFetch<{ success: boolean; data: any[] }>("/master/opds");
-        if (res.data && res.data.length > 0) return res.data;
-        return [
-          { id: "opd1", name: "Diskominfo", singkatan: "Diskominfo" },
-          { id: "opd2", name: "Dinas Kesehatan", singkatan: "Dinkes" },
-          { id: "opd3", name: "Dinas Pendidikan", singkatan: "Disdik" },
-        ];
+        return res.data || [];
       } catch {
-        return [
-          { id: "opd1", name: "Diskominfo", singkatan: "Diskominfo" },
-          { id: "opd2", name: "Dinas Kesehatan", singkatan: "Dinkes" },
-          { id: "opd3", name: "Dinas Pendidikan", singkatan: "Disdik" },
-        ];
+        return [];
       }
     },
   });

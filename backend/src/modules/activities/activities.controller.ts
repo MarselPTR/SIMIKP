@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { db } from "../../db";
-import { activities, activityRequiredContents } from "../../db/schema/activities";
+import { activities, activityRequiredContents, assignments } from "../../db/schema/activities";
 import { opds, contentTypes } from "../../db/schema/master";
 import { eq, desc } from "drizzle-orm";
 import crypto from "crypto";
@@ -174,6 +174,7 @@ export class ActivitiesController {
       const { id } = request.params;
 
       await db.transaction(async (tx) => {
+        await tx.delete(assignments).where(eq(assignments.activityId, id));
         await tx.delete(activityRequiredContents).where(eq(activityRequiredContents.activityId, id));
         await tx.delete(activities).where(eq(activities.id, id));
       });

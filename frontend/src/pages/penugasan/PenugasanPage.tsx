@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { apiFetch } from "../../lib/api-client";
-import { mockPenugasan, mockKegiatan, mockUsers, Role } from "../../lib/mock-data";
 import type { MockPenugasan } from "../../lib/mock-data";
 import { useToast } from "../../contexts/ToastContext";
 import Dialog from "../../components/ui/Dialog";
@@ -37,7 +36,7 @@ export default function PenugasanPage() {
   const navigate = useNavigate();
 
   // Query Penugasan Data
-  const { data: initialData, isLoading, error, refetch } = useQuery({
+  const { data: initialData = [], isLoading, error, refetch } = useQuery({
     queryKey: ["penugasan-page"],
     queryFn: async () => {
       try {
@@ -50,41 +49,35 @@ export default function PenugasanPage() {
             pic: a.picName || a.user?.name || "Petugas",
             picAvatar: a.picName ? a.picName.slice(0, 2).toUpperCase() : "PT",
             jenisKonten: a.contentType || "Dokumentasi",
-            jamMulai: a.startTime || "08:00",
-            jamSelesai: a.endTime || "12:00",
+            jamMulai: a.startTime ? a.startTime.slice(0, 5) : "08:00",
+            jamSelesai: a.endTime ? a.endTime.slice(0, 5) : "12:00",
             status:
               a.status === "COMPLETED"
                 ? "done"
                 : a.status === "IN_PROGRESS"
-                ? "in-progress"
-                : a.status === "CONFLICT"
-                ? "conflict"
-                : "pending",
+                  ? "in-progress"
+                  : a.status === "CONFLICT"
+                    ? "conflict"
+                    : "pending",
             lokasi: a.location || "Batu",
             catatan: a.instruction,
           })) as MockPenugasan[];
         }
-        return mockPenugasan;
+        return [];
       } catch (err) {
-        console.warn("Backend unavailable, fallback to mockPenugasan", err);
-        return mockPenugasan;
+        return [];
       }
     },
   });
 
-  const { data: petugasList } = useQuery({
+  const { data: petugasList = [] } = useQuery({
     queryKey: ["petugas"],
     queryFn: async () => {
       try {
         const res = await apiFetch<{ success: boolean; data: any[] }>("/users/petugas");
-        if (res.data && res.data.length > 0) return res.data;
-        return mockUsers
-          .filter((u) => u.role === Role.PETUGAS)
-          .map((u) => ({ id: u.id, name: u.name, staffType: u.bidang }));
+        return res.data || [];
       } catch {
-        return mockUsers
-          .filter((u) => u.role === Role.PETUGAS)
-          .map((u) => ({ id: u.id, name: u.name, staffType: u.bidang }));
+        return [];
       }
     },
   });
@@ -95,16 +88,15 @@ export default function PenugasanPage() {
     queryFn: async () => {
       try {
         const res = await apiFetch<{ success: boolean; data: any[] }>("/activities");
-        if (res.data && res.data.length > 0) return res.data;
-        return mockKegiatan;
+        return res.data || [];
       } catch {
-        return mockKegiatan;
+        return [];
       }
     },
   });
 
-  const items: MockPenugasan[] = Array.isArray(initialData) 
-    ? initialData 
+  const items: MockPenugasan[] = Array.isArray(initialData)
+    ? initialData
     : (initialData as any)?.data || [];
 
   // Filters, sorting & selection
@@ -210,14 +202,18 @@ export default function PenugasanPage() {
     }
   }, [searchQuery, setSearchParams]);
 
-  // Options for form
-  const PIC_OPTIONS = [
-    { name: "Budi Fotografer", role: "Fotografer", avatar: "BF" },
-    { name: "Citra Videografer", role: "Videografer", avatar: "CV" },
-    { name: "Andi Penulis", role: "Pranata Humas / Berita", avatar: "AP" },
-    { name: "Dewi Desainer", role: "Desainer Grafis", avatar: "DD" },
-    { name: "Eko Reporter", role: "Reporter Lapangan", avatar: "ER" },
-  ];
+  // Dynamic Options from real database
+  const PIC_OPTIONS = useMemo(() => {
+    if (Array.isArray(petugasList) && petugasList.length > 0) {
+      return petugasList.map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        role: p.staffType ? p.staffType.replace("_", " ") : "Petugas Lapangan",
+        avatar: p.name ? p.name.slice(0, 2).toUpperCase() : "PT",
+      }));
+    }
+    return [];
+  }, [petugasList]);
 
   const JENIS_KONTEN_OPTIONS = [
     "Foto",
@@ -334,11 +330,11 @@ export default function PenugasanPage() {
   // Bulk Actions
   const handleBulkMarkStatus = async (status: MockPenugasan["status"]) => {
     if (selectedIds.length === 0) return;
-    
+
     try {
       const dbStatus = status === "done" ? "COMPLETED" : status === "in-progress" ? "IN_PROGRESS" : "ASSIGNED";
       await Promise.all(
-        selectedIds.map(id => 
+        selectedIds.map(id =>
           apiFetch(`/assignments/${id}`, {
             method: "PUT",
             body: JSON.stringify({ status: dbStatus })
@@ -356,10 +352,10 @@ export default function PenugasanPage() {
   const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return;
     if (!window.confirm(`Yakin ingin menghapus ${selectedIds.length} penugasan terpilih?`)) return;
-    
+
     try {
       await Promise.all(
-        selectedIds.map(id => 
+        selectedIds.map(id =>
           apiFetch(`/assignments/${id}`, { method: "DELETE" })
         )
       );
@@ -374,18 +370,20 @@ export default function PenugasanPage() {
   // Handler Open Create
   const handleOpenCreate = () => {
     setSelectedItem(null);
+    const firstKeg = kegiatanList.length > 0 ? kegiatanList[0] : null;
+    const firstPic = PIC_OPTIONS.length > 0 ? PIC_OPTIONS[0] : null;
     setFormData({
-      kegiatanTerkait: "Upacara Hari Jadi Kota",
-      tanggalKegiatan: "Senin, 24 Agustus 2026",
-      jenisKonten: "Foto",
-      pic: "Budi Fotografer",
-      picAvatar: "BF",
+      kegiatanTerkait: firstKeg ? firstKeg.title : "",
+      tanggalKegiatan: firstKeg ? formatIndoDate(firstKeg.deadline) : "Senin, 24 Agustus 2026",
+      jenisKonten: firstKeg?.outputDibutuhkan?.[0] ?? JENIS_KONTEN_OPTIONS[0] ?? "Foto",
+      pic: firstPic ? firstPic.name : "",
+      picAvatar: firstPic ? firstPic.avatar : "PT",
       jamMulai: "08:00",
       jamSelesai: "10:00",
-      waktuSubtitle: "(Senin, 24/8)",
+      waktuSubtitle: firstKeg ? formatSubtitleDate(firstKeg.deadline) : "",
       status: "in-progress",
-      lokasi: "Balaikota Among Tani",
-      catatan: "",
+      lokasi: firstKeg?.lokasi ?? "Balaikota Among Tani",
+      catatan: firstKeg ? `Penugasan untuk kegiatan ${firstKeg.title}` : "",
     });
     setIsCreateOpen(true);
   };
@@ -461,7 +459,7 @@ export default function PenugasanPage() {
       addToast("Mohon isi nama kegiatan terkait", "warning");
       return;
     }
-    
+
     const activity = kegiatanList.find(k => k.title === formData.kegiatanTerkait);
     const picUser = petugasList?.find((p: any) => p.name === formData.pic);
 
@@ -536,19 +534,17 @@ export default function PenugasanPage() {
               setActiveTab("all");
               setCurrentPage(1);
             }}
-            className={`pb-3.5 flex items-center gap-2 font-medium transition relative whitespace-nowrap cursor-pointer ${
-              activeTab === "all"
+            className={`pb-3.5 flex items-center gap-2 font-medium transition relative whitespace-nowrap cursor-pointer ${activeTab === "all"
                 ? "text-[#0f1f5c] font-bold border-b-2 border-[#0f1f5c]"
                 : "text-gray-500 hover:text-gray-800"
-            }`}
+              }`}
           >
             <span>Semua</span>
             <span
-              className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                activeTab === "all"
+              className={`px-2 py-0.5 rounded-full text-xs font-semibold ${activeTab === "all"
                   ? "bg-blue-50 text-blue-600"
                   : "bg-gray-100 text-gray-500"
-              }`}
+                }`}
             >
               {counts.all}
             </span>
@@ -561,19 +557,17 @@ export default function PenugasanPage() {
               setActiveTab("in-progress");
               setCurrentPage(1);
             }}
-            className={`pb-3.5 flex items-center gap-2 font-medium transition relative whitespace-nowrap cursor-pointer ${
-              activeTab === "in-progress"
+            className={`pb-3.5 flex items-center gap-2 font-medium transition relative whitespace-nowrap cursor-pointer ${activeTab === "in-progress"
                 ? "text-[#0f1f5c] font-bold border-b-2 border-[#0f1f5c]"
                 : "text-gray-500 hover:text-gray-800"
-            }`}
+              }`}
           >
             <span>Proses</span>
             <span
-              className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                activeTab === "in-progress"
+              className={`px-2 py-0.5 rounded-full text-xs font-semibold ${activeTab === "in-progress"
                   ? "bg-amber-100 text-amber-800"
                   : "bg-gray-100 text-gray-500"
-              }`}
+                }`}
             >
               {counts.inProgress}
             </span>
@@ -586,19 +580,17 @@ export default function PenugasanPage() {
               setActiveTab("done");
               setCurrentPage(1);
             }}
-            className={`pb-3.5 flex items-center gap-2 font-medium transition relative whitespace-nowrap cursor-pointer ${
-              activeTab === "done"
+            className={`pb-3.5 flex items-center gap-2 font-medium transition relative whitespace-nowrap cursor-pointer ${activeTab === "done"
                 ? "text-[#0f1f5c] font-bold border-b-2 border-[#0f1f5c]"
                 : "text-gray-500 hover:text-gray-800"
-            }`}
+              }`}
           >
             <span>Selesai</span>
             <span
-              className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                activeTab === "done"
+              className={`px-2 py-0.5 rounded-full text-xs font-semibold ${activeTab === "done"
                   ? "bg-emerald-100 text-emerald-800"
                   : "bg-gray-100 text-gray-500"
-              }`}
+                }`}
             >
               {counts.done}
             </span>
@@ -611,19 +603,17 @@ export default function PenugasanPage() {
               setActiveTab("pending");
               setCurrentPage(1);
             }}
-            className={`pb-3.5 flex items-center gap-2 font-medium transition relative whitespace-nowrap cursor-pointer ${
-              activeTab === "pending"
+            className={`pb-3.5 flex items-center gap-2 font-medium transition relative whitespace-nowrap cursor-pointer ${activeTab === "pending"
                 ? "text-[#0f1f5c] font-bold border-b-2 border-[#0f1f5c]"
                 : "text-gray-500 hover:text-gray-800"
-            }`}
+              }`}
           >
             <span>Menunggu</span>
             <span
-              className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                activeTab === "pending"
+              className={`px-2 py-0.5 rounded-full text-xs font-semibold ${activeTab === "pending"
                   ? "bg-gray-200 text-gray-700"
                   : "bg-gray-100 text-gray-500"
-              }`}
+                }`}
             >
               {counts.pending}
             </span>
@@ -636,19 +626,17 @@ export default function PenugasanPage() {
               setActiveTab("conflict");
               setCurrentPage(1);
             }}
-            className={`pb-3.5 flex items-center gap-2 font-medium transition relative whitespace-nowrap cursor-pointer ${
-              activeTab === "conflict"
+            className={`pb-3.5 flex items-center gap-2 font-medium transition relative whitespace-nowrap cursor-pointer ${activeTab === "conflict"
                 ? "text-rose-600 font-bold border-b-2 border-rose-600"
                 : "text-gray-500 hover:text-rose-600"
-            }`}
+              }`}
           >
             <span>Bentrok</span>
             <span
-              className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                activeTab === "conflict"
+              className={`px-2 py-0.5 rounded-full text-xs font-semibold ${activeTab === "conflict"
                   ? "bg-rose-100 text-rose-800"
                   : "bg-gray-100 text-gray-500"
-              }`}
+                }`}
             >
               {counts.conflict}
             </span>
@@ -782,9 +770,8 @@ export default function PenugasanPage() {
                   return (
                     <tr
                       key={item.id}
-                      className={`hover:bg-gray-50/80 transition-colors ${
-                        isSelected ? "bg-indigo-50/40" : ""
-                      }`}
+                      className={`hover:bg-gray-50/80 transition-colors ${isSelected ? "bg-indigo-50/40" : ""
+                        }`}
                     >
                       {/* Checkbox */}
                       <td className="py-4 px-4 text-center">
@@ -1032,16 +1019,20 @@ export default function PenugasanPage() {
                 setFormData({
                   ...formData,
                   pic: e.target.value,
-                  picAvatar: opt?.avatar ?? "ST",
+                  picAvatar: opt?.avatar ?? "PT",
                 });
               }}
               className="w-full px-3.5 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 bg-white"
             >
-              {PIC_OPTIONS.map((p) => (
-                <option key={p.name} value={p.name}>
-                  {p.name} ({p.role})
-                </option>
-              ))}
+              {PIC_OPTIONS.length === 0 ? (
+                <option value="">Belum ada petugas di database</option>
+              ) : (
+                PIC_OPTIONS.map((p) => (
+                  <option key={p.id || p.name} value={p.name}>
+                    {p.name} ({p.role})
+                  </option>
+                ))
+              )}
             </select>
           </div>
 

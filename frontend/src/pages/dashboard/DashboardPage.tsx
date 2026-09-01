@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 
 import { apiFetch } from "../../lib/api-client";
-import { KEGIATAN_STATUS_COLORS, KEGIATAN_STATUS_LABELS, mockKegiatan, mockPenugasan } from "../../lib/mock-data";
+import { KEGIATAN_STATUS_COLORS, KEGIATAN_STATUS_LABELS } from "../../lib/mock-data";
 import type { MockKegiatan } from "../../lib/mock-data";
 import EventCalendar, { dateKeyOf } from "../../components/shared/EventCalendar";
 import type { CalendarEvent } from "../../components/shared/EventCalendar";
@@ -51,7 +51,7 @@ const STAT_CARD_META: StatCardMeta[] = [
 
 const BANK_KONTEN_CARD: StatCard = {
   label: "Total File di Bank Konten",
-  value: "1.2TB",
+  value: "0 File",
   icon: FolderOpen,
   path: "/bank-konten",
 };
@@ -126,16 +126,22 @@ const SpotlightStatCard = ({ card, onClick }: SpotlightStatCardProps) => {
 };
 
 /* ---------------------------------------------------------------------- */
-/* Kalender Kegiatan & Utilities                                          */
+/* Calendar legend items                                                   */
 /* ---------------------------------------------------------------------- */
 
 const dashboardCalendarLegend = (Object.keys(KEGIATAN_STATUS_LABELS) as MockKegiatan["status"][]).map((status) => ({
+  status,
   label: KEGIATAN_STATUS_LABELS[status],
   color: KEGIATAN_STATUS_COLORS[status],
 }));
 
+/* ---------------------------------------------------------------------- */
+/* Helpers                                                                 */
+/* ---------------------------------------------------------------------- */
+
 const formatIndonesianDate = (dateKey: string) => {
   const [y, m, d] = dateKey.split("-").map(Number);
+  if (!y || !m || !d) return dateKey;
   return new Date(y, m - 1, d).toLocaleDateString("id-ID", {
     weekday: "long",
     day: "numeric",
@@ -146,6 +152,7 @@ const formatIndonesianDate = (dateKey: string) => {
 
 const formatShortDate = (dateKey: string) => {
   const [y, m, d] = dateKey.split("-").map(Number);
+  if (!y || !m || !d) return dateKey;
   return new Date(y, m - 1, d).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
 };
 
@@ -621,30 +628,30 @@ const DashboardPage = () => {
     queryFn: async () => {
       try {
         const res = await apiFetch<{ data: any[] }>("/activities");
-        if (res.data && res.data.length > 0) return res;
-        return { data: mockKegiatan };
+        return res.data || [];
       } catch {
-        return { data: mockKegiatan };
+        return [];
       }
     },
   });
-  const kegiatanList =
-    kegiatanResponse?.data && kegiatanResponse.data.length > 0 ? kegiatanResponse.data : mockKegiatan;
+  const kegiatanList: MockKegiatan[] = Array.isArray(kegiatanResponse)
+    ? kegiatanResponse
+    : (kegiatanResponse as any)?.data || [];
 
   const { data: assignmentsResponse } = useQuery({
     queryKey: ["assignments-dash"],
     queryFn: async () => {
       try {
         const res = await apiFetch<{ data: any[] }>("/assignments");
-        if (res.data && res.data.length > 0) return res;
-        return { data: mockPenugasan };
+        return res.data || [];
       } catch {
-        return { data: mockPenugasan };
+        return [];
       }
     },
   });
-  const assignments =
-    assignmentsResponse?.data && assignmentsResponse.data.length > 0 ? assignmentsResponse.data : mockPenugasan;
+  const assignments: any[] = Array.isArray(assignmentsResponse)
+    ? assignmentsResponse
+    : (assignmentsResponse as any)?.data || [];
 
   const { data: stats } = useQuery({
     queryKey: ["dashboardStatsReal"],
