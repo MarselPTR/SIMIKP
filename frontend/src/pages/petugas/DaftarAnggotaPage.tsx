@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Search, Plus, Mail, Shield, User, Filter, ShieldCheck, Camera, Video, Edit3, Image as ImageIcon, X, Trash2 } from "lucide-react";
+import { Search, Plus, Mail, Shield, User, Filter, ShieldCheck, Camera, Edit3, Image as ImageIcon, X, Trash2 } from "lucide-react";
 import { apiFetch } from "../../lib/api-client";
 import { useToast } from "../../contexts/ToastContext";
 
@@ -17,21 +17,18 @@ interface Petugas {
   active: boolean;
 }
 
+// Keys must match the values TambahPetugasPage sends as `program` / users.staff_type
 const PROGRAM_LABELS: Record<string, string> = {
-  FOTOGRAFER: "Fotografer",
-  VIDEOGRAFER: "Videografer",
+  FOTO_VIDEO: "Foto & Video",
+  PRAHUM: "Pranata Humas (Berita)",
   DESAINER_EDITOR: "Desainer & Editor",
-  REPORTER: "Reporter",
-  KONTRIBUTOR: "Kontributor",
   ADMIN: "Admin",
 };
 
 const PROGRAM_ICONS: Record<string, any> = {
-  FOTOGRAFER: Camera,
-  VIDEOGRAFER: Video,
+  FOTO_VIDEO: Camera,
+  PRAHUM: Edit3,
   DESAINER_EDITOR: ImageIcon,
-  REPORTER: Edit3,
-  KONTRIBUTOR: User,
   ADMIN: ShieldCheck,
 };
 
@@ -94,6 +91,9 @@ export default function DaftarAnggotaPage() {
     }
   };
 
+  // Filter options synced to whatever jabatan actually exist in the data
+  const jabatanOptions = [...new Set(anggota.map((p) => p.staffType).filter(Boolean))].sort();
+
   const filteredAnggota = anggota.filter((p) => {
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) || 
                         (p.nik && p.nik.toLowerCase().includes(search.toLowerCase()));
@@ -153,11 +153,11 @@ export default function DaftarAnggotaPage() {
             className="appearance-none pl-10 pr-10 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white shadow-sm font-medium text-gray-700"
           >
             <option value="ALL">Semua Jabatan</option>
-            <option value="FOTOGRAFER">Fotografer</option>
-            <option value="VIDEOGRAFER">Videografer</option>
-            <option value="DESAINER_EDITOR">Desainer & Editor</option>
-            <option value="REPORTER">Reporter</option>
-            <option value="KONTRIBUTOR">Kontributor</option>
+            {jabatanOptions.map((t) => (
+              <option key={t} value={t}>
+                {PROGRAM_LABELS[t] || t}
+              </option>
+            ))}
           </select>
         </div>
       </div>
