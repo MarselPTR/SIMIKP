@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import type { ReactNode } from "react";
-import { apiFetch } from "./api-client";
+import { apiFetch, ApiError } from "./api-client";
 
 export interface AuthUser {
   id: string;
@@ -77,9 +77,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           localStorage.setItem("simikp_user", JSON.stringify(res.user));
         }
       })
-      .catch(() => {
-        const savedUser = localStorage.getItem("simikp_user");
-        if (!savedUser) {
+      .catch((err) => {
+        // Session invalid/expired (backend already cleared the cookie) → drop the
+        // cached user so the app doesn't show "logged in" while every write 401s.
+        if (err instanceof ApiError && err.status === 401) {
+          localStorage.removeItem("simikp_user");
           setUser(null);
         }
       })

@@ -2,6 +2,7 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import { db } from "../../db";
 import { activities, activityRequiredContents, assignments } from "../../db/schema/activities";
 import { opds, contentTypes, locations } from "../../db/schema/master";
+import { users } from "../../db/schema/users";
 import { eq, or, desc } from "drizzle-orm";
 import crypto from "crypto";
 import { z } from "zod";
@@ -104,7 +105,7 @@ export class ActivitiesController {
       const data = createActivitySchema.parse(request.body);
 
       const cookieSession = request.cookies["simikp_session"];
-      let userId = "system";
+      let userId: string | null = null;
       if (cookieSession) {
         try {
           const decoded = Buffer.from(cookieSession, "base64").toString("utf-8");
@@ -112,6 +113,15 @@ export class ActivitiesController {
           userId = session.id;
         } catch (e) {}
       }
+      // created_by is a NOT NULL FK to users — bail out clearly instead of
+      // letting the insert crash with a 500 on an expired/missing session.
+      const validUser = userId
+        ? await db.select({ id: users.id }).from(users).where(eq(users.id, userId)).limit(1)
+        : [];
+      if (validUser.length === 0) {
+        return reply.status(401).send({ success: false, error: "Sesi tidak valid, silakan login ulang" });
+      }
+      const createdBy = validUser[0].id;
 
       const newId = crypto.randomUUID();
       const code = `ACT-${Date.now()}`;
@@ -190,7 +200,7 @@ export class ActivitiesController {
           opdId: finalOpdId,
           description: data.description,
           status: "active",
-          createdBy: userId,
+          createdBy,
         });
 
         // Insert Required Contents

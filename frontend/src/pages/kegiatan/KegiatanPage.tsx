@@ -21,6 +21,7 @@ import Button from "../../components/ui/Button";
 import Dialog from "../../components/ui/Dialog";
 import Select from "../../components/ui/Select";
 import { LoadingSpinner, ErrorState } from "../../components/shared/StateComponents";
+import { useToast } from "../../contexts/ToastContext";
 import EventCalendar from "../../components/shared/EventCalendar";
 import type { CalendarEvent } from "../../components/shared/EventCalendar";
 
@@ -114,6 +115,7 @@ const formatTanggalPanjang = (iso: string) => {
 
 const KegiatanPage = () => {
   const navigate = useNavigate();
+  const { addToast } = useToast();
 
   const { data: rawKegiatanData, isLoading, error, refetch } = useQuery({
     queryKey: ["kegiatan"],
@@ -281,6 +283,15 @@ const KegiatanPage = () => {
     onSuccess: () => {
       refetch();
       closeDialog();
+      addToast(editingId ? "Perubahan kegiatan disimpan." : "Kegiatan baru berhasil dibuat.", "success");
+    },
+    onError: (err: any) => {
+      addToast(
+        err?.status === 401
+          ? "Sesi berakhir. Silakan login ulang lalu coba lagi."
+          : err?.message || "Gagal menyimpan kegiatan.",
+        "error",
+      );
     },
   });
 

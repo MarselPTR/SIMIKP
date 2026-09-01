@@ -75,6 +75,7 @@ export const mockKegiatan: MockKegiatan[] = [];
 
 export interface MockPenugasan {
   id: string;
+  activityId?: string;
   kegiatanTerkait: string;
   tanggalKegiatan?: string;
   jenisKonten: string;

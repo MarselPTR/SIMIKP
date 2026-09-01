@@ -8,8 +8,12 @@ import { router } from "./routes/router";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5,
-      refetchOnWindowFocus: false,
+      // Realtime-ish: setiap query auto-refresh berkala + saat tab difokuskan,
+      // jadi perubahan data dari user lain muncul tanpa refresh browser.
+      staleTime: 10_000,
+      refetchInterval: 15_000,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
       retry: 1,
     },
   },

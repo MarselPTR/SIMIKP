@@ -30,6 +30,10 @@ import {
   RiCloseCircleFill,
 } from "@remixicon/react";
 
+const FIELD_CLASS =
+  "w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-colors focus:border-[#0f1f5c] focus:outline-none focus:ring-2 focus:ring-[#0f1f5c]/15 disabled:bg-gray-50 disabled:text-gray-500";
+const LABEL_CLASS = "block text-sm font-medium text-gray-700 mb-1.5";
+
 export default function PenugasanPage() {
   const { addToast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -44,6 +48,7 @@ export default function PenugasanPage() {
         if (res.data && res.data.length > 0) {
           return res.data.map((a: any) => ({
             id: a.id,
+            activityId: a.activityId || a.activity?.id,
             kegiatanTerkait: a.activityTitle || a.activity?.title || "Kegiatan",
             tanggalKegiatan: a.activityDate || "2026-08-27",
             pic: a.picName || a.user?.name || "Petugas",
@@ -304,32 +309,48 @@ export default function PenugasanPage() {
     return list;
   }, [items, activeTab, searchQuery, sortField, sortAsc]);
 
-  // Pagination slice
-  const paginatedItems = useMemo(() => {
+  // Group assignments into one container per kegiatan
+  const groups = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        key: string;
+        kegiatan: string;
+        tanggal?: string;
+        lokasi?: string;
+        activityId?: string;
+        rows: MockPenugasan[];
+      }
+    >();
+    for (const it of filteredItems) {
+      const key = it.activityId || it.kegiatanTerkait;
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          kegiatan: it.kegiatanTerkait,
+          tanggal: it.tanggalKegiatan,
+          lokasi: it.lokasi,
+          activityId: it.activityId,
+          rows: [],
+        });
+      }
+      map.get(key)!.rows.push(it);
+    }
+    return [...map.values()];
+  }, [filteredItems]);
+
+  // Pagination slice (by container, not by row)
+  const paginatedGroups = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
-    return filteredItems.slice(start, start + pageSize);
-  }, [filteredItems, currentPage, pageSize]);
+    return groups.slice(start, start + pageSize);
+  }, [groups, currentPage, pageSize]);
 
   // Selection handlers
-  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.checked) {
-      setSelectedIds(paginatedItems.map((it) => it.id));
-    } else {
-      setSelectedIds([]);
-    }
-  };
-
   const handleSelectRow = (id: string) => {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
     );
   };
-
-  const isAllSelected =
-    paginatedItems.length > 0 &&
-    paginatedItems.every((it) => selectedIds.includes(it.id));
-  const isSomeSelected =
-    paginatedItems.some((it) => selectedIds.includes(it.id)) && !isAllSelected;
 
   // Bulk Actions
   const handleBulkMarkStatus = async (status: MockPenugasan["status"]) => {
@@ -388,6 +409,29 @@ export default function PenugasanPage() {
       status: "in-progress",
       lokasi: firstKeg?.lokasi ?? "Balaikota Among Tani",
       catatan: firstKeg ? `Penugasan untuk kegiatan ${firstKeg.title}` : "",
+    });
+    setIsCreateOpen(true);
+  };
+
+  // Handler Add Petugas ke dalam wadah kegiatan yang sudah ada
+  const handleAddPetugasToGroup = (group: { kegiatan: string; tanggal?: string; lokasi?: string; activityId?: string }) => {
+    setSelectedItem(null);
+    const keg = kegiatanList.find(
+      (k) => k.id === group.activityId || k.title === group.kegiatan
+    );
+    const firstPic = PIC_OPTIONS.length > 0 ? PIC_OPTIONS[0] : null;
+    setFormData({
+      kegiatanTerkait: group.kegiatan,
+      tanggalKegiatan: group.tanggal ?? (keg ? formatIndoDate(keg.deadline) : ""),
+      waktuSubtitle: keg ? formatSubtitleDate(keg.deadline) : "",
+      jenisKonten: keg?.outputDibutuhkan?.[0] ?? JENIS_KONTEN_OPTIONS[0] ?? "Foto",
+      pic: firstPic ? firstPic.name : "",
+      picAvatar: firstPic ? firstPic.avatar : "PT",
+      jamMulai: "08:00",
+      jamSelesai: "10:00",
+      status: "in-progress",
+      lokasi: group.lokasi ?? keg?.lokasi ?? "Balaikota Among Tani",
+      catatan: `Penugasan untuk kegiatan ${group.kegiatan}`,
     });
     setIsCreateOpen(true);
   };
@@ -502,6 +546,12 @@ export default function PenugasanPage() {
       addToast("Gagal menghapus penugasan", "error");
     }
   };
+
+  const closeForm = () => {
+    setIsCreateOpen(false);
+    setIsEditOpen(false);
+  };
+  const selectedPic = PIC_OPTIONS.find((p) => p.name === formData.pic);
 
   if (isLoading) return <LoadingSpinner />;
   if (error) return <ErrorState message={error.message} onRetry={refetch} />;
@@ -694,205 +744,190 @@ export default function PenugasanPage() {
           )}
         </div>
 
-        {/* ── 3. Table Penugasan ── */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-[#0f1f5c] text-white text-xs font-semibold uppercase tracking-wider">
-                <th className="py-3.5 px-4 w-10 text-center">
-                  <input
-                    type="checkbox"
-                    checked={isAllSelected}
-                    ref={(el) => {
-                      if (el) el.indeterminate = isSomeSelected;
-                    }}
-                    onChange={handleSelectAll}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                  />
-                </th>
-                <th
-                  onClick={() => toggleSort("kegiatanTerkait")}
-                  className="py-3.5 px-4 cursor-pointer select-none hover:text-blue-200 transition"
+        {/* ── 3. Sort Bar ── */}
+        <div className="px-4 sm:px-5 py-2.5 flex items-center gap-2 text-xs text-gray-500 border-b border-gray-100 overflow-x-auto">
+          <span className="font-semibold text-gray-600 whitespace-nowrap">Urutkan:</span>
+          {([
+            ["kegiatanTerkait", "Kegiatan"],
+            ["jamMulai", "Waktu"],
+            ["status", "Status"],
+          ] as const).map(([field, label]) => (
+            <button
+              key={field}
+              onClick={() => toggleSort(field)}
+              className={`inline-flex items-center gap-1 px-2 py-1 rounded-md border transition whitespace-nowrap cursor-pointer ${
+                sortField === field
+                  ? "bg-[#0f1f5c] text-white border-[#0f1f5c]"
+                  : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+              }`}
+            >
+              <span>{label}</span>
+              <RiArrowUpDownLine className="w-3 h-3" />
+              {sortField === field && <span>{sortAsc ? "↑" : "↓"}</span>}
+            </button>
+          ))}
+        </div>
+
+        {/* ── 4. Daftar Wadah per Kegiatan ── */}
+        <div className="p-4 sm:p-5 space-y-4 bg-gray-50/40">
+          {paginatedGroups.length === 0 ? (
+            <div className="text-center py-12 text-gray-400">
+              <p className="font-medium text-gray-500">Tidak ada penugasan ditemukan</p>
+              <p className="text-xs text-gray-400 mt-1">
+                Coba ganti filter tab atau kata kunci pencarian.
+              </p>
+            </div>
+          ) : (
+            paginatedGroups.map((group) => {
+              const groupIds = group.rows.map((r) => r.id);
+              const groupAllSelected = groupIds.every((id) => selectedIds.includes(id));
+              const groupSomeSelected =
+                groupIds.some((id) => selectedIds.includes(id)) && !groupAllSelected;
+              const toggleGroup = () =>
+                setSelectedIds((prev) =>
+                  groupAllSelected
+                    ? prev.filter((id) => !groupIds.includes(id))
+                    : [...new Set([...prev, ...groupIds])]
+                );
+              return (
+                <div
+                  key={group.key}
+                  className="bg-white rounded-xl border border-gray-200/80 shadow-sm overflow-hidden"
                 >
-                  <div className="flex items-center gap-1.5">
-                    <span>Kegiatan Terkait</span>
-                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-gray-300" />
-                  </div>
-                </th>
-                <th
-                  onClick={() => toggleSort("pic")}
-                  className="py-3.5 px-4 cursor-pointer select-none hover:text-blue-200 transition"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span>Petugas PIC</span>
-                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-gray-300" />
-                  </div>
-                </th>
-                <th
-                  onClick={() => toggleSort("jenisKonten")}
-                  className="py-3.5 px-4 cursor-pointer select-none hover:text-blue-200 transition"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span>Jenis Konten</span>
-                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-gray-300" />
-                  </div>
-                </th>
-                <th
-                  onClick={() => toggleSort("jamMulai")}
-                  className="py-3.5 px-4 cursor-pointer select-none hover:text-blue-200 transition"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span>Waktu Penugasan</span>
-                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-gray-300" />
-                  </div>
-                </th>
-                <th
-                  onClick={() => toggleSort("status")}
-                  className="py-3.5 px-4 cursor-pointer select-none hover:text-blue-200 transition"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span>Status</span>
-                    <RiArrowUpDownLine className="w-3.5 h-3.5 text-gray-300" />
-                  </div>
-                </th>
-                <th className="py-3.5 px-4 text-right pr-6">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 text-sm">
-              {paginatedItems.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="text-center py-12 text-gray-400">
-                    <p className="font-medium text-gray-500">Tidak ada penugasan ditemukan</p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      Coba ganti filter tab atau kata kunci pencarian.
-                    </p>
-                  </td>
-                </tr>
-              ) : (
-                paginatedItems.map((item) => {
-                  const isSelected = selectedIds.includes(item.id);
-                  return (
-                    <tr
-                      key={item.id}
-                      className={`hover:bg-gray-50/80 transition-colors ${isSelected ? "bg-indigo-50/40" : ""
-                        }`}
+                  {/* Header wadah kegiatan */}
+                  <div className="px-4 py-3 bg-[#0f1f5c]/[0.03] border-b border-gray-100 flex flex-col sm:flex-row sm:items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={groupAllSelected}
+                      ref={(el) => {
+                        if (el) el.indeterminate = groupSomeSelected;
+                      }}
+                      onChange={toggleGroup}
+                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-gray-900 truncate">{group.kegiatan}</div>
+                      <div className="text-xs text-gray-500 mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                        {group.tanggal && (
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {group.tanggal}
+                          </span>
+                        )}
+                        {group.lokasi && (
+                          <span className="flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
+                            {group.lokasi}
+                          </span>
+                        )}
+                        <span className="font-medium text-gray-600">
+                          {group.rows.length} petugas ditugaskan
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleAddPetugasToGroup(group)}
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#0f1f5c] hover:bg-[#0a1540] text-white text-xs font-semibold rounded-lg shadow-sm transition active:scale-[0.98] cursor-pointer self-start sm:self-auto whitespace-nowrap"
                     >
-                      {/* Checkbox */}
-                      <td className="py-4 px-4 text-center">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => handleSelectRow(item.id)}
-                          className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                        />
-                      </td>
+                      <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                      <span>Tambah Petugas</span>
+                    </button>
+                  </div>
 
-                      {/* Kegiatan Terkait */}
-                      <td className="py-4 px-4">
-                        <div className="font-semibold text-gray-900">{item.kegiatanTerkait}</div>
-                        {item.lokasi && (
-                          <div className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
-                            <MapPin className="w-3 h-3 text-gray-400" />
-                            <span>{item.lokasi}</span>
+                  {/* Daftar petugas dalam wadah */}
+                  <div className="divide-y divide-gray-100">
+                    {group.rows.map((item) => {
+                      const isSelected = selectedIds.includes(item.id);
+                      return (
+                        <div
+                          key={item.id}
+                          className={`px-4 py-3 flex flex-wrap sm:flex-nowrap items-center gap-3 hover:bg-gray-50/80 transition-colors ${
+                            isSelected ? "bg-indigo-50/40" : ""
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleSelectRow(item.id)}
+                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                          />
+                          <div className="flex items-center gap-2.5 min-w-[160px]">
+                            <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 text-white font-bold text-xs flex items-center justify-center shadow-2xs shrink-0">
+                              {item.picAvatar ?? item.pic.slice(0, 2).toUpperCase()}
+                            </div>
+                            <span className="font-medium text-gray-800 text-sm">{item.pic}</span>
                           </div>
-                        )}
-                      </td>
-
-                      {/* Petugas PIC */}
-                      <td className="py-4 px-4">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 text-white font-bold text-xs flex items-center justify-center shadow-2xs">
-                            {item.picAvatar ?? item.pic.slice(0, 2).toUpperCase()}
+                          <div className="text-sm font-medium text-gray-700 min-w-[110px]">
+                            {item.jenisKonten}
                           </div>
-                          <span className="font-medium text-gray-800">{item.pic}</span>
-                        </div>
-                      </td>
-
-                      {/* Jenis Konten */}
-                      <td className="py-4 px-4 font-medium text-gray-700">
-                        {item.jenisKonten}
-                      </td>
-
-                      {/* Waktu Penugasan */}
-                      <td className="py-4 px-4">
-                        <div className="font-mono text-xs font-semibold text-gray-800">
-                          {item.jamMulai} - {item.jamSelesai}
-                        </div>
-                        {item.waktuSubtitle && (
-                          <div className="text-[11px] text-gray-400 mt-0.5">
-                            {item.waktuSubtitle}
+                          <div className="font-mono text-xs font-semibold text-gray-800 min-w-[100px]">
+                            {item.jamMulai} - {item.jamSelesai}
                           </div>
-                        )}
-                      </td>
-
-                      {/* Status */}
-                      <td className="py-4 px-4">
-                        {item.status === "in-progress" && (
-                          <StatusBadge
-                            status="default"
-                            leftIcon={RiTimeLine}
-                            leftLabel="Proses"
-                            className="bg-amber-50 text-amber-800 border-amber-200/90 shadow-xs"
-                          />
-                        )}
-                        {item.status === "done" && (
-                          <StatusBadge
-                            status="success"
-                            leftIcon={RiCheckboxCircleFill}
-                            leftLabel="Selesai"
-                            className="bg-emerald-50 text-emerald-800 border-emerald-200/90 shadow-xs"
-                          />
-                        )}
-                        {item.status === "pending" && (
-                          <StatusBadge
-                            status="default"
-                            leftIcon={RiHourglassLine}
-                            leftLabel="Menunggu"
-                            className="bg-gray-50 text-gray-700 border-gray-200/90 shadow-xs"
-                          />
-                        )}
-                        {item.status === "conflict" && (
-                          <StatusBadge
-                            status="error"
-                            leftIcon={RiCloseCircleFill}
-                            leftLabel="Bentrok"
-                            className="bg-rose-50 text-rose-800 border-rose-200/90 shadow-xs"
-                          />
-                        )}
-                      </td>
-
-                      {/* Actions */}
-                      <td className="py-4 px-4 text-right pr-6">
-                        <div className="flex items-center justify-end gap-1 text-gray-400">
-                          <button
-                            onClick={() => handleOpenDetail(item)}
-                            className="p-1.5 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition"
-                            title="Detail"
-                          >
-                            <RiEyeLine className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleOpenEdit(item)}
-                            className="p-1.5 hover:text-blue-600 hover:bg-blue-50 rounded-md transition"
-                            title="Edit"
-                          >
-                            <RiEditLine className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleOpenDelete(item)}
-                            className="p-1.5 hover:text-red-600 hover:bg-red-50 rounded-md transition"
-                            title="Hapus"
-                          >
-                            <RiDeleteBinLine className="w-4 h-4" />
-                          </button>
+                          <div className="flex-1">
+                            {item.status === "in-progress" && (
+                              <StatusBadge
+                                status="default"
+                                leftIcon={RiTimeLine}
+                                leftLabel="Proses"
+                                className="bg-amber-50 text-amber-800 border-amber-200/90 shadow-xs"
+                              />
+                            )}
+                            {item.status === "done" && (
+                              <StatusBadge
+                                status="success"
+                                leftIcon={RiCheckboxCircleFill}
+                                leftLabel="Selesai"
+                                className="bg-emerald-50 text-emerald-800 border-emerald-200/90 shadow-xs"
+                              />
+                            )}
+                            {item.status === "pending" && (
+                              <StatusBadge
+                                status="default"
+                                leftIcon={RiHourglassLine}
+                                leftLabel="Menunggu"
+                                className="bg-gray-50 text-gray-700 border-gray-200/90 shadow-xs"
+                              />
+                            )}
+                            {item.status === "conflict" && (
+                              <StatusBadge
+                                status="error"
+                                leftIcon={RiCloseCircleFill}
+                                leftLabel="Bentrok"
+                                className="bg-rose-50 text-rose-800 border-rose-200/90 shadow-xs"
+                              />
+                            )}
+                          </div>
+                          <div className="flex items-center justify-end gap-1 text-gray-400">
+                            <button
+                              onClick={() => handleOpenDetail(item)}
+                              className="p-1.5 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition"
+                              title="Detail"
+                            >
+                              <RiEyeLine className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleOpenEdit(item)}
+                              className="p-1.5 hover:text-blue-600 hover:bg-blue-50 rounded-md transition"
+                              title="Edit"
+                            >
+                              <RiEditLine className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleOpenDelete(item)}
+                              className="p-1.5 hover:text-red-600 hover:bg-red-50 rounded-md transition"
+                              title="Hapus"
+                            >
+                              <RiDeleteBinLine className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
 
         {/* ── 4. Pagination Footer ── */}
@@ -911,7 +946,7 @@ export default function PenugasanPage() {
               <option value={10}>10</option>
               <option value={20}>20</option>
             </select>
-            <span>dari {filteredItems.length} data</span>
+            <span>dari {groups.length} kegiatan</span>
           </div>
 
           <div className="flex items-center gap-1">
@@ -926,7 +961,7 @@ export default function PenugasanPage() {
               {currentPage}
             </span>
             <button
-              disabled={currentPage * pageSize >= filteredItems.length}
+              disabled={currentPage * pageSize >= groups.length}
               onClick={() => setCurrentPage((p) => p + 1)}
               className="px-2.5 py-1 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-40 disabled:pointer-events-none rounded hover:bg-gray-50 transition cursor-pointer"
             >
@@ -939,45 +974,52 @@ export default function PenugasanPage() {
       {/* ── Dialog Create / Edit Penugasan ── */}
       <Dialog
         open={isCreateOpen || isEditOpen}
-        onClose={() => {
-          setIsCreateOpen(false);
-          setIsEditOpen(false);
-        }}
+        onClose={closeForm}
+        size="lg"
         title={isCreateOpen ? "Buat Penugasan Baru" : "Edit Penugasan Tim"}
+        actions={
+          <>
+            <Button variant="outline" onClick={closeForm}>
+              Batal
+            </Button>
+            <button
+              onClick={isCreateOpen ? handleSaveCreate : handleSaveEdit}
+              className="rounded-lg bg-[#0f1f5c] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#0a1540] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1f5c]/40 cursor-pointer"
+            >
+              {isCreateOpen ? "Simpan Penugasan" : "Simpan Perubahan"}
+            </button>
+          </>
+        }
       >
-        <div className="space-y-4 mt-3">
-          {/* Real-time Conflict Alert Box */}
+        <div className="space-y-5">
           {formConflict && (
-            <div className="flex items-start gap-3 bg-rose-50 border border-rose-200 rounded-xl p-3.5 text-rose-800 animate-fadeIn">
-              <AlertTriangle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-xs font-bold text-rose-900 uppercase tracking-wide">
-                  ⚠️ Peringatan Deteksi Bentrok Jadwal
-                </p>
-                <p className="text-xs text-rose-700 mt-1 leading-relaxed">{formConflict}</p>
-                <p className="text-[11px] text-rose-600 mt-1 italic">
-                  Status akan otomatis ditandai sebagai Bentrok jika disimpan.
-                </p>
+            <div
+              role="alert"
+              className="flex gap-3 rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm"
+            >
+              <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-rose-500" />
+              <div className="text-rose-800">
+                <p className="font-semibold">Bentrok jadwal terdeteksi</p>
+                <p className="mt-0.5 text-rose-700">{formConflict}</p>
               </div>
             </div>
           )}
 
-          {/* Nama Kegiatan (Dropdown Sinkron dari Manajemen Kegiatan) */}
+          {/* Kegiatan */}
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                Kegiatan Terkait (Sinkron dari Agenda) *
+            <div className="mb-1.5 flex items-baseline justify-between gap-3">
+              <label className="text-sm font-medium text-gray-700">
+                Kegiatan terkait <span className="text-rose-500">*</span>
               </label>
               <button
                 type="button"
                 onClick={() => navigate("/kegiatan")}
-                className="text-[11px] text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1"
+                className="inline-flex items-center gap-1 text-xs font-medium text-[#0f1f5c] hover:underline"
               >
-                <span>Kelola Agenda</span>
-                <ExternalLink className="w-3 h-3" />
+                Kelola agenda
+                <ExternalLink className="h-3 w-3" />
               </button>
             </div>
-
             <select
               value={formData.kegiatanTerkait}
               onChange={(e) => {
@@ -996,25 +1038,31 @@ export default function PenugasanPage() {
                   setFormData({ ...formData, kegiatanTerkait: e.target.value });
                 }
               }}
-              className="w-full px-3.5 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 bg-white font-medium text-gray-800"
+              className={FIELD_CLASS}
             >
               {kegiatanList.map((keg) => (
                 <option key={keg.id} value={keg.title}>
-                  📌 {keg.title} ({keg.opdPenyelenggara ?? "Pemkot Batu"} - {keg.deadline})
+                  {keg.title} — {keg.opdPenyelenggara ?? "Pemkot Batu"}
                 </option>
               ))}
               {!kegiatanList.some((k) => k.title === formData.kegiatanTerkait) && (
                 <option value={formData.kegiatanTerkait}>
-                  📌 {formData.kegiatanTerkait} (Kegiatan Khusus)
+                  {formData.kegiatanTerkait} (khusus)
                 </option>
               )}
             </select>
+            {formData.tanggalKegiatan && (
+              <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-gray-500">
+                <Clock className="h-3.5 w-3.5" />
+                {formatIndoDate(formData.tanggalKegiatan)}
+              </p>
+            )}
           </div>
 
-          {/* PIC Selection */}
+          {/* PIC */}
           <div>
-            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
-              Pilih PIC (Petugas Staf) *
+            <label className={LABEL_CLASS}>
+              Petugas (PIC) <span className="text-rose-500">*</span>
             </label>
             <select
               value={formData.pic}
@@ -1026,30 +1074,39 @@ export default function PenugasanPage() {
                   picAvatar: opt?.avatar ?? "PT",
                 });
               }}
-              className="w-full px-3.5 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 bg-white"
+              className={FIELD_CLASS}
             >
               {PIC_OPTIONS.length === 0 ? (
                 <option value="">Belum ada petugas di database</option>
               ) : (
                 PIC_OPTIONS.map((p) => (
                   <option key={p.id || p.name} value={p.name}>
-                    {p.name} ({p.role})
+                    {p.name} — {p.role}
                   </option>
                 ))
               )}
             </select>
+            {selectedPic && (
+              <div className="mt-2 flex items-center gap-2.5 rounded-lg bg-gray-50 px-3 py-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#0f1f5c] text-[11px] font-semibold text-white">
+                  {selectedPic.avatar}
+                </span>
+                <div className="leading-tight">
+                  <p className="text-sm font-medium text-gray-800">{selectedPic.name}</p>
+                  <p className="text-xs text-gray-500">{selectedPic.role}</p>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Output & Tanggal */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Jenis konten + Waktu */}
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
-                Output / Jenis Konten
-              </label>
+              <label className={LABEL_CLASS}>Jenis konten</label>
               <select
                 value={formData.jenisKonten}
                 onChange={(e) => setFormData({ ...formData, jenisKonten: e.target.value })}
-                className="w-full px-3.5 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 bg-white"
+                className={FIELD_CLASS}
               >
                 {JENIS_KONTEN_OPTIONS.map((jk) => (
                   <option key={jk} value={jk}>
@@ -1058,65 +1115,42 @@ export default function PenugasanPage() {
                 ))}
               </select>
             </div>
-
             <div>
-              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
-                Hari / Tanggal Penugasan
+              <label className={LABEL_CLASS}>
+                Waktu penugasan <span className="text-rose-500">*</span>
               </label>
-              <input
-                type="text"
-                placeholder="Senin, 24 Agustus 2026"
-                value={formData.tanggalKegiatan}
-                onChange={(e) => setFormData({ ...formData, tanggalKegiatan: e.target.value })}
-                className="w-full px-3.5 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
-              />
+              <div className="flex items-center gap-2">
+                <input
+                  type="time"
+                  value={formData.jamMulai}
+                  onChange={(e) => setFormData({ ...formData, jamMulai: e.target.value })}
+                  className={FIELD_CLASS}
+                />
+                <span className="text-gray-400">–</span>
+                <input
+                  type="time"
+                  value={formData.jamSelesai}
+                  onChange={(e) => setFormData({ ...formData, jamSelesai: e.target.value })}
+                  className={FIELD_CLASS}
+                />
+              </div>
             </div>
           </div>
 
-          {/* Jam Mulai & Selesai */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Lokasi + Status */}
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
-                Jam Mulai *
-              </label>
-              <input
-                type="time"
-                value={formData.jamMulai}
-                onChange={(e) => setFormData({ ...formData, jamMulai: e.target.value })}
-                className="w-full px-3.5 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
-                Jam Selesai *
-              </label>
-              <input
-                type="time"
-                value={formData.jamSelesai}
-                onChange={(e) => setFormData({ ...formData, jamSelesai: e.target.value })}
-                className="w-full px-3.5 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
-              />
-            </div>
-          </div>
-
-          {/* Lokasi & Status */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
-                Lokasi Liputan/Tugas
-              </label>
+              <label className={LABEL_CLASS}>Lokasi liputan</label>
               <input
                 type="text"
                 placeholder="Balaikota Among Tani"
                 value={formData.lokasi}
                 onChange={(e) => setFormData({ ...formData, lokasi: e.target.value })}
-                className="w-full px-3.5 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+                className={FIELD_CLASS}
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
-                Status
-              </label>
+              <label className={LABEL_CLASS}>Status</label>
               <select
                 value={formData.status}
                 onChange={(e) =>
@@ -1125,47 +1159,29 @@ export default function PenugasanPage() {
                     status: e.target.value as MockPenugasan["status"],
                   })
                 }
-                className="w-full px-3.5 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 bg-white"
+                className={FIELD_CLASS}
               >
+                <option value="pending">Menunggu</option>
                 <option value="in-progress">Proses</option>
                 <option value="done">Selesai</option>
-                <option value="pending">Menunggu</option>
                 <option value="conflict">Bentrok</option>
               </select>
             </div>
           </div>
 
-          {/* Catatan / Instruksi */}
+          {/* Catatan */}
           <div>
-            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
-              Catatan / Instruksi Tambahan
+            <label className={LABEL_CLASS}>
+              Catatan / instruksi{" "}
+              <span className="font-normal text-gray-400">(opsional)</span>
             </label>
             <textarea
-              rows={2}
-              placeholder="Instruksi khusus liputan atau batas pengumpulan..."
+              rows={3}
+              placeholder="Instruksi khusus liputan atau batas pengumpulan…"
               value={formData.catatan}
               onChange={(e) => setFormData({ ...formData, catatan: e.target.value })}
-              className="w-full px-3.5 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 resize-none"
+              className={`${FIELD_CLASS} resize-none`}
             />
-          </div>
-
-          {/* Modal Action Buttons */}
-          <div className="pt-3 flex justify-end gap-2 border-t border-gray-100">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsCreateOpen(false);
-                setIsEditOpen(false);
-              }}
-            >
-              Batal
-            </Button>
-            <button
-              onClick={isCreateOpen ? handleSaveCreate : handleSaveEdit}
-              className="px-4 py-2 text-sm font-semibold text-white rounded-lg shadow-sm transition bg-[#0f1f5c] hover:bg-[#0a1540] cursor-pointer"
-            >
-              {isCreateOpen ? "Simpan Penugasan" : "Simpan Perubahan"}
-            </button>
           </div>
         </div>
       </Dialog>
