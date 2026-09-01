@@ -263,11 +263,11 @@ export default function ProfilPage() {
       />
 
       {/* ── Top Navigation Bar ── */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
         <button
           type="button"
           onClick={handleBack}
-          className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:text-[#0f1f5c] dark:hover:text-white transition px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer group"
+          className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-[#0f1f5c] dark:hover:text-white transition px-3.5 py-2 rounded-xl bg-white dark:bg-[#161b22] border border-gray-200/80 dark:border-gray-800 shadow-2xs hover:bg-gray-50 dark:hover:bg-gray-800/80 cursor-pointer group self-start sm:self-auto"
         >
           <ArrowLeft
             className="w-4 h-4 transition-transform group-hover:-translate-x-1"
@@ -276,8 +276,8 @@ export default function ProfilPage() {
           <span>{t("back_to_dashboard")}</span>
         </button>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5">
+        <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
+          <div className="flex items-center gap-1.5 bg-white dark:bg-[#161b22] px-2.5 py-1.5 rounded-xl border border-gray-200/80 dark:border-gray-800 shadow-2xs">
             <Globe className="w-4 h-4 text-gray-400" />
             <select
               value={language}
@@ -286,13 +286,13 @@ export default function ProfilPage() {
                 setLanguage(next);
                 addToast(next === "en" ? "Language switched to English" : "Bahasa diubah ke Bahasa Indonesia", "info");
               }}
-              className="text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 focus:outline-none cursor-pointer"
+              className="text-xs font-bold bg-transparent text-gray-700 dark:text-gray-200 focus:outline-none cursor-pointer"
             >
-              <option value="id">ID</option>
-              <option value="en">EN</option>
+              <option value="id" className="dark:bg-[#161b22]">🇮🇩 ID</option>
+              <option value="en" className="dark:bg-[#161b22]">🇬🇧 EN</option>
             </select>
           </div>
-          <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800 shadow-2xs">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             {t("system_active")}
           </span>
@@ -300,7 +300,7 @@ export default function ProfilPage() {
       </div>
 
       {/* ── HERO BANNER: Premium Glassmorphism Card ── */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0a1647] via-[#0f1f5c] to-[#1e293b] text-white p-6 sm:p-8 shadow-xl border border-slate-700/50">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0a1647] via-[#0f1f5c] to-[#1e293b] text-white p-5 sm:p-8 shadow-xl border border-slate-700/50">
         {/* Subtle Background Elements */}
         <div className="absolute -right-12 -top-12 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute right-1/3 -bottom-16 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -381,11 +381,11 @@ export default function ProfilPage() {
           </div>
 
           {/* Quick Header Actions */}
-          <div className="flex flex-row md:flex-col gap-2.5 self-center md:self-start w-full md:w-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-3 md:flex md:flex-col gap-2.5 w-full md:w-auto mt-2 md:mt-0">
             <button
               type="button"
               onClick={handleOpenEditModal}
-              className="flex-1 md:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-sky-500/20 hover:bg-sky-500/35 text-sky-200 backdrop-blur-md border border-sky-400/30 transition cursor-pointer shadow-xs active:scale-98"
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-sky-500/20 hover:bg-sky-500/35 text-sky-200 backdrop-blur-md border border-sky-400/30 transition cursor-pointer shadow-xs active:scale-98"
             >
               <Pencil className="w-4 h-4" />
               <span>{language === "en" ? "Edit Profile & Photo" : "Edit Profil & Foto"}</span>
@@ -395,7 +395,7 @@ export default function ProfilPage() {
               onClick={() =>
                 navigate(isPetugas ? "/petugas/pengaturan" : "/pengaturan")
               }
-              className="flex-1 md:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-white/15 hover:bg-white/25 text-white backdrop-blur-md border border-white/20 transition cursor-pointer shadow-xs active:scale-98"
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-white/15 hover:bg-white/25 text-white backdrop-blur-md border border-white/20 transition cursor-pointer shadow-xs active:scale-98"
             >
               <Settings className="w-4 h-4" />
               <span>{t("settings")}</span>
@@ -403,7 +403,7 @@ export default function ProfilPage() {
             <button
               type="button"
               onClick={() => setShowLogoutConfirm(true)}
-              className="flex-1 md:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 backdrop-blur-md border border-rose-400/30 transition cursor-pointer shadow-xs active:scale-98"
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 backdrop-blur-md border border-rose-400/30 transition cursor-pointer shadow-xs active:scale-98"
             >
               <LogOut className="w-4 h-4" />
               <span>{t("logout")}</span>

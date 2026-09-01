@@ -35,7 +35,7 @@ const PetugasLayout = () => {
         >
           <Topbar onMenuClick={() => setMobileMenuOpen(true)} />
         </div>
-        <main className={`flex-1 overflow-auto bg-gray-50 dark:bg-[#0d1117] transition-all duration-300 ease-in-out ${isProfilePage ? "p-4 sm:p-6 md:p-8 pt-4 sm:pt-6" : "p-4 md:p-6"}`}>
+        <main className={`flex-1 overflow-auto bg-gray-50 dark:bg-[#0d1117] transition-all duration-300 ease-in-out ${isProfilePage ? "p-4 sm:p-6 lg:p-8 pt-6 sm:pt-8 lg:pt-8" : "p-4 md:p-6"}`}>
           <Outlet />
         </main>
       </div>
