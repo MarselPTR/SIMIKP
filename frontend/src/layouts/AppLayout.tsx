@@ -18,15 +18,15 @@ const AppLayout = () => {
       </div>
       <div className="flex-1 min-w-0 flex flex-col min-h-screen lg:ml-64 transition-all duration-300 ease-in-out">
         <div
-          className={`transition-all duration-300 ease-in-out transform origin-top z-30 ${
+          className={`transition-all duration-300 ease-in-out transform origin-top z-30 overflow-hidden ${
             isProfilePage
-              ? "-mt-16 opacity-0 pointer-events-none -translate-y-full max-h-0"
-              : "mt-0 opacity-100 translate-y-0 max-h-16"
+              ? "h-0 max-h-0 opacity-0 pointer-events-none -translate-y-4"
+              : "h-16 max-h-16 opacity-100 translate-y-0"
           }`}
         >
           <Topbar onMenuClick={() => setMobileMenuOpen(true)} />
         </div>
-        <main className={`flex-1 overflow-y-auto min-w-0 transition-all duration-300 ease-in-out ${isProfilePage ? "p-4 sm:p-6 lg:p-8 pt-6 sm:pt-8 lg:pt-8" : "p-4 md:p-6"}`}>
+        <main className={`flex-1 overflow-y-auto min-w-0 transition-all duration-300 ease-in-out ${isProfilePage ? "p-4 sm:p-6 md:p-8 pt-6 sm:pt-8 md:pt-8" : "p-4 md:p-6"}`}>
           <Outlet />
         </main>
       </div>
