@@ -161,13 +161,6 @@ const todayDateKey = () => {
   return dateKeyOf(d.getFullYear(), d.getMonth(), d.getDate());
 };
 
-const petugasForOutput = (outputs?: string[]) => {
-  const first = outputs?.[0];
-  if (first === "Naskah Berita") return "Rizky Fadillah";
-  if (first === "Foto" || first === "Video" || first === "Reels") return "Dinda Amelia";
-  return "Fajar Nugroho";
-};
-
 const initialsOf = (name: string) =>
   name
     .split(" ")
@@ -194,69 +187,77 @@ const TugasTerbaruTable = ({ items }: { items: MockKegiatan[] }) => {
       <div className="overflow-x-auto">
         <table className="w-full text-xs table-fixed">
           <colgroup>
-            <col className="w-[26%]" />
-            <col className="w-[16%]" />
+            <col className="w-[30%]" />
+            <col className="w-[20%]" />
             <col className="w-[22%]" />
-            <col className="w-[15%]" />
-            <col className="w-[21%]" />
+            <col className="w-[14%]" />
+            <col className="w-[14%]" />
           </colgroup>
           <thead>
             <tr className="text-left text-[11px] text-gray-400 border-b border-gray-100">
               <th className="px-3 py-2.5 font-medium">Nama Kegiatan</th>
               <th className="px-3 py-2.5 font-medium">Jenis Konten</th>
-              <th className="px-3 py-2.5 font-medium">Petugas</th>
+              <th className="px-3 py-2.5 font-medium">Penyelenggara</th>
               <th className="px-3 py-2.5 font-medium">Deadline</th>
               <th className="px-3 py-2.5 font-medium">Status</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
-            {items.map((row) => {
-              const petugas = petugasForOutput(row.outputDibutuhkan);
-              const outputLabel = row.outputDibutuhkan?.join(", ") || "—";
-              return (
-                <tr
-                  key={row.id}
-                  onClick={() => navigate("/kegiatan")}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") navigate("/kegiatan");
-                  }}
-                  tabIndex={0}
-                  role="button"
-                  aria-label={`Lihat detail ${row.title}`}
-                  className="cursor-pointer transition-colors duration-150 hover:bg-blue-50/60 focus-visible:outline-none focus-visible:bg-blue-50/60"
-                >
-                  <td className="px-3 py-3 font-medium text-gray-800">
-                    <span className="block truncate" title={row.title}>{row.title}</span>
-                  </td>
-                  <td className="px-3 py-3 text-gray-500">
-                    <span className="block truncate" title={outputLabel}>{outputLabel}</span>
-                  </td>
-                  <td className="px-3 py-3 text-gray-600">
-                    <span className="flex items-center gap-1.5 min-w-0">
-                      <span
-                        className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
-                        style={{ backgroundColor: NAVY }}
-                      >
-                        {initialsOf(petugas)}
+            {items.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="text-center py-8 text-gray-400">
+                  Belum ada kegiatan terjadwal di database.
+                </td>
+              </tr>
+            ) : (
+              items.map((row) => {
+                const opd = row.opdPenyelenggara || "Diskominfo";
+                const outputLabel = row.outputDibutuhkan?.join(", ") || "—";
+                return (
+                  <tr
+                    key={row.id}
+                    onClick={() => navigate("/kegiatan")}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") navigate("/kegiatan");
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Lihat detail ${row.title}`}
+                    className="cursor-pointer transition-colors duration-150 hover:bg-blue-50/60 focus-visible:outline-none focus-visible:bg-blue-50/60"
+                  >
+                    <td className="px-3 py-3 font-medium text-gray-800">
+                      <span className="block truncate" title={row.title}>{row.title}</span>
+                    </td>
+                    <td className="px-3 py-3 text-gray-500">
+                      <span className="block truncate" title={outputLabel}>{outputLabel}</span>
+                    </td>
+                    <td className="px-3 py-3 text-gray-600">
+                      <span className="flex items-center gap-1.5 min-w-0">
+                        <span
+                          className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
+                          style={{ backgroundColor: NAVY }}
+                        >
+                          {initialsOf(opd)}
+                        </span>
+                        <span className="truncate">{opd}</span>
                       </span>
-                      <span className="truncate">{petugas}</span>
-                    </span>
-                  </td>
-                  <td className="px-3 py-3 text-gray-500 whitespace-nowrap">{formatShortDate(row.deadline)}</td>
-                  <td className="px-3 py-3">
-                    <span
-                      className="block truncate rounded-full px-2 py-1 text-center text-[11px] font-medium"
-                      style={{
-                        backgroundColor: `${KEGIATAN_STATUS_COLORS[row.status]}17`,
-                        color: KEGIATAN_STATUS_COLORS[row.status],
-                      }}
-                    >
-                      {KEGIATAN_STATUS_LABELS[row.status]}
-                    </span>
-                  </td>
-                </tr>
-              );
-            })}
+                    </td>
+                    <td className="px-3 py-3 text-gray-500 whitespace-nowrap">{formatShortDate(row.deadline)}</td>
+                    <td className="px-3 py-3">
+                      <span
+                        className="block truncate rounded-full px-2 py-1 text-center text-[11px] font-medium"
+                        style={{
+                          backgroundColor: `${KEGIATAN_STATUS_COLORS[row.status]}17`,
+                          color: KEGIATAN_STATUS_COLORS[row.status],
+                        }}
+                      >
+                        {KEGIATAN_STATUS_LABELS[row.status]}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>
