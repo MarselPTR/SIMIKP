@@ -21,9 +21,15 @@ export default {
         },
       },
       borderRadius: {
+        'tremor-default': '0.5rem',
+        'tremor-small': '0.375rem',
+        'tremor-full': '9999px',
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      fontSize: {
+        'tremor-label': ['0.75rem'],
       },
     },
   },

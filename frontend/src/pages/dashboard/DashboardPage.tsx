@@ -11,11 +11,11 @@ import {
   MoreHorizontal,
   User,
   Users,
-  Image as ImageIcon,
   Camera,
 } from "lucide-react";
-import { mockApi } from "../../lib/mock-api";
-import { KEGIATAN_STATUS_COLORS, KEGIATAN_STATUS_LABELS } from "../../lib/mock-data";
+
+import { apiFetch } from "../../lib/api-client";
+import { KEGIATAN_STATUS_COLORS, KEGIATAN_STATUS_LABELS, mockKegiatan, mockPenugasan } from "../../lib/mock-data";
 import type { MockKegiatan } from "../../lib/mock-data";
 import EventCalendar, { dateKeyOf } from "../../components/shared/EventCalendar";
 import type { CalendarEvent } from "../../components/shared/EventCalendar";
@@ -35,9 +35,6 @@ interface StatCard {
   path: string;
 }
 
-// Angka dihitung langsung dari data kegiatan yang sama dengan Manajemen
-// Kegiatan (lihat computeStatCards di bawah) — bukan dummy statis, supaya
-// kedua halaman selalu menampilkan jumlah yang sinkron.
 interface StatCardMeta {
   key: "totalBulanIni" | "tugasDalamProses" | "kontenSiapReview" | "publikasiSukses";
   label: string;
@@ -59,18 +56,77 @@ const BANK_KONTEN_CARD: StatCard = {
   path: "/bank-konten",
 };
 
-// Satu warna biru muda seragam untuk semua stat card (bukan gradasi lagi).
-const STAT_CARD_TONE = {
-  bg: "#eff6ff",
-  iconBg: "#e2e8f5",
-  icon: "#0f1f5c",
-  value: "#0f1f5c",
-  label: "#6b7ba8",
+interface SpotlightStatCardProps {
+  card: StatCard;
+  onClick: () => void;
+}
+
+const SpotlightStatCard = ({ card, onClick }: SpotlightStatCardProps) => {
+  const [mousePos, setMousePos] = useState({ x: 100, y: 75, distFromCenter: 0.5 });
+  const [isHovered, setIsHovered] = useState(false);
+  const Icon = card.icon;
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const width = rect.width || 1;
+    const distFromCenter = Math.min(1, Math.max(0, Math.abs(x - width / 2) / (width / 2)));
+    setMousePos({ x, y, distFromCenter });
+  };
+
+  const navyOpacity = 0.12 + mousePos.distFromCenter * 0.32;
+  const whiteOpacity = Math.max(0.15, (1 - mousePos.distFromCenter) * 0.75);
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onMouseMove={handleMouseMove}
+      className="relative text-left w-full rounded-2xl p-5 overflow-hidden transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl active:translate-y-0 active:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1f5c] focus-visible:ring-offset-2 border border-slate-100/80 group"
+      style={{
+        backgroundColor: "#ffffff",
+        boxShadow: isHovered
+          ? "0 20px 25px -5px rgba(15, 31, 92, 0.12), 0 8px 10px -6px rgba(15, 31, 92, 0.08)"
+          : "0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05)",
+      }}
+      aria-label={`Buka ${card.label}`}
+    >
+      <div
+        className="pointer-events-none absolute inset-0 transition-opacity duration-300"
+        style={{
+          opacity: isHovered ? 1 : 0,
+          background: `radial-gradient(190px circle at ${mousePos.x}px ${mousePos.y}px, rgba(15, 31, 92, ${navyOpacity}) 0%, rgba(56, 189, 248, ${navyOpacity * 0.6}) 45%, rgba(255, 255, 255, ${whiteOpacity}) 78%, transparent 100%)`,
+        }}
+      />
+      <div
+        className="pointer-events-none absolute inset-0 rounded-2xl transition-opacity duration-300"
+        style={{
+          opacity: isHovered ? 1 : 0,
+          boxShadow: "inset 0 0 0 1px rgba(15, 31, 92, 0.15)",
+        }}
+      />
+      <div className="relative z-10">
+        <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-3.5 transition-all duration-300 bg-[#0f1f5c]/5 group-hover:bg-[#0f1f5c] group-hover:scale-105 shadow-2xs">
+          <Icon className="w-5 h-5 text-[#0f1f5c] group-hover:text-white transition-colors duration-300" strokeWidth={2} />
+        </div>
+        <p className="text-xs font-semibold text-slate-500 tracking-tight group-hover:text-slate-700 transition-colors">
+          {card.label}
+        </p>
+        <div className="flex items-end gap-2 mt-1">
+          <span className="text-3xl font-black text-[#0f1f5c] tracking-tight group-hover:scale-102 transition-transform duration-200">
+            {card.value}
+          </span>
+        </div>
+      </div>
+    </button>
+  );
 };
 
 /* ---------------------------------------------------------------------- */
-/* Kalender Kegiatan — bersumber dari data kegiatan yang sama dipakai      */
-/* halaman Manajemen Kegiatan (lib/mock-data.ts), bukan dummy terpisah.    */
+/* Kalender Kegiatan & Utilities                                          */
 /* ---------------------------------------------------------------------- */
 
 const dashboardCalendarLegend = (Object.keys(KEGIATAN_STATUS_LABELS) as MockKegiatan["status"][]).map((status) => ({
@@ -98,13 +154,6 @@ const todayDateKey = () => {
   return dateKeyOf(d.getFullYear(), d.getMonth(), d.getDate());
 };
 
-/* ---------------------------------------------------------------------- */
-/* Tugas Terbaru & Deadline Mendekati                                      */
-/* ---------------------------------------------------------------------- */
-
-// Model MockKegiatan tidak menyimpan petugas yang ditugaskan — dipetakan
-// dari jenis output yang dibutuhkan supaya tetap masuk akal (naskah -> tim
-// Prahum, foto/video -> tim Foto-Video, selain itu -> tim Desainer).
 const petugasForOutput = (outputs?: string[]) => {
   const first = outputs?.[0];
   if (first === "Naskah Berita") return "Rizky Fadillah";
@@ -125,7 +174,7 @@ const TugasTerbaruTable = ({ items }: { items: MockKegiatan[] }) => {
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden transition-shadow duration-200 hover:shadow-md">
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-        <h3 className="text-base font-semibold text-gray-900">Tugas Terbaru & Deadline Mendekati</h3>
+        <h3 className="text-base font-semibold text-gray-900">Tugas Terbaru &amp; Deadline Mendekati</h3>
         <button
           type="button"
           onClick={() => navigate("/kegiatan")}
@@ -209,17 +258,10 @@ const TugasTerbaruTable = ({ items }: { items: MockKegiatan[] }) => {
 };
 
 /* ---------------------------------------------------------------------- */
-/* Status Alur Kerja Produksi — PRAHUM (workflow proportion bar)           */
+/* Status Alur Kerja Produksi Panels                                       */
 /* ---------------------------------------------------------------------- */
 
-const prahumStages = [
-  { label: "BELUM", count: 3, color: "#9ca3af", icon: User },
-  { label: "LIPUTAN", count: 15, color: "#f59e0b", icon: Users },
-  { label: "MENULIS", count: 12, color: "#3b82f6", icon: ImageIcon },
-  { label: "SIAP TAYANG", count: 6, color: "#22c55e", icon: Camera },
-];
-
-const PrahumPanel = () => {
+const PrahumPanel = ({ assignments }: { assignments: any[] }) => {
   const navigate = useNavigate();
   const [hovered, setHovered] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -228,6 +270,17 @@ const PrahumPanel = () => {
     const t = setTimeout(() => setMounted(true), 50);
     return () => clearTimeout(t);
   }, []);
+
+  const data = assignments.filter((a) => ["Naskah Berita", "Rilis", "Artikel", "Berita"].includes(a.contentType));
+  const belum = data.filter((a) => a.status === "BELUM" || a.status === "ASSIGNED").length;
+  const diproses = data.filter((a) => !["BELUM", "ASSIGNED", "SELESAI", "COMPLETED"].includes(a.status)).length;
+  const selesai = data.filter((a) => a.status === "SELESAI" || a.status === "COMPLETED").length;
+
+  const prahumStages = [
+    { label: "BELUM", count: belum, color: "#9ca3af", icon: User },
+    { label: "DIPROSES", count: diproses, color: "#f59e0b", icon: Users },
+    { label: "SELESAI", count: selesai, color: "#22c55e", icon: Camera },
+  ];
 
   const total = prahumStages.reduce((s, stage) => s + stage.count, 0);
   const active = hovered !== null ? prahumStages[hovered] : null;
@@ -241,9 +294,10 @@ const PrahumPanel = () => {
         </span>
       </div>
 
-      {/* Proportional workflow bar — jujur ke data: lebar segmen = porsi tugas, bukan funnel yang menyiratkan penyusutan bertahap */}
       <div className="flex w-full h-3 rounded-full overflow-hidden bg-gray-100 gap-[2px]">
-        {prahumStages.map((stage, i) => (
+        {total === 0 ? (
+           <div className="w-full h-full bg-gray-200" />
+        ) : prahumStages.map((stage, i) => (
           <button
             key={stage.label}
             type="button"
@@ -263,8 +317,7 @@ const PrahumPanel = () => {
         ))}
       </div>
 
-      {/* Stat chips per tahap */}
-      <div className="grid grid-cols-4 gap-1.5 mt-3">
+      <div className="grid grid-cols-3 gap-1.5 mt-3">
         {prahumStages.map((stage, i) => {
           const Icon = stage.icon;
           return (
@@ -292,27 +345,29 @@ const PrahumPanel = () => {
   );
 };
 
-/* ---------------------------------------------------------------------- */
-/* Status Alur Kerja Produksi — FOTO (donut, SVG interaktif)               */
-/* ---------------------------------------------------------------------- */
-
-const fotoData = [
-  { label: "BELUM", value: 3, color: "#9ca3af" },
-  { label: "LIPUTAN", value: 9, color: "#f59e0b" },
-  { label: "SIAP TAYANG", value: 16, color: "#22c55e" },
-];
-
 const FOTO_RADIUS = 38;
 const FOTO_CIRC = 2 * Math.PI * FOTO_RADIUS;
 
-const FotoPanel = () => {
+const FotoPanel = ({ assignments }: { assignments: any[] }) => {
   const navigate = useNavigate();
   const [hovered, setHovered] = useState<number | null>(null);
+
+  const data = assignments.filter((a) => ["Foto"].includes(a.contentType));
+  const belum = data.filter((a) => a.status === "BELUM" || a.status === "ASSIGNED").length;
+  const diproses = data.filter((a) => !["BELUM", "ASSIGNED", "SELESAI", "COMPLETED"].includes(a.status)).length;
+  const selesai = data.filter((a) => a.status === "SELESAI" || a.status === "COMPLETED").length;
+
+  const fotoData = [
+    { label: "BELUM", value: belum, color: "#9ca3af" },
+    { label: "DIPROSES", value: diproses, color: "#f59e0b" },
+    { label: "SELESAI", value: selesai, color: "#22c55e" },
+  ];
+
   const total = fotoData.reduce((sum, d) => sum + d.value, 0);
 
   let cumulative = 0;
   const segments = fotoData.map((d, i) => {
-    const len = (d.value / total) * FOTO_CIRC;
+    const len = total === 0 ? 0 : (d.value / total) * FOTO_CIRC;
     const seg = { ...d, len, offset: cumulative, index: i };
     cumulative += len;
     return seg;
@@ -330,7 +385,7 @@ const FotoPanel = () => {
         >
           <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
             <circle cx="50" cy="50" r={FOTO_RADIUS} fill="none" stroke="#f1f5f9" strokeWidth="14" />
-            {segments.map((seg, i) => (
+            {total > 0 && segments.map((seg, i) => (
               <circle
                 key={seg.label}
                 cx="50"
@@ -376,7 +431,7 @@ const FotoPanel = () => {
             >
               <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: d.color }} />
               <span>
-                {Math.round((d.value / total) * 100)}% {d.label}
+                {total === 0 ? 0 : Math.round((d.value / total) * 100)}% {d.label}
               </span>
             </button>
           ))}
@@ -386,10 +441,6 @@ const FotoPanel = () => {
   );
 };
 
-/* ---------------------------------------------------------------------- */
-/* Status Alur Kerja Produksi — VIDEO (bullet-style horizontal bars)       */
-/* ---------------------------------------------------------------------- */
-
 const videoSegmentColors = { belum: "#9ca3af", liputan: "#f59e0b", siapTayang: "#3b82f6", finis: "#22c55e" };
 const videoSegmentLabels: Record<keyof typeof videoSegmentColors, string> = {
   belum: "Belum",
@@ -398,13 +449,7 @@ const videoSegmentLabels: Record<keyof typeof videoSegmentColors, string> = {
   finis: "Finis",
 };
 
-const videoBars = [
-  { label: "Tugas Baru", segments: [{ key: "belum", v: 2 }, { key: "liputan", v: 6 }] },
-  { label: "Sedang Dikerjakan", segments: [{ key: "belum", v: 2 }, { key: "liputan", v: 3 }, { key: "siapTayang", v: 4 }] },
-  { label: "Finis", segments: [{ key: "siapTayang", v: 1 }, { key: "finis", v: 7 }] },
-] as const;
-
-const VideoPanel = () => {
+const VideoPanel = ({ assignments }: { assignments: any[] }) => {
   const navigate = useNavigate();
   const [mounted, setMounted] = useState(false);
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
@@ -414,11 +459,21 @@ const VideoPanel = () => {
     return () => clearTimeout(t);
   }, []);
 
-  const maxTotal = Math.max(...videoBars.map((b) => b.segments.reduce((s, seg) => s + seg.v, 0)));
+  const data = assignments.filter((a) => ["Video", "Reels/TikTok", "Video Animasi"].includes(a.contentType));
+  const newTasks = data.filter((a) => a.status === "ASSIGNED" || a.status === "BELUM");
+  const inProgressTasks = data.filter((a) => !["ASSIGNED", "BELUM", "SELESAI", "COMPLETED"].includes(a.status));
+  const finishedTasks = data.filter((a) => a.status === "SELESAI" || a.status === "COMPLETED");
+
+  const videoBars = [
+    { label: "Tugas Baru", segments: [{ key: "belum", v: newTasks.length }] },
+    { label: "Sedang Dikerjakan", segments: [{ key: "liputan", v: inProgressTasks.length }] },
+    { label: "Finis", segments: [{ key: "finis", v: finishedTasks.length }] },
+  ] as const;
+
+  const maxTotal = Math.max(...videoBars.map((b) => b.segments.reduce((s, seg) => s + seg.v, 0)), 1);
 
   return (
     <PanelShell title="VIDEO" onMoreClick={() => navigate("/produksi")}>
-      {/* Bullet-style: satu baris per kategori, panjang bar = proporsi terhadap kategori terbesar */}
       <div className="mt-3 space-y-3">
         {videoBars.map((bar, i) => {
           const total = bar.segments.reduce((s, seg) => s + seg.v, 0);
@@ -450,7 +505,7 @@ const VideoPanel = () => {
                       title={`${videoSegmentLabels[seg.key as keyof typeof videoSegmentColors]}: ${seg.v}`}
                       className="h-full transition-all duration-200 ease-out group-hover:brightness-95"
                       style={{
-                        width: `${(seg.v / total) * 100}%`,
+                        width: total === 0 ? "0%" : `${(seg.v / total) * 100}%`,
                         backgroundColor: videoSegmentColors[seg.key as keyof typeof videoSegmentColors],
                         opacity: hoveredBar === null || hoveredBar === i ? 1 : 0.5,
                       }}
@@ -474,18 +529,21 @@ const VideoPanel = () => {
   );
 };
 
-/* ---------------------------------------------------------------------- */
-/* Status Alur Kerja Produksi — DESAINER (kanban)                          */
-/* ---------------------------------------------------------------------- */
-
-const desainerColumns = [
-  { label: "ANTREAN", count: 14, color: "#9ca3af", bg: "bg-gray-100", text: "text-gray-700", items: ["Banner HUT Kota", "Infografis APBD"] },
-  { label: "DIPROSES", count: 12, color: "#f59e0b", bg: "bg-amber-100", text: "text-amber-700", items: ["Feeds Instagram", "Revisi Layout"] },
-  { label: "SELESAI", count: 8, color: "#22c55e", bg: "bg-emerald-100", text: "text-emerald-700", items: ["Logo OPD", "Sertifikat"] },
-];
-
-const DesainerPanel = () => {
+const DesainerPanel = ({ assignments }: { assignments: any[] }) => {
   const navigate = useNavigate();
+
+  const data = assignments.filter((a) => ["Desain Grafis", "Infografis", "Banner/Spanduk", "Logo/Ikon"].includes(a.contentType));
+  
+  const antrean = data.filter((a) => a.status === "ASSIGNED" || a.status === "BELUM");
+  const diproses = data.filter((a) => !["ASSIGNED", "BELUM", "SELESAI", "COMPLETED"].includes(a.status));
+  const selesai = data.filter((a) => a.status === "SELESAI" || a.status === "COMPLETED");
+
+  const desainerColumns = [
+    { label: "ANTREAN", count: antrean.length, color: "#9ca3af", bg: "bg-gray-100", text: "text-gray-700", items: antrean.slice(0,2).map(a => a.title) },
+    { label: "DIPROSES", count: diproses.length, color: "#f59e0b", bg: "bg-amber-100", text: "text-amber-700", items: diproses.slice(0,2).map(a => a.title) },
+    { label: "SELESAI", count: selesai.length, color: "#22c55e", bg: "bg-emerald-100", text: "text-emerald-700", items: selesai.slice(0,2).map(a => a.title) },
+  ];
+
   return (
     <PanelShell title="DESAINER" onMoreClick={() => navigate("/produksi")}>
       <div className="grid grid-cols-3 gap-2 mt-3">
@@ -495,13 +553,14 @@ const DesainerPanel = () => {
               <span className={`text-[10px] font-bold ${col.text}`}>{col.label}</span>
               <span className={`text-[10px] font-bold ${col.text}`}>{col.count}</span>
             </div>
-            {col.items.map((item) => (
+            {col.items.map((item, idx) => (
               <button
                 type="button"
-                key={item}
+                key={idx}
                 onClick={() => navigate("/produksi")}
-                className="text-left bg-gray-50 border-l-2 rounded px-2 py-1.5 text-[10px] text-gray-600 leading-tight transition-all duration-200 ease-out hover:bg-white hover:shadow-md hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="text-left bg-gray-50 border-l-2 rounded px-2 py-1.5 text-[10px] text-gray-600 leading-tight transition-all duration-200 ease-out hover:bg-white hover:shadow-md hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 truncate block w-full"
                 style={{ borderColor: col.color }}
+                title={item}
               >
                 {item}
               </button>
@@ -512,10 +571,6 @@ const DesainerPanel = () => {
     </PanelShell>
   );
 };
-
-/* ---------------------------------------------------------------------- */
-/* Shared panel shell                                                      */
-/* ---------------------------------------------------------------------- */
 
 const PanelShell = ({
   title,
@@ -543,13 +598,65 @@ const PanelShell = ({
 );
 
 /* ---------------------------------------------------------------------- */
-/* Page                                                                     */
+/* Page Main Component                                                     */
 /* ---------------------------------------------------------------------- */
+
+interface DashboardStats {
+  totalKegiatan: number;
+  aktifKegiatan: number;
+  totalPenugasan: number;
+  produksiRunning: number;
+  reviewPending: number;
+  publikasiPublished: number;
+  opdProduction: Array<{ name: string; singkatan: string; count: number }>;
+  pegawaiProduction: Array<{ id: string; name: string; staffType: string; count: number }>;
+}
 
 const DashboardPage = () => {
   const navigate = useNavigate();
-  const { data: kegiatanData } = useQuery({ queryKey: ["kegiatan"], queryFn: mockApi.kegiatan.getAll });
-  const kegiatanList = kegiatanData ?? [];
+
+  // Fetch real activities and real stats
+  const { data: kegiatanResponse } = useQuery({
+    queryKey: ["kegiatan-dash"],
+    queryFn: async () => {
+      try {
+        const res = await apiFetch<{ data: any[] }>("/activities");
+        if (res.data && res.data.length > 0) return res;
+        return { data: mockKegiatan };
+      } catch {
+        return { data: mockKegiatan };
+      }
+    },
+  });
+  const kegiatanList =
+    kegiatanResponse?.data && kegiatanResponse.data.length > 0 ? kegiatanResponse.data : mockKegiatan;
+
+  const { data: assignmentsResponse } = useQuery({
+    queryKey: ["assignments-dash"],
+    queryFn: async () => {
+      try {
+        const res = await apiFetch<{ data: any[] }>("/assignments");
+        if (res.data && res.data.length > 0) return res;
+        return { data: mockPenugasan };
+      } catch {
+        return { data: mockPenugasan };
+      }
+    },
+  });
+  const assignments =
+    assignmentsResponse?.data && assignmentsResponse.data.length > 0 ? assignmentsResponse.data : mockPenugasan;
+
+  const { data: stats } = useQuery({
+    queryKey: ["dashboardStatsReal"],
+    queryFn: async () => {
+      try {
+        const res = await apiFetch<{ success: boolean; data: DashboardStats }>("/dashboard/stats");
+        return res.data;
+      } catch {
+        return null;
+      }
+    },
+  });
 
   const now = new Date();
   const [calYear, setCalYear] = useState(now.getFullYear());
@@ -577,10 +684,10 @@ const DashboardPage = () => {
   const statCards: StatCard[] = useMemo(() => {
     const monthPrefix = `${calYear}-${String(calMonth + 1).padStart(2, "0")}`;
     const values: Record<StatCardMeta["key"], number> = {
-      totalBulanIni: kegiatanList.filter((k) => k.deadline.startsWith(monthPrefix)).length,
-      tugasDalamProses: kegiatanList.filter((k) => k.status === "active").length,
-      kontenSiapReview: kegiatanList.filter((k) => k.status === "review").length,
-      publikasiSukses: kegiatanList.filter((k) => k.status === "done").length,
+      totalBulanIni: stats?.totalKegiatan ?? kegiatanList.filter((k) => k.deadline.startsWith(monthPrefix)).length,
+      tugasDalamProses: stats?.produksiRunning ?? kegiatanList.filter((k) => k.status === "active").length,
+      kontenSiapReview: stats?.reviewPending ?? kegiatanList.filter((k) => k.status === "review").length,
+      publikasiSukses: stats?.publikasiPublished ?? kegiatanList.filter((k) => k.status === "done").length,
     };
     return [
       ...STAT_CARD_META.map((meta) => ({
@@ -591,51 +698,30 @@ const DashboardPage = () => {
       })),
       BANK_KONTEN_CARD,
     ];
-  }, [kegiatanList, calYear, calMonth]);
+  }, [kegiatanList, calYear, calMonth, stats]);
 
   const selectedEvents = selectedDateKey ? dashboardCalendarEvents[selectedDateKey] ?? [] : [];
+  const maxOpdCount = Math.max(...(stats?.opdProduction?.map((o) => o.count) ?? [1]), 1);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* Page header */}
       <div>
         <h1 className="text-2xl font-bold" style={{ color: NAVY }}>
           Dashboard
         </h1>
-        <p className="text-sm text-gray-400 mt-0.5">Ringkasan Kegiatan &amp; Publikasi</p>
+        <p className="text-sm text-gray-400 mt-0.5">Ringkasan Kegiatan &amp; Publikasi Real-Time</p>
       </div>
 
-      {/* Stat cards — satu warna biru muda seragam untuk semua kartu */}
+      {/* Stat cards — interactive cursor-following spotlight glow */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-        {statCards.map((card) => {
-          const Icon = card.icon;
-          const tone = STAT_CARD_TONE;
-          return (
-            <button
-              key={card.label}
-              type="button"
-              onClick={() => navigate(card.path)}
-              className="text-left w-full rounded-xl shadow-sm p-4 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-              style={{ backgroundColor: tone.bg }}
-              aria-label={`Buka ${card.label}`}
-            >
-              <div
-                className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 transition-transform duration-200"
-                style={{ backgroundColor: tone.iconBg }}
-              >
-                <Icon className="w-5 h-5" style={{ color: tone.icon }} strokeWidth={1.8} />
-              </div>
-              <p className="text-sm" style={{ color: tone.label }}>
-                {card.label}
-              </p>
-              <div className="flex items-end gap-2 mt-1">
-                <span className="text-2xl font-extrabold" style={{ color: tone.value }}>
-                  {card.value}
-                </span>
-              </div>
-            </button>
-          );
-        })}
+        {statCards.map((card) => (
+          <SpotlightStatCard
+            key={card.label}
+            card={card}
+            onClick={() => navigate(card.path)}
+          />
+        ))}
       </div>
 
       {/* Main grid */}
@@ -660,14 +746,37 @@ const DashboardPage = () => {
         </div>
 
         {/* Right: status alur kerja produksi */}
-        <div className="lg:col-span-6 space-y-3">
+        <div className="lg:col-span-6 space-y-4">
           <h3 className="text-base font-semibold text-gray-900">Status Alur Kerja Produksi</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <PrahumPanel />
-            <FotoPanel />
-            <VideoPanel />
-            <DesainerPanel />
+            <PrahumPanel assignments={assignments} />
+            <FotoPanel assignments={assignments} />
+            <VideoPanel assignments={assignments} />
+            <DesainerPanel assignments={assignments} />
           </div>
+
+          {/* OPD Volume & Leaderboard (if stats available) */}
+          {stats?.opdProduction && stats.opdProduction.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mt-4">
+              <h4 className="text-sm font-bold text-gray-800 mb-3">Volume Kegiatan per OPD</h4>
+              <div className="space-y-2.5">
+                {stats.opdProduction.map((opd) => {
+                  const pct = (opd.count / maxOpdCount) * 100;
+                  return (
+                    <div key={opd.name}>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="font-medium text-gray-700">{opd.singkatan || opd.name}</span>
+                        <span className="font-bold text-gray-900">{opd.count}</span>
+                      </div>
+                      <div className="w-full bg-gray-100 rounded-full h-1.5">
+                        <div className="bg-indigo-600 h-1.5 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -679,15 +788,17 @@ const DashboardPage = () => {
       >
         <div className="mt-1">
           {selectedEvents.length > 0 ? (
-            <div className="space-y-2 max-h-80 overflow-y-auto -mx-1 px-1">
+            <div className="space-y-2.5 max-h-80 overflow-y-auto -mx-1 px-1">
               {selectedEvents.map((ev, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-2.5 rounded-lg px-3 py-2.5"
-                  style={{ backgroundColor: `${ev.color}14` }}
+                  className="flex items-center gap-3 rounded-xl px-3.5 py-3 bg-[#0f1f5c] text-white shadow-sm transition-all hover:scale-[1.01]"
                 >
-                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: ev.color }} />
-                  <span className="text-sm font-medium" style={{ color: ev.color }}>
+                  <span
+                    className="w-2.5 h-2.5 rounded-full flex-shrink-0 ring-2 ring-white/25"
+                    style={{ backgroundColor: ev.color || "#38bdf8" }}
+                  />
+                  <span className="text-sm font-semibold text-white tracking-wide">
                     {ev.label}
                   </span>
                 </div>

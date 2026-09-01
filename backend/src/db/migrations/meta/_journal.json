@@ -22,6 +22,20 @@
       "when": 1787198307434,
       "tag": "0002_aberrant_doctor_strange",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1787928325352,
+      "tag": "0003_sharp_chamber",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1787929196459,
+      "tag": "0004_yielding_next_avengers",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,3 @@
-import type { CSSProperties } from "react";
 import { ChevronLeft, ChevronRight, CalendarDays, Plus } from "lucide-react";
 
 const NAVY = "#0f1f5c";
@@ -167,7 +166,7 @@ const EventCalendar = ({
           <div
             key={d}
             className={`text-center text-[11px] font-semibold tracking-wide uppercase py-1 ${
-              i === 0 || i === 6 ? "text-blue-400" : "text-gray-400"
+              i === 0 || i === 6 ? "text-rose-500 font-bold" : "text-gray-400"
             }`}
           >
             {d}
@@ -180,6 +179,7 @@ const EventCalendar = ({
         {cells.map((day, idx) => {
           const dateKey = day ? dateKeyOf(year, month, day) : null;
           const dayEvents = dateKey ? events[dateKey] ?? [] : [];
+          const hasEvents = dayEvents.length > 0;
           const isToday = isCurrentMonth && day === today.getDate();
           const isSelected = !!dateKey && dateKey === selectedDateKey;
           const isWeekend = idx % 7 === 0 || idx % 7 === 6;
@@ -189,22 +189,15 @@ const EventCalendar = ({
             return <div key={idx} className="min-h-[88px]" />;
           }
 
-          let cellStyle: CSSProperties | undefined;
-          let cellClass = "bg-blue-50 border-blue-100";
+          let cellClass = "bg-white border-gray-200/90 shadow-2xs";
           if (isSelected) {
-            cellClass = "border-transparent";
-            cellStyle = {
-              background: "linear-gradient(160deg, #dbeafe, #bfdbfe)",
-              boxShadow: "0 0 0 2px #3b82f6, 0 4px 10px -2px rgba(59,130,246,0.25)",
-            };
+            cellClass = "bg-blue-50/40 border-[#0f1f5c] ring-2 ring-[#0f1f5c]/25 shadow-md";
+          } else if (hasEvents) {
+            cellClass = "bg-blue-50/25 border-blue-300/90 hover:border-[#0f1f5c] shadow-xs";
           } else if (isToday) {
-            cellClass = "border-transparent";
-            cellStyle = {
-              background: `linear-gradient(160deg, ${NAVY}20, ${NAVY}0D)`,
-              boxShadow: `0 0 0 1.5px ${NAVY}55`,
-            };
+            cellClass = "bg-white border-gray-200";
           } else if (isWeekend) {
-            cellClass = "bg-blue-100/60 border-blue-200/60";
+            cellClass = "bg-white border-gray-200/90";
           }
 
           return (
@@ -214,70 +207,70 @@ const EventCalendar = ({
                 if (dateKey) onDayClick?.(dateKey, day);
               }}
               className={`group relative rounded-xl min-h-[88px] px-2 py-1.5 text-xs border transition-all duration-200 ease-out ${cellClass} ${
-                clickable ? "cursor-pointer hover:-translate-y-0.5 hover:shadow-lg hover:border-blue-200 hover:z-10" : ""
+                clickable ? "cursor-pointer hover:-translate-y-0.5 hover:shadow-md hover:border-blue-400 hover:z-10" : ""
               }`}
-              style={cellStyle}
             >
               <div className="flex items-center justify-between">
                 <span
                   className={`text-[12px] font-semibold inline-flex items-center justify-center w-[22px] h-[22px] rounded-full transition-all duration-150 ${
                     isSelected
                       ? "text-white shadow-sm"
+                      : hasEvents
+                      ? "text-white shadow-2xs bg-[#0f1f5c] font-bold"
                       : isToday
-                        ? "text-white shadow-sm"
-                        : isWeekend
-                          ? "text-blue-500"
-                          : "text-gray-700"
+                      ? "text-[#0f1f5c] font-extrabold ring-1.5 ring-[#0f1f5c]/40 bg-blue-50/80"
+                      : isWeekend
+                      ? "text-rose-500 font-bold"
+                      : "text-gray-800"
                   }`}
                   style={
                     isSelected
                       ? { background: "linear-gradient(135deg, #3b82f6, #2563eb)" }
-                      : isToday
-                        ? { background: `linear-gradient(135deg, ${NAVY}, #24399e)` }
-                        : undefined
+                      : undefined
                   }
                 >
                   {day}
                 </span>
                 {clickable && (
-                  <span className="w-4 h-4 rounded-full flex items-center justify-center bg-white shadow-sm opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                  <span className="w-4 h-4 rounded-full flex items-center justify-center bg-gray-50 border border-gray-200 shadow-2xs opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                     <Plus className="w-3 h-3 text-blue-600" strokeWidth={2.5} />
                   </span>
                 )}
               </div>
               {compact ? (
-                dayEvents.length > 0 && (
+                dayEvents.length > 0 ? (
                   <div className="mt-1.5 flex flex-wrap gap-1 px-0.5">
                     {dayEvents.slice(0, 4).map((ev, i) => (
                       <span
                         key={i}
                         title={ev.label}
-                        className="w-2 h-2 rounded-full flex-shrink-0 ring-2 ring-white"
-                        style={{ backgroundColor: ev.color }}
+                        className="w-2.5 h-2.5 rounded-full flex-shrink-0 bg-[#0f1f5c] border border-white shadow-xs"
                       />
                     ))}
                     {dayEvents.length > 4 && (
-                      <span className="text-[9px] font-medium text-gray-400 leading-none">+{dayEvents.length - 4}</span>
+                      <span className="text-[9px] font-medium text-gray-500 leading-none">+{dayEvents.length - 4}</span>
                     )}
                   </div>
-                )
+                ) : null
               ) : (
                 <div className="mt-1 space-y-[3px]">
                   {dayEvents.slice(0, maxEventsPerDay).map((ev, i) => (
                     <div
                       key={i}
                       title={ev.label}
-                      className="flex items-center gap-1 rounded-full px-1.5 py-[3px] leading-none"
-                      style={{ backgroundColor: `${ev.color}17`, boxShadow: `inset 0 0 0 1px ${ev.color}22` }}
+                      className="flex items-center gap-1.5 rounded-full px-2 py-[3.5px] leading-none bg-[#0f1f5c] shadow-2xs transition-transform hover:scale-[1.02]"
                     >
-                      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: ev.color }} />
-                      <span className="text-[10px] font-medium truncate" style={{ color: ev.color }}>
+                      <span
+                        className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: ev.color || "#38bdf8" }}
+                      />
+                      <span className="text-[10px] font-semibold text-white truncate">
                         {ev.label}
                       </span>
                     </div>
                   ))}
                   {dayEvents.length > maxEventsPerDay && (
-                    <div className="text-[10px] font-medium text-gray-400 px-1.5">
+                    <div className="text-[10px] font-semibold text-slate-500 px-1.5">
                       +{dayEvents.length - maxEventsPerDay} lainnya
                     </div>
                   )}

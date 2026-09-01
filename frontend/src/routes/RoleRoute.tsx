@@ -12,8 +12,28 @@ interface RoleRouteProps {
 const RoleRoute = ({ allow }: RoleRouteProps) => {
   const { user } = useAuth();
 
-  if (user && !allow.includes(user.role)) {
-    return <Navigate to={user.role === Role.PETUGAS ? "/petugas/dashboard" : "/dashboard"} replace />;
+  if (user) {
+    const userRoleLower = user.role.toLowerCase();
+    const isAllowed = allow.some((r) => r.toLowerCase() === userRoleLower);
+    
+    if (!isAllowed) {
+      if (userRoleLower === Role.PETUGAS.toLowerCase()) {
+        return <Navigate to="/petugas/dashboard" replace />;
+      }
+      // Jangan redirect ke /login karena menyebabkan infinite loop dengan LoginPage!
+      // Tampilkan pesan error 403 Forbidden agar kita tahu role apa yang bermasalah.
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-gray-50">
+          <div className="text-center p-8 bg-white rounded-xl shadow-sm border border-gray-100">
+            <h1 className="text-2xl font-bold text-red-600 mb-2">Akses Ditolak</h1>
+            <p className="text-gray-600">
+              Akun Anda dengan peran <span className="font-bold text-gray-900">"{user.role}"</span> tidak memiliki izin untuk mengakses halaman ini.
+            </p>
+            <p className="text-sm text-gray-400 mt-4">Silakan hubungi administrator.</p>
+          </div>
+        </div>
+      );
+    }
   }
 
   return <Outlet />;

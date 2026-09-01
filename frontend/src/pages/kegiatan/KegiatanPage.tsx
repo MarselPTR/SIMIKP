@@ -1,21 +1,20 @@
 import { useState, useMemo, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import {
   Search,
-  LayoutGrid,
-  Rows3,
   Plus,
   Trash2,
   Pencil,
   MapPin,
   Building2,
   Inbox,
-  X,
   CalendarDays,
+  UserPlus,
 } from "lucide-react";
-import { mockApi } from "../../lib/mock-api";
-import type { MockKegiatan } from "../../lib/mock-data";
-import { KEGIATAN_STATUS_COLORS, KEGIATAN_STATUS_LABELS } from "../../lib/mock-data";
+import { apiFetch } from "../../lib/api-client";
+import { mockKegiatan, KEGIATAN_STATUS_COLORS, KEGIATAN_STATUS_LABELS } from "../../lib/mock-data";
+import type { MockKegiatan, MockPenugasan } from "../../lib/mock-data";
 import Badge from "../../components/ui/Badge";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
@@ -41,7 +40,7 @@ const PRIORITAS_BADGE_VARIANT: Record<MockKegiatan["prioritas"], "warning" | "in
   Rendah: "default",
 };
 
-const OUTPUT_OPTIONS = ["Naskah Berita", "Foto", "Video", "Reels"];
+const OUTPUT_OPTIONS = ["Naskah Berita", "Foto", "Video", "Reels", "Infografis", "Audio"];
 
 const todayStr = () => {
   const d = new Date();
@@ -75,13 +74,69 @@ const formatTanggalPanjang = (iso: string) => {
 };
 
 const KegiatanPage = () => {
+  const navigate = useNavigate();
+
   const { data: kegiatanData, isLoading, error, refetch } = useQuery({
     queryKey: ["kegiatan"],
-    queryFn: mockApi.kegiatan.getAll,
+    queryFn: async () => {
+      try {
+        const res = await apiFetch<{ success: boolean; data: any[] }>("/activities");
+        if (res.data && res.data.length > 0) return res.data;
+        return mockKegiatan;
+      } catch {
+        return mockKegiatan;
+      }
+    },
   });
 
-  // Salinan lokal yang bisa ditambah/diubah dari kalender/dialog — mock API
-  // tidak punya endpoint create/update, jadi disimpan di state komponen ini.
+  const { data: opds } = useQuery({
+    queryKey: ["opds"],
+    queryFn: async () => {
+      try {
+        const res = await apiFetch<{ success: boolean; data: any[] }>("/master/opds");
+        if (res.data && res.data.length > 0) return res.data;
+        return [
+          { id: "opd1", name: "Diskominfo", singkatan: "Diskominfo" },
+          { id: "opd2", name: "Dinas Kesehatan", singkatan: "Dinkes" },
+          { id: "opd3", name: "Dinas Pendidikan", singkatan: "Disdik" },
+        ];
+      } catch {
+        return [
+          { id: "opd1", name: "Diskominfo", singkatan: "Diskominfo" },
+          { id: "opd2", name: "Dinas Kesehatan", singkatan: "Dinkes" },
+          { id: "opd3", name: "Dinas Pendidikan", singkatan: "Disdik" },
+        ];
+      }
+    },
+  });
+
+
+
+  // Query Penugasan Data for real-time synchronization
+  const { data: penugasanResponse } = useQuery({
+    queryKey: ["penugasan"],
+    queryFn: async () => await apiFetch<{ data: any[] }>("/assignments"),
+  });
+  // Normalise items from real API or mock – map to shape expected by JSX
+  const penugasanList: MockPenugasan[] = (penugasanResponse?.data ?? []).map((p: any) => ({
+    id: p.id ?? p.id,
+    kegiatanTerkait: p.activityTitle ?? p.kegiatanTerkait ?? "",
+    pic: p.picName ?? p.pic ?? "",
+    picAvatar: p.picAvatar ?? null,
+    jenisKonten: p.contentType ?? p.jenisKonten ?? "",
+    jamMulai: (p.startTime ?? p.jamMulai ?? "").slice(0, 5),
+    jamSelesai: (p.endTime ?? p.jamSelesai ?? "").slice(0, 5),
+    status: p.status ?? p.status ?? "ASSIGNED",
+    tanggal: p.activityDate ?? p.tanggal ?? "",
+  }));
+
+  const getAssignedTasks = (title: string): MockPenugasan[] => {
+    if (!title) return [];
+    return penugasanList.filter((p) =>
+      (p.kegiatanTerkait ?? "").toLowerCase() === title.toLowerCase()
+    );
+  };
+
   const [items, setItems] = useState<MockKegiatan[]>([]);
   useEffect(() => {
     if (kegiatanData) setItems(kegiatanData);
@@ -90,7 +145,6 @@ const KegiatanPage = () => {
   const [search, setSearch] = useState("");
   const [filterDate, setFilterDate] = useState("all");
   const [statusFilter, setStatusFilter] = useState<MockKegiatan["status"] | "all">("all");
-  const [viewMode, setViewMode] = useState<"table" | "card">("table");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -108,7 +162,6 @@ const KegiatanPage = () => {
     if (statusFilter !== "all") {
       res = res.filter((k) => k.status === statusFilter);
     }
-    // Simplistic filter mock
     if (filterDate === "today") res = res.slice(0, 2);
     if (filterDate === "tomorrow") res = res.slice(2, 4);
     if (filterDate === "this_week") res = res.slice(0, 5);
@@ -174,46 +227,52 @@ const KegiatanPage = () => {
     }));
   };
 
+  const saveMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      if (editingId) {
+        return apiFetch(`/activities/${editingId}`, {
+          method: "PUT",
+          body: JSON.stringify(payload),
+        });
+      } else {
+        return apiFetch("/activities", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+      }
+    },
+    onSuccess: () => {
+      refetch();
+      closeDialog();
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiFetch(`/activities/${id}`, { method: "DELETE" });
+    },
+    onSuccess: () => {
+      refetch();
+    },
+  });
+
   const handleSave = () => {
     if (!form.title.trim() || !form.deadline) return;
 
-    if (editingId) {
-      setItems((prev) =>
-        prev.map((k) =>
-          k.id === editingId
-            ? {
-                ...k,
-                title: form.title.trim(),
-                deadline: form.deadline,
-                prioritas: form.prioritas,
-                lokasi: form.lokasi.trim() || undefined,
-                opdPenyelenggara: form.opdPenyelenggara || undefined,
-                outputDibutuhkan: form.outputDibutuhkan.length ? form.outputDibutuhkan : undefined,
-              }
-            : k,
-        ),
-      );
-    } else {
-      const newKegiatan: MockKegiatan = {
-        id: `k-${Date.now()}`,
-        title: form.title.trim(),
-        status: "pending",
-        progress: 0,
-        deadline: form.deadline,
-        prioritas: form.prioritas,
-        lokasi: form.lokasi.trim() || undefined,
-        opdPenyelenggara: form.opdPenyelenggara || undefined,
-        outputDibutuhkan: form.outputDibutuhkan.length ? form.outputDibutuhkan : undefined,
-      };
-      setItems((prev) => [newKegiatan, ...prev]);
-    }
-    closeDialog();
+    const opdId = opds?.find((o: any) => o.name === form.opdPenyelenggara)?.id;
+    saveMutation.mutate({
+      title: form.title.trim(),
+      activityDate: form.deadline,
+      opdId: opdId || undefined,
+      location: form.lokasi.trim() || undefined,
+      priority: form.prioritas,
+    });
   };
 
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (window.confirm("Hapus kegiatan ini? Tindakan ini tidak bisa dibatalkan.")) {
-      setItems((prev) => prev.filter((k) => k.id !== id));
+      deleteMutation.mutate(id);
     }
   };
 
@@ -221,13 +280,13 @@ const KegiatanPage = () => {
   if (error) return <ErrorState message={error.message} onRetry={refetch} />;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 pb-12">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Agenda Kegiatan</h2>
           <p className="text-sm text-gray-500">Kelola jadwal kegiatan (Satu Kegiatan = Satu Data Induk)</p>
         </div>
-        <Button variant="default" onClick={() => openAddDialog()} className="gap-1.5">
+        <Button variant="default" onClick={() => openAddDialog()} className="gap-1.5 bg-[#0f1f5c] hover:bg-[#162a7a] text-white">
           <Plus className="w-4 h-4" /> Tambah Kegiatan
         </Button>
       </div>
@@ -237,7 +296,7 @@ const KegiatanPage = () => {
         month={calMonth}
         events={calendarEvents}
         legend={calendarLegend}
-        subtitle="Klik tanggal untuk melihat kegiatan pada hari itu"
+        subtitle="Pilih tanggal untuk melihat atau menambahkan kegiatan baru"
         selectedDateKey={viewDateKey}
         onNavigate={(y, m) => {
           setCalYear(y);
@@ -246,308 +305,143 @@ const KegiatanPage = () => {
         onDayClick={(dateKey) => setViewDateKey((prev) => (prev === dateKey ? null : dateKey))}
       />
 
-      {/* Toolbar */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 space-y-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative flex-1 min-w-[220px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-            <Input
-              placeholder="Cari kegiatan..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-8"
-            />
-            {search && (
-              <button
-                type="button"
-                onClick={() => setSearch("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 transition-colors duration-150"
-                aria-label="Bersihkan pencarian"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {[
-              { key: "today", label: "Hari Ini" },
-              { key: "tomorrow", label: "Besok" },
-              { key: "this_week", label: "Minggu Ini" },
-              { key: "all", label: "Semua" },
-            ].map((f) => (
-              <button
-                key={f.key}
-                type="button"
-                onClick={() => setFilterDate(f.key)}
-                className={`rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150 ${
-                  filterDate === f.key
-                    ? "bg-indigo-600 text-white shadow-sm"
-                    : "bg-gray-50 text-gray-600 hover:bg-gray-100"
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-
-          {/* View toggle */}
-          <div className="ml-auto flex items-center gap-1 bg-gray-50 border border-gray-100 rounded-lg p-1">
-            <button
-              type="button"
-              onClick={() => setViewMode("table")}
-              aria-label="Tampilan tabel"
-              className={`p-1.5 rounded-md transition-all duration-150 ${
-                viewMode === "table" ? "bg-white shadow-sm text-indigo-600" : "text-gray-400 hover:text-gray-600"
-              }`}
-            >
-              <Rows3 className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("card")}
-              aria-label="Tampilan kartu"
-              className={`p-1.5 rounded-md transition-all duration-150 ${
-                viewMode === "card" ? "bg-white shadow-sm text-indigo-600" : "text-gray-400 hover:text-gray-600"
-              }`}
-            >
-              <LayoutGrid className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        {/* Status quick filter chips */}
-        <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-gray-50">
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setStatusFilter("all")}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+            statusFilter === "all" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }`}
+        >
+          Semua ({items.length})
+        </button>
+        {(Object.keys(STATUS_LABELS) as MockKegiatan["status"][]).map((st) => (
           <button
+            key={st}
             type="button"
-            onClick={() => setStatusFilter("all")}
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all duration-150 ${
-              statusFilter === "all" ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            onClick={() => setStatusFilter(st)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+              statusFilter === st ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
           >
-            Semua Status
-            <span className="opacity-70">{items.length}</span>
+            {STATUS_LABELS[st]} ({statusCounts[st] ?? 0})
           </button>
-          {(Object.keys(STATUS_LABELS) as MockKegiatan["status"][]).map((status) => (
-            <button
-              key={status}
-              type="button"
-              onClick={() => setStatusFilter(statusFilter === status ? "all" : status)}
-              className="inline-flex items-center gap-1.5 rounded-full pl-2 pr-3 py-1 text-xs font-medium transition-all duration-150"
-              style={
-                statusFilter === status
-                  ? { backgroundColor: STATUS_COLORS[status], color: "white" }
-                  : { backgroundColor: `${STATUS_COLORS[status]}14`, color: STATUS_COLORS[status] }
-              }
-            >
-              <span
-                className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                style={{ backgroundColor: statusFilter === status ? "white" : STATUS_COLORS[status] }}
-              />
-              {STATUS_LABELS[status]}
-              <span className="opacity-70">{statusCounts[status]}</span>
-            </button>
-          ))}
-        </div>
+        ))}
       </div>
 
-      <p className="text-xs text-gray-400 px-1">
-        Menampilkan <span className="font-medium text-gray-600">{filtered.length}</span> dari{" "}
-        <span className="font-medium text-gray-600">{items.length}</span> kegiatan
-      </p>
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Input
+            placeholder="Cari nama kegiatan..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Select
+          options={[
+            { value: "all", label: "Semua Waktu" },
+            { value: "today", label: "Hari Ini" },
+            { value: "tomorrow", label: "Besok" },
+            { value: "this_week", label: "Minggu Ini" },
+          ]}
+          value={filterDate}
+          onChange={(e) => setFilterDate(e.target.value)}
+          className="w-full sm:w-44"
+        />
+      </div>
 
-      {filtered.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col items-center justify-center py-16 text-center">
-          <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center mb-3">
-            <Inbox className="w-6 h-6 text-gray-300" />
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {filtered.length === 0 ? (
+          <div className="col-span-full py-12 text-center text-gray-400">
+            <Inbox className="w-12 h-12 mx-auto mb-2 opacity-50" />
+            <p>Tidak ada kegiatan ditemukan.</p>
           </div>
-          <h4 className="text-base font-medium text-gray-900">Tidak ada kegiatan ditemukan</h4>
-          <p className="text-sm text-gray-500 mt-1 max-w-xs">
-            Coba ubah kata kunci pencarian atau filter, atau tambahkan kegiatan baru.
-          </p>
-          <Button variant="default" className="mt-4 gap-1.5" onClick={() => openAddDialog()}>
-            <Plus className="w-4 h-4" /> Tambah Kegiatan
-          </Button>
-        </div>
-      ) : viewMode === "table" ? (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs font-medium uppercase text-gray-500">
-                <tr>
-                  <th className="px-4 py-3 text-left">Judul Kegiatan</th>
-                  <th className="px-4 py-3 text-left">OPD Penyelenggara</th>
-                  <th className="px-4 py-3 text-left">Output</th>
-                  <th className="px-4 py-3 text-left">Prioritas</th>
-                  <th className="px-4 py-3 text-left">Lokasi</th>
-                  <th className="px-4 py-3 text-left">Tanggal</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filtered.map((row) => (
-                  <tr
-                    key={row.id}
-                    onClick={() => openEditDialog(row)}
-                    className="group cursor-pointer transition-colors duration-150 hover:bg-blue-50/40"
-                  >
-                    <td className="px-4 py-3 text-gray-800 font-medium">{row.title}</td>
-                    <td className="px-4 py-3 text-gray-600">{row.opdPenyelenggara || "—"}</td>
-                    <td className="px-4 py-3 text-gray-600">{row.outputDibutuhkan?.join(", ") || "—"}</td>
-                    <td className="px-4 py-3">
-                      <Badge variant={PRIORITAS_BADGE_VARIANT[row.prioritas]}>{row.prioritas}</Badge>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">{row.lokasi || "—"}</td>
-                    <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{formatTanggal(row.deadline)}</td>
-                    <td className="px-4 py-3">
-                      <Badge variant={STATUS_BADGE_VARIANT[row.status]}>{STATUS_LABELS[row.status]}</Badge>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openEditDialog(row);
-                          }}
-                          className="p-1.5 rounded-md text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors duration-150"
-                          aria-label={`Edit ${row.title}`}
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => handleDelete(row.id, e)}
-                          className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors duration-150"
-                          aria-label={`Hapus ${row.title}`}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map((row) => (
+        ) : (
+          filtered.map((item) => (
             <div
-              key={row.id}
-              onClick={() => openEditDialog(row)}
-              className="group relative bg-white rounded-xl border border-gray-200 shadow-sm p-4 cursor-pointer transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md hover:border-blue-200"
+              key={item.id}
+              onClick={() => openEditDialog(item)}
+              className="bg-white border border-gray-200 hover:border-blue-300 rounded-xl p-4 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col justify-between"
             >
-              <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+              <div>
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <Badge variant={STATUS_BADGE_VARIANT[item.status]}>{STATUS_LABELS[item.status]}</Badge>
+                  <Badge variant={PRIORITAS_BADGE_VARIANT[item.prioritas]}>{item.prioritas}</Badge>
+                </div>
+                <h3 className="font-bold text-gray-900 text-sm mb-2">{item.title}</h3>
+                <div className="space-y-1 text-xs text-gray-500">
+                  <div className="flex items-center gap-1.5">
+                    <CalendarDays className="w-3.5 h-3.5" />
+                    <span>{formatTanggal(item.deadline)}</span>
+                  </div>
+                  {item.lokasi && (
+                    <div className="flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5" />
+                      <span>{item.lokasi}</span>
+                    </div>
+                  )}
+                  {item.opdPenyelenggara && (
+                    <div className="flex items-center gap-1.5">
+                      <Building2 className="w-3.5 h-3.5" />
+                      <span>{item.opdPenyelenggara}</span>
+                    </div>
+                  )}
+                </div>
+                {item.outputDibutuhkan && (
+                  <div className="mt-3 flex flex-wrap gap-1">
+                    {item.outputDibutuhkan.map((out) => (
+                      <span key={out} className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-medium">
+                        {out}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="mt-4 pt-3 border-t border-gray-100 flex justify-end gap-1">
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    openEditDialog(row);
+                    openEditDialog(item);
                   }}
-                  className="p-1.5 rounded-md text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors duration-150"
-                  aria-label={`Edit ${row.title}`}
+                  className="p-1.5 text-gray-400 hover:text-blue-600 rounded"
                 >
-                  <Pencil className="w-3.5 h-3.5" />
+                  <Pencil className="w-4 h-4" />
                 </button>
                 <button
                   type="button"
-                  onClick={(e) => handleDelete(row.id, e)}
-                  className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors duration-150"
-                  aria-label={`Hapus ${row.title}`}
+                  onClick={(e) => handleDelete(item.id, e)}
+                  className="p-1.5 text-gray-400 hover:text-red-600 rounded"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
-
-              <div className="pr-14">
-                <Badge variant={PRIORITAS_BADGE_VARIANT[row.prioritas]}>{row.prioritas}</Badge>
-              </div>
-              <h4 className="mt-2 text-sm font-semibold text-gray-900 leading-snug line-clamp-2">{row.title}</h4>
-
-              <div className="mt-3 space-y-1.5 text-xs text-gray-500">
-                {row.opdPenyelenggara && (
-                  <div className="flex items-center gap-1.5">
-                    <Building2 className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
-                    <span className="truncate">{row.opdPenyelenggara}</span>
-                  </div>
-                )}
-                {row.lokasi && (
-                  <div className="flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
-                    <span className="truncate">{row.lokasi}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-1.5">
-                  <CalendarDays className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
-                  <span>{formatTanggal(row.deadline)}</span>
-                </div>
-              </div>
-
-              {row.outputDibutuhkan && row.outputDibutuhkan.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-1">
-                  {row.outputDibutuhkan.map((o) => (
-                    <span key={o} className="text-[10px] font-medium text-gray-500 bg-gray-50 rounded px-1.5 py-0.5">
-                      {o}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              <div className="mt-3 pt-3 border-t border-gray-50">
-                <Badge variant={STATUS_BADGE_VARIANT[row.status]}>{STATUS_LABELS[row.status]}</Badge>
-              </div>
             </div>
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
 
       <Dialog open={isModalOpen} onClose={closeDialog} title={editingId ? "Edit Kegiatan" : "Tambah Kegiatan Baru"}>
-        <div className="space-y-4 mt-4">
+        <div className="space-y-4 mt-2">
           <div>
             <label className="text-sm font-medium text-gray-700">Nama Kegiatan</label>
             <Input
-              placeholder="Contoh: Upacara Hari Jadi Kota"
-              className="mt-1"
+              placeholder="Contoh: Rapat Koordinasi SPBE..."
               value={form.title}
               onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+              className="mt-1"
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-sm font-medium text-gray-700">Tanggal</label>
+              <label className="text-sm font-medium text-gray-700">Tanggal Pelaksanaan</label>
               <Input
                 type="date"
-                className="mt-1"
                 value={form.deadline}
                 onChange={(e) => setForm((f) => ({ ...f, deadline: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700">Lokasi</label>
-              <Input
-                placeholder="Contoh: Balaikota"
                 className="mt-1"
-                value={form.lokasi}
-                onChange={(e) => setForm((f) => ({ ...f, lokasi: e.target.value }))}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium text-gray-700">OPD Penyelenggara</label>
-              <Select
-                options={[
-                  { value: "Diskominfo", label: "Diskominfo" },
-                  { value: "Dinas Pendidikan", label: "Dinas Pendidikan" },
-                  { value: "Dinas Kesehatan", label: "Dinas Kesehatan" },
-                ]}
-                placeholder="Pilih OPD"
-                className="mt-1"
-                value={form.opdPenyelenggara}
-                onChange={(e) => setForm((f) => ({ ...f, opdPenyelenggara: e.target.value }))}
               />
             </div>
             <div>
@@ -565,30 +459,96 @@ const KegiatanPage = () => {
             </div>
           </div>
           <div>
+            <label className="text-sm font-medium text-gray-700">Lokasi</label>
+            <Input
+              placeholder="Contoh: Ruang Rapat Lt. 2 Balai Kota"
+              value={form.lokasi}
+              onChange={(e) => setForm((f) => ({ ...f, lokasi: e.target.value }))}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700">OPD Penyelenggara</label>
+            <Input
+              placeholder="Contoh: Diskominfo / Dispendik"
+              value={form.opdPenyelenggara}
+              onChange={(e) => setForm((f) => ({ ...f, opdPenyelenggara: e.target.value }))}
+              className="mt-1"
+            />
+          </div>
+          <div>
             <label className="text-sm font-medium text-gray-700 mb-2 block">Output yang Dibutuhkan</label>
             <div className="grid grid-cols-2 gap-2">
               {OUTPUT_OPTIONS.map((opt) => (
-                <label key={opt} className="flex items-center gap-2">
+                <label key={opt} className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={form.outputDibutuhkan.includes(opt)}
                     onChange={() => toggleOutput(opt)}
+                    className="rounded text-blue-600 focus:ring-blue-500"
                   />
                   {opt}
                 </label>
               ))}
             </div>
           </div>
+
+          {editingId && (
+            <div className="bg-gray-50 rounded-xl p-3.5 border border-gray-100 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  👥 Penugasan Tim Terkait ({getAssignedTasks(form.title).length})
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeDialog();
+                    navigate(`/penugasan?kegiatan=${encodeURIComponent(form.title)}&action=create`);
+                  }}
+                  className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 hover:underline"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>+ Tambah Penugasan</span>
+                </button>
+              </div>
+
+              {getAssignedTasks(form.title).length === 0 ? (
+                <p className="text-xs text-gray-400 italic">Belum ada staf yang ditugaskan untuk kegiatan ini.</p>
+              ) : (
+                <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                  {getAssignedTasks(form.title).map((t) => (
+                    <div
+                      key={t.id}
+                      className="bg-white rounded-lg p-2 text-xs flex items-center justify-between border border-gray-100"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-indigo-50 text-indigo-700 font-bold text-[9px] flex items-center justify-center">
+                          {t.picAvatar ?? t.pic.slice(0, 2).toUpperCase()}
+                        </span>
+                        <span className="font-medium text-gray-800">{t.pic}</span>
+                        <span className="text-gray-400">({t.jenisKonten})</span>
+                      </div>
+                      <span className="text-[11px] text-gray-500 font-mono">
+                        {t.jamMulai} - {t.jamSelesai}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="pt-4 flex justify-end gap-2">
-            <Button variant="outline" onClick={closeDialog}>Batal</Button>
-            <Button variant="default" disabled={!form.title.trim() || !form.deadline} onClick={handleSave}>
+            <Button variant="outline" onClick={closeDialog}>
+              Batal
+            </Button>
+            <Button variant="default" disabled={!form.title.trim() || !form.deadline} onClick={handleSave} className="bg-[#0f1f5c] text-white">
               {editingId ? "Simpan Perubahan" : "Simpan Kegiatan"}
             </Button>
           </div>
         </div>
       </Dialog>
 
-      {/* Popup daftar kegiatan pada tanggal yang diklik di kalender */}
       <Dialog
         open={viewDateKey !== null}
         onClose={() => setViewDateKey(null)}
@@ -638,7 +598,7 @@ const KegiatanPage = () => {
             </Button>
             <Button
               variant="default"
-              className="gap-1.5"
+              className="gap-1.5 bg-[#0f1f5c] text-white"
               onClick={() => {
                 const date = viewDateKey ?? undefined;
                 setViewDateKey(null);

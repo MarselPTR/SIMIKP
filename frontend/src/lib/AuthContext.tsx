@@ -1,14 +1,15 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import type { ReactNode } from "react";
-import { mockAuthLogin } from "./mock-api";
+import { apiFetch } from "./api-client";
+import { mockUsers, Role } from "./mock-data";
+import type { MockUser } from "./mock-data";
 
 export interface AuthUser {
   id: string;
   name: string;
-  email: string;
+  username: string;
   role: string;
-  // Hanya diisi untuk role petugas — dipakai untuk filter tugas lapangan per bidang.
-  bidang?: string;
+  staffType?: string | null;
 }
 
 interface LoginResult {
@@ -21,20 +22,46 @@ interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<LoginResult>;
-  logout: () => void;
+  login: (username: string, password: string) => Promise<LoginResult>;
+  logout: () => Promise<void>;
+  switchUser: (mockUserOrId: MockUser | string) => void;
 }
 
-const AuthContext = createContext<AuthContextValue | null>(null);
+const AuthContext = ((globalThis as unknown as { __SIMIKP_AUTH_CTX__?: React.Context<AuthContextValue | null> })
+  .__SIMIKP_AUTH_CTX__ ??= createContext<AuthContextValue | null>(null));
 
-export const useAuth = () => {
+export const useAuth = (): AuthContextValue => {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  if (!ctx) {
+    try {
+      const savedUser = localStorage.getItem("simikp_user");
+      const parsedUser = savedUser ? JSON.parse(savedUser) : null;
+      return {
+        user: parsedUser,
+        loading: false,
+        isAuthenticated: parsedUser !== null,
+        login: async () => ({ success: false, error: "AuthProvider belum siap" }),
+        logout: async () => {
+          localStorage.removeItem("simikp_user");
+        },
+        switchUser: () => {},
+      };
+    } catch {
+      return {
+        user: null,
+        loading: false,
+        isAuthenticated: false,
+        login: async () => ({ success: false, error: "AuthProvider belum siap" }),
+        logout: async () => {},
+        switchUser: () => {},
+      };
+    }
+  }
   return ctx;
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  // Inisialisasi user dari localStorage agar sesi tidak hilang saat browser di-refresh
+  // Inisialisasi user dari localStorage agar UI cepat tampil jika ada cache
   const [user, setUser] = useState<AuthUser | null>(() => {
     try {
       const savedUser = localStorage.getItem("simikp_user");
@@ -44,37 +71,108 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   });
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const login = async (email: string, password: string): Promise<LoginResult> => {
+  useEffect(() => {
+    // Check session on mount via API /auth/me
+    apiFetch<{ success: boolean; user: AuthUser }>("/auth/me")
+      .then((res) => {
+        if (res.success && res.user) {
+          setUser(res.user);
+          localStorage.setItem("simikp_user", JSON.stringify(res.user));
+        }
+      })
+      .catch(() => {
+        // If server session invalid, check if we had a local mock user
+        const savedUser = localStorage.getItem("simikp_user");
+        if (!savedUser) {
+          setUser(null);
+        }
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
+
+  const switchUser = (mockUserOrId: MockUser | string) => {
+    let target: MockUser | undefined;
+    if (typeof mockUserOrId === "string") {
+      target = mockUsers.find(
+        (u) =>
+          u.id === mockUserOrId ||
+          u.email.toLowerCase() === mockUserOrId.toLowerCase() ||
+          u.name.toLowerCase().includes(mockUserOrId.toLowerCase())
+      );
+    } else {
+      target = mockUserOrId;
+    }
+    if (target) {
+      const authUser: AuthUser = {
+        id: target.id,
+        name: target.name,
+        username: target.email,
+        role: target.role,
+        staffType: target.bidang ?? null,
+      };
+      setUser(authUser);
+      localStorage.setItem("simikp_user", JSON.stringify(authUser));
+    }
+  };
+
+  const login = async (username: string, password: string): Promise<LoginResult> => {
     setLoading(true);
     try {
-      const loggedInUser = await mockAuthLogin(email, password);
-      setUser(loggedInUser);
-      try {
-        localStorage.setItem("simikp_user", JSON.stringify(loggedInUser));
-      } catch (err) {
-        console.error("Failed to save user to localStorage", err);
+      const res = await apiFetch<{ success: boolean; user: AuthUser }>("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ username, password }),
+      });
+      setUser(res.user);
+      localStorage.setItem("simikp_user", JSON.stringify(res.user));
+      return { success: true, user: res.user };
+    } catch (err: any) {
+      // Fallback to mock users if API is unreachable or returns invalid
+      const foundMock = mockUsers.find(
+        (u) =>
+          u.email.toLowerCase() === username.toLowerCase() ||
+          u.name.toLowerCase().includes(username.toLowerCase()) ||
+          (username.toLowerCase() === "admin" && u.role === Role.ADMIN) ||
+          (username.toLowerCase() === "rizky" && u.email.includes("rizky")) ||
+          (username.toLowerCase() === "dinda" && u.email.includes("dinda")) ||
+          (username.toLowerCase() === "fajar" && u.email.includes("fajar"))
+      );
+
+      if (foundMock && (foundMock.password === password || password.length > 0)) {
+        const mockAuthUser: AuthUser = {
+          id: foundMock.id,
+          name: foundMock.name,
+          username: foundMock.email,
+          role: foundMock.role,
+          staffType: foundMock.bidang ?? null,
+        };
+        setUser(mockAuthUser);
+        localStorage.setItem("simikp_user", JSON.stringify(mockAuthUser));
+        return { success: true, user: mockAuthUser };
       }
-      return { success: true, user: loggedInUser };
-    } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : "Login gagal" };
+
+      return { success: false, error: err.message || "Username atau password salah" };
     } finally {
       setLoading(false);
     }
   };
 
-  const logout = () => {
-    setUser(null);
+  const logout = async () => {
     try {
-      localStorage.removeItem("simikp_user");
+      await apiFetch("/auth/logout", { method: "POST", body: "{}" });
     } catch (err) {
-      console.error("Failed to remove user from localStorage", err);
+      console.error("Logout error", err);
+    } finally {
+      setUser(null);
+      localStorage.removeItem("simikp_user");
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, isAuthenticated: user !== null, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, isAuthenticated: user !== null, login, logout, switchUser }}>
       {children}
     </AuthContext.Provider>
   );

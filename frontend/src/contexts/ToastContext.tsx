@@ -13,11 +13,16 @@ interface ToastContextValue {
   addToast: (message: string, type?: ToastType, duration?: number) => void;
 }
 
-const ToastContext = createContext<ToastContextValue | null>(null);
+const ToastContext = ((globalThis as unknown as { __SIMIKP_TOAST_CTX__?: React.Context<ToastContextValue | null> })
+  .__SIMIKP_TOAST_CTX__ ??= createContext<ToastContextValue | null>(null));
 
-export const useToast = () => {
+export const useToast = (): ToastContextValue => {
   const ctx = useContext(ToastContext);
-  if (!ctx) throw new Error("useToast must be used within ToastProvider");
+  if (!ctx) {
+    return {
+      addToast: () => {},
+    };
+  }
   return ctx;
 };
 

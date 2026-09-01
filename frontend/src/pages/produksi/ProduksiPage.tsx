@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { mockApi } from "../../lib/mock-api";
+import { useNavigate } from "react-router-dom";
+import { apiFetch } from "../../lib/api-client";
 import type { MockProduksi } from "../../lib/mock-data";
 import Card from "../../components/ui/Card";
 import Table from "../../components/ui/Table";
@@ -9,9 +10,10 @@ import Button from "../../components/ui/Button";
 import { LoadingSpinner, ErrorState } from "../../components/shared/StateComponents";
 
 const ProduksiPage = () => {
-  const { data: produksi, isLoading, error, refetch } = useQuery({
+  const navigate = useNavigate();
+  const { data: produksi = [], isLoading, error, refetch } = useQuery({
     queryKey: ["produksi"],
-    queryFn: mockApi.produksi.getAll,
+    queryFn: async () => (await apiFetch<{ data: any[] }>("/productions")).data,
   });
 
   const columns: TableColumn<MockProduksi>[] = [
@@ -44,7 +46,7 @@ const ProduksiPage = () => {
           <h2 className="text-2xl font-bold text-gray-900">Produksi</h2>
           <p className="text-sm text-gray-500">Kelola produksi konten</p>
         </div>
-        <Button variant="default">+ Produksi Baru</Button>
+        <Button variant="default" onClick={() => navigate("/penugasan?action=create")}>+ Produksi Baru</Button>
       </div>
       <Card>
         <Table columns={columns} data={produksi ?? []} />

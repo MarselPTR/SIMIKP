@@ -17,10 +17,10 @@ function Table<T extends { id: string | number }>({ columns, data, className = "
   return (
     <div className={`overflow-x-auto ${className}`}>
       <table className="w-full text-sm">
-        <thead className="bg-gray-50 text-xs font-medium uppercase text-gray-500">
+        <thead className="bg-gray-900 text-xs font-semibold uppercase text-white">
           <tr>
             {columns.map((col) => (
-              <th key={col.key} className={`px-4 py-3 text-left ${col.className ?? ""}`}>
+              <th key={col.key} className={`px-4 py-3 text-left text-white ${col.className ?? ""}`}>
                 {col.label}
               </th>
             ))}

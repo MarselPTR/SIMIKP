@@ -10,7 +10,10 @@ async function checkDB() {
   }
   
   try {
-    const connection = await mysql.createConnection(url);
+    const connection = await mysql.createConnection({
+      uri: url,
+      ssl: { rejectUnauthorized: false },
+    });
     
     // Check tables
     const [tables] = await connection.execute("SHOW TABLES");
