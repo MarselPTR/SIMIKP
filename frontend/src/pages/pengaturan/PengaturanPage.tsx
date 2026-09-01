@@ -54,7 +54,6 @@ export default function PengaturanPage() {
   const [notifEmail, setNotifEmail] = useState(true);
   const [notifBrowser, setNotifBrowser] = useState(true);
   const [notifSound, setNotifSound] = useState(true);
-  const [notifWa, setNotifWa] = useState(false);
 
   const tabs = [
     { id: "keamanan", label: t("tab_security"), icon: KeyRound, desc: t("tab_security_desc") },
@@ -575,34 +574,6 @@ export default function PengaturanPage() {
                     <span
                       className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform ${
                         notifSound ? "translate-x-6" : "translate-x-1"
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                {/* Notif WhatsApp */}
-                <div className="flex items-center justify-between p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition">
-                  <div className="space-y-0.5">
-                    <p className="text-xs font-bold text-gray-900 dark:text-gray-100">
-                      {t("notif_wa_title")}
-                    </p>
-                    <p className="text-[11px] text-gray-500">
-                      {t("notif_wa_desc")}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setNotifWa((v) => !v);
-                      addToast(language === "en" ? "WhatsApp alerts preferences updated" : "Preferensi integrasi WhatsApp disimpan", "info");
-                    }}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
-                      notifWa ? "bg-[#0f1f5c]" : "bg-gray-200 dark:bg-gray-700"
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform ${
-                        notifWa ? "translate-x-6" : "translate-x-1"
                       }`}
                     />
                   </button>
