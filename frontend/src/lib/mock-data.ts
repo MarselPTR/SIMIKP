@@ -3,6 +3,7 @@
 
 export const Role = {
   SUPER_ADMIN: "super_admin",
+  AHLI_PERTAMA: "ahli_pertama",
   ADMIN: "admin",
   MANAGER: "manager",
   STAFF: "staff",
@@ -21,13 +22,26 @@ export interface MockUser {
   bidang?: string;
 }
 
-export const mockUsers: MockUser[] = [];
+export const mockUsers: MockUser[] = [
+  {
+    id: "mock-ahli-pertama-01",
+    name: "Bambang S., S.Kom",
+    email: "ahli@kominfo.batukota.go.id",
+    password: "admin",
+    role: Role.AHLI_PERTAMA,
+    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
+    bidang: "AHLI_PERTAMA",
+  },
+];
 
 // Alur status per bidang kerja petugas lapangan — dipakai di halaman Penugasan Saya.
 export const WORKFLOWS: Record<string, string[]> = {
   PRAHUM: ["BELUM", "LIPUTAN", "MENULIS", "SIAP_TAYANG", "SELESAI"],
-  FOTO_VIDEO: ["BELUM", "LIPUTAN", "SIAP_TAYANG", "SELESAI"],
+  FOTOGRAFER: ["BELUM", "LIPUTAN", "SIAP_TAYANG", "SELESAI"],
+  VIDEOGRAFER: ["BELUM", "LIPUTAN", "SIAP_TAYANG", "SELESAI"],
   DESAINER_EDITOR: ["BELUM", "DESAIN", "REVISI", "SIAP_TAYANG", "SELESAI"],
+  // Nilai lama sebelum jabatan Foto & Video dipecah — dipertahankan untuk data yang sudah ada.
+  FOTO_VIDEO: ["BELUM", "LIPUTAN", "SIAP_TAYANG", "SELESAI"],
 };
 
 export interface MockTugasPetugas {

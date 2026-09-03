@@ -11,7 +11,7 @@ export const translations = {
     back_to_profile: "Kembali ke Profil",
     dashboard: "Beranda",
     activities: "Manajemen Kegiatan",
-    assignments: "Penugasan Tim",
+    assignments: "Penugasan Khusus",
     production: "Produksi Konten",
     review_approval: "Review & Persetujuan",
     media_pub: "Publikasi Media",
@@ -20,6 +20,7 @@ export const translations = {
     member_list: "Daftar Anggota",
     add_officer: "Tambah Petugas",
     my_assignments: "Penugasan Saya",
+    available_agenda: "Agenda Tersedia",
     profile: "Profil",
     profile_mine: "Profil Saya",
     settings: "Pengaturan",
@@ -81,17 +82,23 @@ export const translations = {
 
     // Roles & Divisions
     role_super_admin: "Super Admin",
+    role_ahli_pertama: "Pranata Ahli Pertama",
     role_admin: "Admin",
     role_manager: "Manager",
     role_staff: "Staff",
     role_reviewer: "Reviewer",
     role_petugas: "Petugas Lapangan",
+    bidang_ahli_pertama: "Pengawas Fungsional Ahli Pertama",
     bidang_prahum: "Pranata Humas / Naskah",
     bidang_foto: "Fotografi & Visual",
     bidang_video: "Videografi & Reels",
     bidang_desainer: "Desain Grafis & Editor",
     bidang_reporter: "Reporter Lapangan",
     bidang_kontributor: "Kontributor Berita",
+    ahli_supervision: "Supervisi & Verifikasi Ahli",
+    ahli_executive_dashboard: "Panel Supervisi Ahli Pertama",
+    ahli_strategic_validation: "Telaah & Pengesahan Strategis",
+    ahli_sla_metrics: "Capaian SLA & Validasi Naskah",
 
     // Dashboard Page
     dash_total_activities_month: "Total Kegiatan Bulan Ini",
@@ -159,7 +166,7 @@ export const translations = {
     kegiatan_delete_confirm: "Apakah Anda yakin ingin menghapus kegiatan ini?",
 
     // Penugasan Page
-    penugasan_title: "Penugasan Tim Liputan & Produksi",
+    penugasan_title: "Penugasan Khusus Liputan & Produksi",
     penugasan_subtitle: "Distribusikan tugas peliputan, fotografi, videografi, dan desain grafis kepada petugas.",
     penugasan_add_btn: "Buat Penugasan Baru",
     penugasan_search_ph: "Cari kegiatan, nama petugas, atau output...",
@@ -436,7 +443,7 @@ export const translations = {
     back_to_profile: "Back to Profile",
     dashboard: "Dashboard",
     activities: "Activity Management",
-    assignments: "Team Assignments",
+    assignments: "Special Assignments",
     production: "Content Production",
     review_approval: "Review & Approval",
     media_pub: "Media Publication",
@@ -445,6 +452,7 @@ export const translations = {
     member_list: "Member List",
     add_officer: "Add Officer",
     my_assignments: "My Assignments",
+    available_agenda: "Available Agenda",
     profile: "Profile",
     profile_mine: "My Profile",
     settings: "Settings",
@@ -506,17 +514,23 @@ export const translations = {
 
     // Roles & Divisions
     role_super_admin: "Super Admin",
+    role_ahli_pertama: "First Expert Officer",
     role_admin: "Admin",
     role_manager: "Manager",
     role_staff: "Staff",
     role_reviewer: "Reviewer",
     role_petugas: "Field Officer",
+    bidang_ahli_pertama: "First Expert Functional Supervisor",
     bidang_prahum: "Public Relations / Script",
     bidang_foto: "Photography & Visuals",
     bidang_video: "Videography & Reels",
     bidang_desainer: "Graphic Design & Editor",
     bidang_reporter: "Field Reporter",
     bidang_kontributor: "News Contributor",
+    ahli_supervision: "Expert Supervision & Sign-off",
+    ahli_executive_dashboard: "First Expert Executive Panel",
+    ahli_strategic_validation: "Strategic Review & Endorsement",
+    ahli_sla_metrics: "SLA Performance & Script Validation",
 
     // Dashboard Page
     dash_total_activities_month: "Total Activities This Month",
@@ -584,7 +598,7 @@ export const translations = {
     kegiatan_delete_confirm: "Are you sure you want to delete this activity?",
 
     // Penugasan Page
-    penugasan_title: "Team Assignments",
+    penugasan_title: "Special Coverage & Production Assignments",
     penugasan_subtitle: "Assign coverage tasks, photography, videography, and graphic design to field officers.",
     penugasan_add_btn: "Create New Assignment",
     penugasan_search_ph: "Search activity, officer name, or output...",

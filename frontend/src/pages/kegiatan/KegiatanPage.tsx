@@ -51,21 +51,29 @@ export interface OutputJabatanGroup {
   options: string[];
 }
 
+// Harus sinkron dengan CONTENT_TYPE_TO_STAFF_TYPE (backend assignments.controller.ts)
+// dan CONTENT_TYPE_TO_BIDANG (frontend lib/petugas-store.ts) — sama-sama menentukan
+// jenis output mana yang boleh diklaim petugas dengan jabatan apa.
 export const DEFAULT_OUTPUT_BY_JABATAN: OutputJabatanGroup[] = [
   {
     jabatan: "Pranata Humas (Berita)",
     code: "PRAHUM",
-    options: ["Naskah Berita", "Audio"],
+    options: ["Naskah Berita"],
   },
   {
-    jabatan: "Foto & Video",
-    code: "FOTO_VIDEO",
-    options: ["Foto", "Video", "Reels"],
+    jabatan: "Fotografer",
+    code: "FOTOGRAFER",
+    options: ["Foto"],
+  },
+  {
+    jabatan: "Videografer",
+    code: "VIDEOGRAFER",
+    options: ["Video", "Reels"],
   },
   {
     jabatan: "Desainer & Editor",
     code: "DESAINER_EDITOR",
-    options: ["Infografis"],
+    options: ["Infografis", "Audio"],
   },
 ];
 
@@ -847,7 +855,7 @@ const KegiatanPage = () => {
             <div className="bg-gray-50 dark:bg-gray-800/60 rounded-xl p-3.5 border border-gray-100 dark:border-gray-700 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                  👥 Penugasan Tim Terkait ({getAssignedTasks(form.title).length})
+                  👥 Penugasan Khusus Terkait ({getAssignedTasks(form.title).length})
                 </span>
                 <button
                   type="button"

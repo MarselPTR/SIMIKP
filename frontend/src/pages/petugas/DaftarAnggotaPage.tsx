@@ -1,7 +1,7 @@
 import { createPortal } from "react-dom";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Search, Plus, Mail, Shield, User, Filter, ShieldCheck, Camera, Edit3, Image as ImageIcon, X, Trash2 } from "lucide-react";
+import { Search, Plus, Mail, Shield, User, Filter, ShieldCheck, Camera, Video, Edit3, Image as ImageIcon, X, Trash2, Sparkles } from "lucide-react";
 import { apiFetch } from "../../lib/api-client";
 import { useToast } from "../../contexts/ToastContext";
 
@@ -18,17 +18,24 @@ interface Petugas {
 }
 
 // Keys must match the values TambahPetugasPage sends as `program` / users.staff_type
+// FOTO_VIDEO dipertahankan untuk data lama sebelum jabatan ini dipecah jadi Fotografer/Videografer.
 const PROGRAM_LABELS: Record<string, string> = {
-  FOTO_VIDEO: "Foto & Video",
+  AHLI_PERTAMA: "Pranata Ahli Pertama",
   PRAHUM: "Pranata Humas (Berita)",
+  FOTOGRAFER: "Fotografer",
+  VIDEOGRAFER: "Videografer",
   DESAINER_EDITOR: "Desainer & Editor",
+  FOTO_VIDEO: "Foto & Video",
   ADMIN: "Admin",
 };
 
 const PROGRAM_ICONS: Record<string, any> = {
-  FOTO_VIDEO: Camera,
+  AHLI_PERTAMA: Sparkles,
   PRAHUM: Edit3,
+  FOTOGRAFER: Camera,
+  VIDEOGRAFER: Video,
   DESAINER_EDITOR: ImageIcon,
+  FOTO_VIDEO: Camera,
   ADMIN: ShieldCheck,
 };
 
@@ -212,7 +219,7 @@ export default function DaftarAnggotaPage() {
                   
                   <div className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 bg-blue-50 dark:bg-sky-950/50 text-blue-700 dark:text-sky-300 border border-blue-100 dark:border-sky-800/50 rounded-md mb-4">
                     <IconComponent className="w-3.5 h-3.5" />
-                    {PROGRAM_LABELS[petugas.staffType] || petugas.staffType}
+                    {PROGRAM_LABELS[petugas.staffType] || petugas.staffType || "Belum ditentukan"}
                   </div>
                   
                   <div className="w-full space-y-2.5 text-left text-sm mt-auto border-t border-gray-100 dark:border-gray-800 pt-4">
@@ -287,7 +294,7 @@ export default function DaftarAnggotaPage() {
                   )}
                 </div>
                 <h4 className="text-lg font-bold text-gray-900 dark:text-gray-100 text-center">{selectedPetugas.name}</h4>
-                <p className="text-sm font-medium text-blue-600 mt-1">{PROGRAM_LABELS[selectedPetugas.staffType] || selectedPetugas.staffType}</p>
+                <p className="text-sm font-medium text-blue-600 mt-1">{PROGRAM_LABELS[selectedPetugas.staffType] || selectedPetugas.staffType || "Belum ditentukan"}</p>
               </div>
 
               <div className="space-y-4">

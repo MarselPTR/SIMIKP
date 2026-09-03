@@ -1,8 +1,9 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { db } from "../../db";
 import { users, userRoles, roles } from "../../db/schema";
-import { isNotNull, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { logAudit } from "../system/audit.service";
+import { sendWelcomeNewUserEmail } from "../../services/mail.service";
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
@@ -26,7 +27,9 @@ export class UsersController {
           active: users.active,
         })
         .from(users)
-        .where(isNotNull(users.staffType));
+        .innerJoin(userRoles, eq(userRoles.userId, users.id))
+        .innerJoin(roles, eq(roles.id, userRoles.roleId))
+        .where(eq(roles.name, "PETUGAS"));
 
       return reply.send({ success: true, data });
     } catch (error) {
@@ -82,7 +85,7 @@ export class UsersController {
         username: body.username,
         passwordHash,
         name: body.name,
-        staffType: body.program,
+        staffType: body.program || null,
         email: body.email,
         nik: body.nik,
         gender: body.gender,
@@ -92,16 +95,39 @@ export class UsersController {
         active: true,
       });
 
-      // Find Petugas Role
-      const petugasRole = await db.select().from(roles).where(eq(roles.name, "PETUGAS")).limit(1);
-      if (petugasRole.length > 0) {
+      // Determine Role based on program
+      const targetRoleName = body.program === "AHLI_PERTAMA" ? "AHLI_PERTAMA" : "PETUGAS";
+      const targetRole = await db.select().from(roles).where(eq(roles.name, targetRoleName)).limit(1);
+      if (targetRole.length > 0) {
         await db.insert(userRoles).values({
           userId: userId,
-          roleId: petugasRole[0].id,
+          roleId: targetRole[0].id,
         });
+      } else {
+        // Fallback to any role if target not found
+        const fallbackRole = await db.select().from(roles).where(eq(roles.name, "PETUGAS")).limit(1);
+        if (fallbackRole.length > 0) {
+          await db.insert(userRoles).values({
+            userId: userId,
+            roleId: fallbackRole[0].id,
+          });
+        }
       }
 
       await logAudit(request, "CREATE_USER", "users", userId);
+
+      // Kirim email selamat datang dan kredensial akun jika email terisi
+      if (body.email) {
+        sendWelcomeNewUserEmail({
+          to: body.email,
+          name: body.name || body.username,
+          username: body.username,
+          temporaryPassword: body.password || "Sesuai yang didaftarkan Admin",
+          roleName: "Petugas Lapangan",
+        }).catch((err) => {
+          console.error("[UsersController] Gagal mengirim welcome email:", err);
+        });
+      }
 
       return reply.send({ success: true, message: "Petugas berhasil ditambahkan", id: userId });
     } catch (error) {

@@ -177,10 +177,13 @@ const PetugasDashboardPage = () => {
   const navigate = useNavigate();
   const { t, language } = useLanguage();
 
-  const userBidang = user?.staffType || (user as any)?.bidang || "PRAHUM";
+  // Unified Reactive Task Store synced across pages & database — identitas
+  // (userId), bukan kategori tetap, karena role sekarang melekat per-tugas.
+  const { tasks } = usePetugasTasksStore(user?.id);
 
-  // Unified Reactive Task Store synced across pages & database
-  const { tasks } = usePetugasTasksStore(userBidang);
+  // Role tidak lagi tetap per orang — panel "sektor" mengikuti tugas
+  // terdekat/berikutnya milik petugas ini, bukan atribut tetap.
+  const userBidang = tasks[0]?.bidang || "PRAHUM";
 
   const now = new Date();
   const [calYear, setCalYear] = useState(now.getFullYear());
@@ -192,6 +195,7 @@ const PetugasDashboardPage = () => {
   const prosesCount = tasks.filter(
     (t) => t.status !== "COMPLETED" && t.status !== "SELESAI" && t.status !== "BELUM"
   ).length;
+  const revisiCount = tasks.filter((t) => t.status === "REVISI").length;
 
   const berkasCount = tasks.filter((t) => Boolean(t.workLink)).length;
 
@@ -292,9 +296,11 @@ const PetugasDashboardPage = () => {
             <h1 className="text-2xl font-extrabold text-[#0f1f5c] dark:text-sky-400 tracking-tight">
               {language === "en" ? "Welcome back" : "Selamat datang kembali"}, {user?.name || (language === "en" ? "Field Officer" : "Petugas Lapangan")}!
             </h1>
-            <span className="px-2.5 py-0.5 text-xs font-bold rounded-full bg-blue-50 dark:bg-blue-950/60 text-[#0f1f5c] dark:text-sky-300 border border-blue-200/60 dark:border-blue-900 shadow-2xs">
-              {language === "en" ? "Sector" : "Sektor"} {userBidang}
-            </span>
+            {tasks.length > 0 && (
+              <span className="px-2.5 py-0.5 text-xs font-bold rounded-full bg-blue-50 dark:bg-blue-950/60 text-[#0f1f5c] dark:text-sky-300 border border-blue-200/60 dark:border-blue-900 shadow-2xs">
+                {language === "en" ? "Sector" : "Sektor"} {userBidang}
+              </span>
+            )}
           </div>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             {language === "en"
@@ -316,6 +322,34 @@ const PetugasDashboardPage = () => {
         </div>
       </div>
 
+      {/* ── Alert Banner jika ada tugas yang perlu direvisi oleh Petugas ── */}
+      {revisiCount > 0 && (
+        <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/80 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-800 dark:text-amber-300 shrink-0">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-amber-950 dark:text-amber-200">
+                {language === "en" ? `${revisiCount} Assignment(s) Need Your Revision` : `Ada ${revisiCount} Penugasan Memerlukan Perbaikan / Revisi`}
+              </h3>
+              <p className="text-xs text-amber-800 dark:text-amber-400 mt-0.5">
+                {language === "en"
+                  ? "First Expert Officer has provided revision notes. Please review the notes and re-submit your deliverables."
+                  : "Pranata Ahli Pertama telah memberikan catatan perbaikan. Segera tinjau catatan dan kirim ulang berkas luaran kamu."}
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => navigate("/petugas/penugasan")}
+            className="bg-amber-600 hover:bg-amber-700 text-white font-bold shrink-0 self-start sm:self-auto shadow-xs cursor-pointer"
+          >
+            <span>{language === "en" ? "Review & Fix Now" : "Lihat & Perbaiki Sekarang"}</span>
+          </Button>
+        </div>
+      )}
+
       {/* ── 2. Stat Cards Grid dengan Efek Spotlight ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Total Tugas */}
@@ -332,12 +366,14 @@ const PetugasDashboardPage = () => {
         <SpotlightCard
           label={language === "en" ? "Tasks In Progress" : "Tugas Sedang Proses"}
           value={prosesCount}
-          subtitle={language === "en" ? "Under Way" : "Dalam Pengerjaan"}
+          subtitle={revisiCount > 0 ? (language === "en" ? `${revisiCount} needs revision` : `${revisiCount} perlu revisi`) : (language === "en" ? "Under Way" : "Dalam Pengerjaan")}
           icon={Clock}
-          accentColor="amber"
+          accentColor={revisiCount > 0 ? "amber" : "amber"}
           customBadge={{
-            text: `${prosesCount} ${language === "en" ? "Active" : "Aktif"}`,
-            className: "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800",
+            text: revisiCount > 0 ? `${revisiCount} ${language === "en" ? "Revision" : "Revisi"}` : `${prosesCount} ${language === "en" ? "Active" : "Aktif"}`,
+            className: revisiCount > 0
+              ? "bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 border-amber-300 dark:border-amber-700 font-bold"
+              : "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800",
           }}
           onClick={() => navigate("/petugas/penugasan")}
         />
@@ -494,7 +530,7 @@ const PetugasDashboardPage = () => {
           <div className="bg-white dark:bg-[#161b22] rounded-2xl border border-gray-200/80 dark:border-gray-800 p-5 sm:p-6 shadow-xs space-y-4 transition-colors">
             <div>
               <h2 className="text-base font-bold text-[#0f1f5c] dark:text-sky-400">
-                {language === "en" ? "Workflow Stages" : "Alur Kerja Sektor"} ({userBidang})
+                {language === "en" ? "Workflow Stages" : "Alur Kerja"}{tasks.length > 0 ? ` (${userBidang})` : ""}
               </h2>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 {language === "en" ? "Standard production workflow steps" : "Tahapan standar alur produksi konten liputan"}
@@ -571,7 +607,7 @@ const PetugasDashboardPage = () => {
           <div className="space-y-2 max-h-60 overflow-y-auto">
             {tasksOnClickedDate.length === 0 ? (
               <div className="text-center py-6 text-gray-400 dark:text-gray-500 text-xs bg-gray-50/60 dark:bg-gray-900/40 rounded-xl border border-dashed border-gray-200 dark:border-gray-800">
-                {language === "en" ? "No scheduled tasks on this date." : `Tidak ada agenda tugas sektor ${userBidang} pada tanggal ini.`}
+                {language === "en" ? "No scheduled tasks on this date." : "Tidak ada agenda tugas pada tanggal ini."}
               </div>
             ) : (
               tasksOnClickedDate.map((tItem) => (

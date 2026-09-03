@@ -674,7 +674,7 @@ const LaporanPage = () => {
               <div>
                 <h4 className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider flex items-center gap-1.5 mb-3">
                   <Briefcase className="w-4 h-4 text-indigo-600 dark:text-sky-400" />
-                  Daftar Penugasan Tim per Bidang ({selectedActivity.assignmentsList.length})
+                  Daftar Penugasan Khusus per Bidang ({selectedActivity.assignmentsList.length})
                 </h4>
 
                 {selectedActivity.assignmentsList.length === 0 ? (

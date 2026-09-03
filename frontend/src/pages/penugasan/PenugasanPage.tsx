@@ -588,7 +588,7 @@ export default function PenugasanPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-[#0f1f5c] dark:text-sky-400 tracking-tight">
-            Penugasan Tim
+            Penugasan Khusus
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Kelola dan pantau jadwal liputan penugasan staf konten dengan data yang rapi dan terorganisir.
@@ -983,7 +983,7 @@ export default function PenugasanPage() {
         open={isCreateOpen || isEditOpen}
         onClose={closeForm}
         size="lg"
-        title={isCreateOpen ? "Buat Penugasan Baru" : "Edit Penugasan Tim"}
+        title={isCreateOpen ? "Buat Penugasan Baru" : "Edit Penugasan Khusus"}
         actions={
           <>
             <Button variant="outline" onClick={closeForm}>

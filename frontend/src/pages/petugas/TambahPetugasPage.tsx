@@ -105,19 +105,21 @@ export default function TambahPetugasPage() {
           {/* Row: Program */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 items-center">
             <label className="md:col-span-4 text-sm font-bold text-gray-800 dark:text-gray-200">
-              {language === "en" ? "Officer Role" : "Tipe Petugas"} <span className="text-red-500">*</span>
+              {language === "en" ? "Officer Category" : "Kategori Petugas"}{" "}
+              <span className="text-gray-400 font-normal">({language === "en" ? "optional" : "opsional"})</span>
             </label>
             <div className="md:col-span-8">
               <select
                 name="program"
                 value={form.program}
                 onChange={handleInputChange}
-                required
                 className="w-full md:w-64 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm bg-white dark:bg-[#0d1117] text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1"
               >
-                <option value="">{language === "en" ? "Please Select" : "Pilih Jabatan"}</option>
-                <option value="FOTO_VIDEO">{language === "en" ? "Photo & Video" : "Foto & Video"}</option>
+                <option value="">{language === "en" ? "Not set" : "Belum ditentukan"}</option>
+                <option value="AHLI_PERTAMA">{language === "en" ? "Pranata Ahli Pertama (Supervisor)" : "Pranata Ahli Pertama (Pengawas / Evaluator)"}</option>
                 <option value="PRAHUM">{language === "en" ? "Public Relations (News)" : "Pranata Humas (Berita)"}</option>
+                <option value="FOTOGRAFER">{language === "en" ? "Photographer" : "Fotografer"}</option>
+                <option value="VIDEOGRAFER">{language === "en" ? "Videographer" : "Videografer"}</option>
                 <option value="DESAINER_EDITOR">{language === "en" ? "Designer & Editor" : "Desainer & Editor"}</option>
               </select>
             </div>

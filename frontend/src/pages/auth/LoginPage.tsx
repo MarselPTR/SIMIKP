@@ -1,10 +1,11 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../lib/AuthContext";
 import { Role } from "../../lib/mock-data";
 import logoKotaBatu from "../../assets/Logo_Kota_Batu.png";
 import { useLanguage } from "../../lib/LanguageContext";
+import { apiFetch } from "../../lib/api-client";
 import { 
   Globe, 
   Lock, 
@@ -12,22 +13,54 @@ import {
   Eye, 
   EyeOff, 
   HelpCircle,
-  X
+  X,
+  Mail,
+  CheckCircle2,
+  AlertCircle,
+  Loader2
 } from "lucide-react";
 
 const LoginPage = () => {
   const { login, loading, isAuthenticated, user } = useAuth();
   const { t, language, setLanguage } = useLanguage();
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as any)?.from?.pathname;
+
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [showForgotModal, setShowForgotModal] = useState(false);
 
+  // State untuk Lupa Password
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSubmitting, setForgotSubmitting] = useState(false);
+  const [forgotSuccess, setForgotSuccess] = useState(false);
+  const [forgotError, setForgotError] = useState("");
+
+  const handleForgotSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setForgotError("");
+    if (!forgotEmail.trim()) return;
+
+    setForgotSubmitting(true);
+    try {
+      await apiFetch<{ success: boolean; message: string }>("/auth/forgot-password", {
+        method: "POST",
+        body: JSON.stringify({ email: forgotEmail.trim() }),
+      });
+      setForgotSuccess(true);
+    } catch (err: any) {
+      setForgotError(err.message || "Gagal mengirim tautan reset kata sandi. Pastikan email Anda benar.");
+    } finally {
+      setForgotSubmitting(false);
+    }
+  };
+
   if (isAuthenticated && user) {
-    const destination = user.role === Role.PETUGAS ? "/petugas/dashboard" : "/dashboard";
-    return <Navigate to={destination} replace />;
+    const defaultDest = user.role === Role.PETUGAS ? "/petugas/dashboard" : "/dashboard";
+    return <Navigate to={from || defaultDest} replace />;
   }
 
   const handleSubmit = async (e: FormEvent) => {
@@ -38,8 +71,8 @@ const LoginPage = () => {
       setError(result.error ?? t("login_failed"));
       return;
     }
-    const destination = result.user?.role === Role.PETUGAS ? "/petugas/dashboard" : "/dashboard";
-    navigate(destination, { replace: true });
+    const defaultDest = result.user?.role === Role.PETUGAS ? "/petugas/dashboard" : "/dashboard";
+    navigate(from || defaultDest, { replace: true });
   };
 
   return (
@@ -202,6 +235,25 @@ const LoginPage = () => {
             {loading ? t("login_submitting") : t("login_submit_btn")}
           </button>
         </form>
+
+        <div className="mt-5 p-3.5 rounded-xl bg-gray-50 dark:bg-[#0d1117] border border-gray-200 dark:border-gray-700 text-xs text-gray-600 dark:text-gray-400 space-y-2">
+          <p className="font-semibold text-gray-900 dark:text-gray-200">Akun Pengujian / Demo:</p>
+          <div className="grid grid-cols-3 gap-2 pt-1">
+            <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/50">
+              <p className="font-bold text-indigo-700 dark:text-indigo-300">Ahli Pertama</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">User: <code className="font-bold text-gray-800 dark:text-gray-200">ahli</code></p>
+            </div>
+            <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/50">
+              <p className="font-bold text-blue-700 dark:text-blue-300">Admin IKP</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">User: <code className="font-bold text-gray-800 dark:text-gray-200">admin</code></p>
+            </div>
+            <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50">
+              <p className="font-bold text-emerald-700 dark:text-emerald-300">Petugas</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">User: <code className="font-bold text-gray-800 dark:text-gray-200">andi</code></p>
+            </div>
+          </div>
+          <p className="text-[11px] text-gray-400 pt-1">Password demo dapat diisi apa saja.</p>
+        </div>
       </div>
 
       {/* ── Forgot Password Modal ── */}
@@ -210,37 +262,116 @@ const LoginPage = () => {
           <div className="bg-white dark:bg-[#1c2128] border border-gray-200 dark:border-gray-700 w-full max-w-md rounded-2xl p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
             <button
               type="button"
-              onClick={() => setShowForgotModal(false)}
+              onClick={() => {
+                setShowForgotModal(false);
+                setForgotSuccess(false);
+                setForgotError("");
+              }}
               className="absolute top-4 right-4 p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-sky-400 flex items-center justify-center mb-4">
-              <HelpCircle className="w-6 h-6" />
-            </div>
+            {forgotSuccess ? (
+              <div className="text-center py-4">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle2 className="w-8 h-8" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                  Tautan Berhasil Dikirim!
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 leading-relaxed">
+                  Instruksi dan tautan untuk membuat kata sandi baru telah kami kirimkan ke:
+                </p>
+                <div className="my-3 p-2.5 bg-blue-50 dark:bg-blue-950/40 text-blue-900 dark:text-sky-300 font-semibold text-sm rounded-xl border border-blue-200 dark:border-blue-900/60 break-all">
+                  {forgotEmail}
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-6">
+                  Silakan periksa kotak masuk (inbox) atau folder spam pada email Anda, lalu klik tombol tautan di dalamnya. Tautan berlaku selama 30 menit.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowForgotModal(false);
+                    setForgotSuccess(false);
+                    setForgotEmail("");
+                  }}
+                  className="w-full py-2.5 bg-[#0f1f5c] hover:bg-[#0a1645] text-white rounded-xl text-sm font-semibold transition cursor-pointer shadow-md"
+                >
+                  Kembali ke Halaman Login
+                </button>
+              </div>
+            ) : (
+              <div>
+                <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-sky-400 flex items-center justify-center mb-4">
+                  <Lock className="w-6 h-6" />
+                </div>
 
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-              {t("login_forgot_password")}
-            </h3>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                  Lupa Kata Sandi Akun
+                </h3>
 
-            <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 leading-relaxed">
-              {t("login_forgot_password_info")}
-            </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 leading-relaxed">
+                  Masukkan alamat email yang terdaftar pada akun SIMIKP Anda. Kami akan mengirimkan tautan reset kata sandi resmi ke email tersebut.
+                </p>
 
-            <div className="mt-5 p-3.5 rounded-xl bg-gray-50 dark:bg-[#0d1117] border border-gray-200 dark:border-gray-700 text-xs text-gray-600 dark:text-gray-400 space-y-1">
-              <p className="font-semibold text-gray-900 dark:text-gray-200">Kontak Admin IKP:</p>
-              <p>🏢 Diskominfo Balai Kota Among Tani, Kota Batu</p>
-              <p>✉️ diskominfo@batukota.go.id</p>
-            </div>
+                {forgotError && (
+                  <div className="mt-4 p-3 bg-red-50 dark:bg-rose-950/40 border border-red-200 dark:border-red-800/60 rounded-xl text-xs text-red-700 dark:text-red-300 flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <span>{forgotError}</span>
+                  </div>
+                )}
 
-            <button
-              type="button"
-              onClick={() => setShowForgotModal(false)}
-              className="mt-6 w-full py-2.5 bg-[#0f1f5c] hover:bg-[#0a1645] text-white rounded-xl text-sm font-semibold transition cursor-pointer"
-            >
-              {t("close")}
-            </button>
+                <form onSubmit={handleForgotSubmit} className="mt-4 space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                      Alamat Email Terdaftar
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                        <Mail className="w-4 h-4" />
+                      </div>
+                      <input
+                        type="email"
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        placeholder="contoh: nama@batukota.go.id / gmail.com"
+                        required
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-700 bg-gray-50/50 dark:bg-[#0d1117] text-gray-900 dark:text-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0f1f5c] dark:focus:ring-sky-500 transition"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-gray-50 dark:bg-[#0d1117] border border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+                    💡 Tautan pembuatan sandi baru akan dikirimkan otomatis ke inbox email Anda.
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotModal(false)}
+                      className="flex-1 py-2.5 border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-semibold transition cursor-pointer"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={forgotSubmitting}
+                      className="flex-1 py-2.5 bg-[#0f1f5c] hover:bg-[#0a1645] text-white rounded-xl text-sm font-semibold transition cursor-pointer shadow-md flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {forgotSubmitting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Mengirim...</span>
+                        </>
+                      ) : (
+                        <span>Kirim Tautan</span>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
           </div>
         </div>
       )}

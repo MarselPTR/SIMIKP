@@ -37,5 +37,7 @@ export const assignments = mysqlTable("assignments", {
   deadline: datetime("deadline"),
   status: varchar("status", { length: 50 }).notNull(),
   instruction: text("instruction"),
+  // Untuk role Prahum ini menyimpan teks naskah beritanya langsung, bukan tautan berkas.
+  workLink: text("work_link"),
   createdBy: char("created_by", { length: 36 }).notNull().references(() => users.id),
 });

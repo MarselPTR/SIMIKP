@@ -47,7 +47,7 @@ export default function PengaturanPage() {
   const [name, setName] = useState(user?.name ?? "");
   const [username, setUsername] = useState(user?.username ?? "");
   const [phone, setPhone] = useState("0812-3456-7890");
-  const [staffType, setStaffType] = useState(user?.staffType ?? "PRAHUM");
+  const [staffType, setStaffType] = useState(user?.staffType ?? "");
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   // ── Notifikasi States ──
@@ -444,8 +444,10 @@ export default function PengaturanPage() {
                       onChange={(e) => setStaffType(e.target.value)}
                       className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0f1f5c]"
                     >
+                      <option value="">{language === "en" ? "Not set" : "Belum ditentukan"}</option>
                       <option value="PRAHUM">Pranata Humas (PRAHUM)</option>
-                      <option value="FOTO_VIDEO">{language === "en" ? "Photo & Videography" : "Foto & Videografi"}</option>
+                      <option value="FOTOGRAFER">{language === "en" ? "Photographer" : "Fotografer"}</option>
+                      <option value="VIDEOGRAFER">{language === "en" ? "Videographer" : "Videografer"}</option>
                       <option value="DESAINER_EDITOR">{language === "en" ? "Designer & Editor" : "Desainer & Editor"}</option>
                     </select>
                     <p className="text-[11px] text-gray-400 mt-1">

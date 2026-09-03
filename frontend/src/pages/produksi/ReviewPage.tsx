@@ -10,6 +10,7 @@ import {
   Eye,
   MapPin,
   Upload,
+  History,
 } from "lucide-react";
 import { usePetugasTasksStore } from "../../lib/petugas-store";
 import type { PetugasTaskItem } from "../../lib/petugas-store";
@@ -18,6 +19,7 @@ import Dialog from "../../components/ui/Dialog";
 import Button from "../../components/ui/Button";
 import { useToast } from "../../contexts/ToastContext";
 import { useLanguage } from "../../lib/LanguageContext";
+import { useAuth } from "../../lib/AuthContext";
 
 const CATEGORY_MAP: Record<string, { id: string; en: string }> = {
   upacara: { id: "Upacara", en: "Ceremony" },
@@ -30,6 +32,7 @@ const ReviewPage = () => {
   const { allTasks, requestRevision, approveContent } = usePetugasTasksStore();
   const { addToast } = useToast();
   const { t, language } = useLanguage();
+  const { user } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "NEED_REVIEW" | "REVISI" | "APPROVED">("ALL");
@@ -39,6 +42,9 @@ const ReviewPage = () => {
   const [selectedTaskForRevision, setSelectedTaskForRevision] = useState<PetugasTaskItem | null>(null);
   const [revisionNotesInput, setRevisionNotesInput] = useState("");
   const [isSubmittingRevision, setIsSubmittingRevision] = useState(false);
+
+  // Modal state untuk pratinjau naskah Prahum (bukan tautan berkas)
+  const [previewNaskahTask, setPreviewNaskahTask] = useState<PetugasTaskItem | null>(null);
 
   const getCategoryLabel = (cat: string) => {
     if (cat === "ALL") return t("all");
@@ -61,11 +67,15 @@ const ReviewPage = () => {
         if (!matchTitle && !matchBidang && !matchJob && !matchLocation) return false;
       }
 
+      const rawStatus = t.status.toUpperCase();
+      const isApproved = rawStatus === "SIAP_TAYANG" || rawStatus === "SELESAI" || rawStatus === "COMPLETED";
+      const isRevision = rawStatus.includes("REVISI");
+
       if (statusFilter === "NEED_REVIEW") {
-        return t.status === "DESAIN" || t.status === "MENULIS" || t.status === "LIPUTAN";
+        return !isApproved && !isRevision && rawStatus !== "BELUM";
       }
       if (statusFilter === "REVISI") {
-        return t.status === "REVISI";
+        return isRevision;
       }
       if (statusFilter === "APPROVED") {
         return t.status === "SIAP_TAYANG" || t.status === "SELESAI";
@@ -108,7 +118,8 @@ const ReviewPage = () => {
 
     setIsSubmittingRevision(true);
     try {
-      await requestRevision(selectedTaskForRevision.id, revisionNotesInput.trim(), "Admin Diskominfo");
+      const authorName = user?.name || (language === "en" ? "First Expert Officer" : "Pranata Ahli Pertama");
+      await requestRevision(selectedTaskForRevision.id, revisionNotesInput.trim(), authorName);
       addToast(
         language === "en"
           ? `Revision notes sent to officer (${selectedTaskForRevision.bidang}).`
@@ -135,11 +146,6 @@ const ReviewPage = () => {
           <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
             {t("review_subtitle")}
           </p>
-        </div>
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          <span className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-[#161b22] text-[#0f1f5c] dark:text-sky-400 border border-gray-200 dark:border-gray-800 shadow-xs">
-            {t("review_badge_admin_portal")}
-          </span>
         </div>
       </div>
 
@@ -317,16 +323,27 @@ const ReviewPage = () => {
                   {/* Review Action Buttons */}
                   <div className="flex flex-wrap items-center gap-2 self-start lg:self-auto shrink-0">
                     {tItem.workLink && (
-                      <a
-                        href={tItem.workLink}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 transition cursor-pointer"
-                      >
-                        <Eye size={14} />
-                        <span>{t("review_btn_preview")}</span>
-                        <ExternalLink size={12} className="opacity-70" />
-                      </a>
+                      tItem.bidang === "PRAHUM" ? (
+                        <button
+                          type="button"
+                          onClick={() => setPreviewNaskahTask(tItem)}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 transition cursor-pointer"
+                        >
+                          <Eye size={14} />
+                          <span>{language === "en" ? "Read Article" : "Baca Naskah"}</span>
+                        </button>
+                      ) : (
+                        <a
+                          href={tItem.workLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 transition cursor-pointer"
+                        >
+                          <Eye size={14} />
+                          <span>{t("review_btn_preview")}</span>
+                          <ExternalLink size={12} className="opacity-70" />
+                        </a>
+                      )
                     )}
 
                     <button
@@ -357,12 +374,12 @@ const ReviewPage = () => {
                 </div>
 
                 {/* Revision Notes Callout */}
-                {tItem.revisionNotes && (
-                  <div className="bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 rounded-2xl p-4 space-y-1.5 text-xs">
-                    <div className="flex items-center justify-between gap-2 text-amber-900 dark:text-amber-200 font-bold">
+                {(tItem.revisionNotes || (tItem.revisionHistory && tItem.revisionHistory.length > 0)) && (
+                  <div className="bg-amber-50/90 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/80 rounded-2xl p-4 space-y-2 text-xs shadow-xs">
+                    <div className="flex items-center justify-between gap-2 text-amber-900 dark:text-amber-200 font-bold border-b border-amber-200/80 dark:border-amber-800/60 pb-1.5">
                       <span className="flex items-center gap-1.5">
                         <AlertTriangle size={14} className="text-amber-600 dark:text-amber-400" />
-                        {t("review_notes_title")} ({tItem.revisionAuthor || "Admin Diskominfo"})
+                        {t("review_notes_title")} ({tItem.revisionAuthor || "Pranata Ahli Pertama"})
                       </span>
                       {tItem.revisionDate && (
                         <span className="text-[11px] font-normal text-amber-700 dark:text-amber-400">
@@ -370,9 +387,32 @@ const ReviewPage = () => {
                         </span>
                       )}
                     </div>
-                    <p className="text-amber-900 dark:text-amber-300 leading-relaxed pl-5 font-medium">
-                      "{tItem.revisionNotes}"
-                    </p>
+                    {tItem.revisionNotes && (
+                      <p className="text-amber-900 dark:text-amber-300 leading-relaxed pl-1 sm:pl-5 font-medium">
+                        "{tItem.revisionNotes}"
+                      </p>
+                    )}
+
+                    {/* Historical entries log */}
+                    {tItem.revisionHistory && tItem.revisionHistory.length > 1 && (
+                      <div className="pt-2 border-t border-amber-200/70 dark:border-amber-800/60 space-y-1.5">
+                        <span className="text-[10px] font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1">
+                          <History size={12} className="text-amber-600" />
+                          <span>{language === "en" ? "Revision History" : "Riwayat Catatan"} ({tItem.revisionHistory.length} {language === "en" ? "rounds" : "putaran"})</span>
+                        </span>
+                        <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
+                          {tItem.revisionHistory.map((h, hIdx) => (
+                            <div key={h.id || hIdx} className="bg-white/70 dark:bg-gray-900/50 rounded-lg p-2 border border-amber-200/50 dark:border-amber-800/40 text-[11px]">
+                              <div className="flex items-center justify-between text-gray-500 dark:text-gray-400 text-[10px]">
+                                <span className="font-bold text-amber-900 dark:text-amber-200">#{hIdx + 1} • {h.author}</span>
+                                <span>{h.date}</span>
+                              </div>
+                              <p className="text-gray-800 dark:text-gray-200 mt-0.5">"{h.notes}"</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -492,6 +532,23 @@ const ReviewPage = () => {
               {language === "en" ? "* These notes will instantly appear in the officer's workspace." : "* Catatan ini akan langsung tampil di banner ruang kerja Petugas Lapangan terkait."}
             </p>
           </div>
+        </div>
+      </Dialog>
+
+      {/* Naskah Preview Dialog (Prahum) */}
+      <Dialog
+        open={!!previewNaskahTask}
+        onClose={() => setPreviewNaskahTask(null)}
+        title={language === "en" ? "Article Text" : "Isi Naskah Berita"}
+        size="lg"
+      >
+        <div className="space-y-3 text-xs sm:text-sm">
+          <p className="font-bold text-gray-900 dark:text-gray-100">
+            {language === "en" ? "Activity" : "Kegiatan"}: <span className="font-normal text-gray-700 dark:text-gray-300">{previewNaskahTask?.kegiatan}</span>
+          </p>
+          <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed bg-gray-50 dark:bg-gray-900/60 rounded-xl p-4 border border-gray-100 dark:border-gray-800 max-h-[60vh] overflow-y-auto">
+            {previewNaskahTask?.workLink}
+          </p>
         </div>
       </Dialog>
     </div>
