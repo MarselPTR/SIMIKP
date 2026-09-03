@@ -3,6 +3,7 @@
 
 export const Role = {
   SUPER_ADMIN: "super_admin",
+  AHLI_PERTAMA: "ahli_pertama",
   ADMIN: "admin",
   MANAGER: "manager",
   STAFF: "staff",
@@ -21,7 +22,17 @@ export interface MockUser {
   bidang?: string;
 }
 
-export const mockUsers: MockUser[] = [];
+export const mockUsers: MockUser[] = [
+  {
+    id: "mock-ahli-pertama-01",
+    name: "Bambang S., S.Kom",
+    email: "ahli@kominfo.batukota.go.id",
+    password: "admin",
+    role: Role.AHLI_PERTAMA,
+    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
+    bidang: "AHLI_PERTAMA",
+  },
+];
 
 // Alur status per bidang kerja petugas lapangan — dipakai di halaman Penugasan Saya.
 export const WORKFLOWS: Record<string, string[]> = {

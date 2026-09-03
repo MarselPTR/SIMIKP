@@ -1,7 +1,7 @@
 import { createPortal } from "react-dom";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Search, Plus, Mail, Shield, User, Filter, ShieldCheck, Camera, Video, Edit3, Image as ImageIcon, X, Trash2 } from "lucide-react";
+import { Search, Plus, Mail, Shield, User, Filter, ShieldCheck, Camera, Video, Edit3, Image as ImageIcon, X, Trash2, Sparkles } from "lucide-react";
 import { apiFetch } from "../../lib/api-client";
 import { useToast } from "../../contexts/ToastContext";
 
@@ -20,6 +20,7 @@ interface Petugas {
 // Keys must match the values TambahPetugasPage sends as `program` / users.staff_type
 // FOTO_VIDEO dipertahankan untuk data lama sebelum jabatan ini dipecah jadi Fotografer/Videografer.
 const PROGRAM_LABELS: Record<string, string> = {
+  AHLI_PERTAMA: "Pranata Ahli Pertama",
   PRAHUM: "Pranata Humas (Berita)",
   FOTOGRAFER: "Fotografer",
   VIDEOGRAFER: "Videografer",
@@ -29,6 +30,7 @@ const PROGRAM_LABELS: Record<string, string> = {
 };
 
 const PROGRAM_ICONS: Record<string, any> = {
+  AHLI_PERTAMA: Sparkles,
   PRAHUM: Edit3,
   FOTOGRAFER: Camera,
   VIDEOGRAFER: Video,

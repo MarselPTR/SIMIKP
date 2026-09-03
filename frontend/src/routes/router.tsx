@@ -32,23 +32,37 @@ export const router = createBrowserRouter([
       { index: true, element: <HomeRedirect /> },
 
       {
-        element: <RoleRoute allow={[Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER, Role.STAFF, Role.REVIEWER]} />,
+        element: <RoleRoute allow={[Role.SUPER_ADMIN, Role.AHLI_PERTAMA, Role.ADMIN, Role.MANAGER, Role.STAFF, Role.REVIEWER]} />,
         children: [
           {
             element: <AppLayout />,
             children: [
               { path: "dashboard", element: <DashboardPage /> },
-              { path: "kegiatan", element: <KegiatanPage /> },
-              { path: "penugasan", element: <PenugasanPage /> },
-              { path: "produksi", element: <ProduksiPage /> },
-              { path: "review", element: <ReviewPage /> },
-              { path: "publikasi", element: <PublikasiPage /> },
-              { path: "bank-konten", element: <BankKontenPage /> },
-              { path: "laporan", element: <LaporanPage /> },
-              { path: "daftar-anggota", element: <DaftarAnggotaPage /> },
-              { path: "tambah-petugas", element: <TambahPetugasPage /> },
               { path: "profil", element: <ProfilPage /> },
               { path: "pengaturan", element: <PengaturanPage /> },
+
+              // Eksklusif Ahli Pertama: Review & Persetujuan
+              {
+                element: <RoleRoute allow={[Role.SUPER_ADMIN, Role.AHLI_PERTAMA, Role.REVIEWER]} />,
+                children: [
+                  { path: "review", element: <ReviewPage /> },
+                ],
+              },
+
+              // Fitur Operasional Admin (Kegiatan, Penugasan, Produksi, Publikasi, dsb)
+              {
+                element: <RoleRoute allow={[Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER, Role.STAFF]} />,
+                children: [
+                  { path: "kegiatan", element: <KegiatanPage /> },
+                  { path: "penugasan", element: <PenugasanPage /> },
+                  { path: "produksi", element: <ProduksiPage /> },
+                  { path: "publikasi", element: <PublikasiPage /> },
+                  { path: "bank-konten", element: <BankKontenPage /> },
+                  { path: "laporan", element: <LaporanPage /> },
+                  { path: "daftar-anggota", element: <DaftarAnggotaPage /> },
+                  { path: "tambah-petugas", element: <TambahPetugasPage /> },
+                ],
+              },
             ],
           },
         ],

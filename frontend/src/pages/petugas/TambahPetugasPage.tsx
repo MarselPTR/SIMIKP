@@ -116,6 +116,7 @@ export default function TambahPetugasPage() {
                 className="w-full md:w-64 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm bg-white dark:bg-[#0d1117] text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1"
               >
                 <option value="">{language === "en" ? "Not set" : "Belum ditentukan"}</option>
+                <option value="AHLI_PERTAMA">{language === "en" ? "Pranata Ahli Pertama (Supervisor)" : "Pranata Ahli Pertama (Pengawas / Evaluator)"}</option>
                 <option value="PRAHUM">{language === "en" ? "Public Relations (News)" : "Pranata Humas (Berita)"}</option>
                 <option value="FOTOGRAFER">{language === "en" ? "Photographer" : "Fotografer"}</option>
                 <option value="VIDEOGRAFER">{language === "en" ? "Videographer" : "Videografer"}</option>

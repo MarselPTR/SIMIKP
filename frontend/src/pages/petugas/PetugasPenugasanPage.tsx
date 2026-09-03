@@ -11,6 +11,8 @@ import {
   Search,
   ChevronRight,
   AlertTriangle,
+  Send,
+  History,
 } from "lucide-react";
 import { useAuth } from "../../lib/AuthContext";
 import { usePetugasTasksStore } from "../../lib/petugas-store";
@@ -99,8 +101,8 @@ const PetugasPenugasanPage = () => {
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
             {language === "en"
-              ? `List of all operational tasks allocated for you ${user?.name ? `• ${user.name}` : ""}`
-              : `Daftar seluruh tugas operasional yang dialokasikan untuk kamu ${user?.name ? `• ${user.name}` : ""}`}
+              ? "Track your field assignments, document activities, and submit deliverables."
+              : "Pantau penugasan liputan, dokumentasi kegiatan, dan unggah berkas luaran."}
           </p>
         </div>
         {userTasks.length > 0 && (
@@ -112,13 +114,14 @@ const PetugasPenugasanPage = () => {
         )}
       </div>
 
-      {selectedTask ? (
+      {selectedId && selectedTask ? (
         (() => {
-          const taskWorkflow = WORKFLOWS[selectedTask.bidang || userBidang || "PRAHUM"] || WORKFLOWS["PRAHUM"];
-          const rawStatus = selectedTask.status === "COMPLETED" ? "SELESAI" : selectedTask.status === "ASSIGNED" ? "BELUM" : selectedTask.status;
-          const foundIndex = taskWorkflow.indexOf(rawStatus);
-          const stepIndex = foundIndex >= 0 ? foundIndex : rawStatus === "SELESAI" ? taskWorkflow.length - 1 : 0;
+          // Alur kerja ikut role tugas ini sendiri (bidang per-tugas), bukan sektor halaman.
+          const taskWorkflow = WORKFLOWS[selectedTask.bidang || userBidang] || WORKFLOWS.PRAHUM;
+          const stepIndex = taskWorkflow.indexOf(selectedTask.status);
           const totalSteps = taskWorkflow.length;
+          const rawStatus = selectedTask.status.toUpperCase();
+          const isRevision = rawStatus === "REVISI";
           const isCompleted = rawStatus === "SELESAI" || selectedTask.status === "COMPLETED";
           const progressPercent = isCompleted ? 100 : Math.round(((stepIndex + 1) / totalSteps) * 100);
 
@@ -138,16 +141,68 @@ const PetugasPenugasanPage = () => {
                     className={`px-3.5 py-1 text-xs font-bold rounded-full border flex items-center gap-1.5 ${
                       isCompleted
                         ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800"
+                        : isRevision
+                        ? "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800 animate-pulse"
                         : rawStatus === "BELUM"
                         ? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700"
-                        : "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800"
+                        : "bg-blue-50 dark:bg-blue-950/40 text-[#0a1647] dark:text-sky-300 border-blue-200 dark:border-blue-800"
                     }`}
                   >
                     {isCompleted && <CheckCircle2 size={13} className="text-emerald-600 dark:text-emerald-400" />}
-                    <span>{t("status")}: {rawStatus.replace("_", " ")} ({progressPercent}%)</span>
+                    {isRevision && <AlertTriangle size={13} className="text-amber-600 dark:text-amber-400" />}
+                    <span>{t("status")}: {isRevision ? (language === "en" ? "NEEDS REVISION" : "PERLU REVISI") : rawStatus.replace("_", " ")} ({progressPercent}%)</span>
                   </span>
                 </div>
               </div>
+
+              {/* Revision Alert Callout if task is in REVISI or has notes */}
+              {(isRevision || selectedTask.revisionNotes || (selectedTask.revisionHistory && selectedTask.revisionHistory.length > 0)) && (
+                <div className="bg-amber-50/95 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/80 rounded-2xl p-5 space-y-3 shadow-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200/80 dark:border-amber-800/60 pb-2.5">
+                    <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200 font-bold text-sm">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                      <span>
+                        {language === "en" ? "Revision Notes from Ahli Pertama" : "Catatan Perbaikan dari Ahli Pertama"} ({selectedTask.revisionAuthor || "Pranata Ahli Pertama"})
+                      </span>
+                    </div>
+                    {selectedTask.revisionDate && (
+                      <span className="text-xs font-semibold text-amber-800 dark:text-amber-400 bg-amber-100/80 dark:bg-amber-900/40 px-2.5 py-0.5 rounded-md self-start sm:self-auto">
+                        {selectedTask.revisionDate}
+                      </span>
+                    )}
+                  </div>
+                  {selectedTask.revisionNotes && (
+                    <p className="text-xs sm:text-sm text-amber-950 dark:text-amber-200 font-medium leading-relaxed pl-1 sm:pl-6">
+                      "{selectedTask.revisionNotes}"
+                    </p>
+                  )}
+
+                  {/* Historical Revision Trail Log */}
+                  {selectedTask.revisionHistory && selectedTask.revisionHistory.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-amber-200/70 dark:border-amber-800/60 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[11px] font-bold text-amber-900 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                          <History size={13} className="text-amber-600" />
+                          <span>{language === "en" ? "Revision History Log" : "Riwayat Catatan Revisi"} ({selectedTask.revisionHistory.length} {language === "en" ? "entries" : "catatan"})</span>
+                        </p>
+                      </div>
+                      <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                        {selectedTask.revisionHistory.map((rev, rIdx) => (
+                          <div key={rev.id || rIdx} className="bg-white/80 dark:bg-gray-900/60 rounded-xl p-3 border border-amber-200/60 dark:border-amber-800/40 text-xs space-y-1">
+                            <div className="flex items-center justify-between gap-2 text-[11px] text-gray-500 dark:text-gray-400">
+                              <span className="font-bold text-amber-900 dark:text-amber-300">
+                                #{rIdx + 1} • {rev.author}
+                              </span>
+                              <span>{rev.date}</span>
+                            </div>
+                            <p className="text-gray-800 dark:text-gray-200 font-medium">"{rev.notes}"</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Workspace Details */}
               <div className="space-y-4">
@@ -183,12 +238,14 @@ const PetugasPenugasanPage = () => {
                   <div className="bg-white dark:bg-gray-900/60 rounded-2xl border border-gray-200 dark:border-gray-800 p-5 space-y-4 shadow-xs">
                     <div>
                       <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">
-                        {language === "en" ? "Deliverable Cloud Link (Google Drive / Canva)" : "Tautan Berkas (Google Drive / Cloud)"}
+                        {isRevision
+                          ? (language === "en" ? "Upload Revised Deliverables Link" : "Tautan Berkas Hasil Perbaikan")
+                          : (language === "en" ? "Deliverable Cloud Link (Google Drive / Canva)" : "Tautan Berkas (Google Drive / Cloud)")}
                       </h3>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {language === "en"
-                          ? "Enter your Google Drive or Canva link for quality review."
-                          : "Masukkan tautan Google Drive atau Canva untuk review pimpinan."}
+                        {isRevision
+                          ? (language === "en" ? "Update your deliverable link after completing revision notes from Ahli Pertama." : "Perbarui tautan berkas setelah melakukan perbaikan sesuai catatan Ahli Pertama.")
+                          : (language === "en" ? "Enter your Google Drive or Canva link for quality review." : "Masukkan tautan Google Drive atau Canva untuk review pimpinan.")}
                       </p>
                     </div>
 
@@ -208,12 +265,34 @@ const PetugasPenugasanPage = () => {
                           return;
                         }
                         await storeSubmitWork(selectedTask.id, uploadLink.trim());
-                        addToast(language === "en" ? "Work submitted successfully!" : "Luaran berhasil disimpan!", "success");
+                        if (isRevision) {
+                          addToast(
+                            language === "en"
+                              ? "Revised deliverables re-submitted to Ahli Pertama!"
+                              : "Hasil perbaikan berhasil dikirim ulang ke Ahli Pertama untuk telaah lanjutan!",
+                            "success"
+                          );
+                        } else {
+                          addToast(language === "en" ? "Work submitted successfully!" : "Luaran berhasil disimpan!", "success");
+                        }
                       }}
-                      className="w-full py-2.5 rounded-xl text-xs font-bold text-white shadow-xs bg-[#0a1647] dark:bg-blue-600 hover:bg-[#122368] dark:hover:bg-blue-700 transition cursor-pointer flex items-center justify-center gap-2"
+                      className={`w-full py-2.5 rounded-xl text-xs font-bold text-white shadow-xs transition cursor-pointer flex items-center justify-center gap-2 ${
+                        isRevision
+                          ? "bg-amber-600 hover:bg-amber-700 dark:bg-amber-600 dark:hover:bg-amber-700 shadow-md"
+                          : "bg-[#0a1647] dark:bg-blue-600 hover:bg-[#122368] dark:hover:bg-blue-700"
+                      }`}
                     >
-                      <Upload size={14} />
-                      <span>{language === "en" ? "Save & Submit Deliverables" : "Simpan & Kirim Luaran"}</span>
+                      {isRevision ? (
+                        <>
+                          <Send size={14} />
+                          <span>{language === "en" ? "Re-submit Revised Deliverables to Ahli Pertama" : "Kirim Ulang Hasil Revisi ke Ahli Pertama"}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload size={14} />
+                          <span>{language === "en" ? "Save & Submit Deliverables" : "Simpan & Kirim Luaran"}</span>
+                        </>
+                      )}
                     </button>
 
                     {selectedTask.workLink && (
@@ -337,13 +416,16 @@ const PetugasPenugasanPage = () => {
                             className={`px-3 py-1 text-xs font-bold rounded-lg border flex items-center gap-1.5 ${
                               isCompleted
                                 ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800"
+                                : tItem.status === "REVISI"
+                                ? "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800"
                                 : rawStatus === "BELUM"
                                 ? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700"
-                                : "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800"
+                                : "bg-blue-50 dark:bg-blue-950/40 text-[#0a1647] dark:text-sky-300 border-blue-200 dark:border-blue-800"
                             }`}
                           >
                             {isCompleted && <CheckCircle2 size={13} className="text-emerald-600 dark:text-emerald-400" />}
-                            {rawStatus.replace("_", " ")}
+                            {tItem.status === "REVISI" && <AlertTriangle size={13} className="text-amber-600 dark:text-amber-400" />}
+                            {tItem.status === "REVISI" ? (language === "en" ? "NEEDS REVISION" : "PERLU REVISI") : rawStatus.replace("_", " ")}
                           </span>
 
                           <span className="px-3 py-1 text-xs font-semibold rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300">
@@ -375,6 +457,28 @@ const PetugasPenugasanPage = () => {
                             <Clock size={12} className="text-[#0a1647] dark:text-sky-400" /> {t("deadline")}: {tItem.deadline}
                           </span>
                         </div>
+
+                        {tItem.status === "REVISI" && (tItem.revisionNotes || (tItem.revisionHistory && tItem.revisionHistory.length > 0)) && (
+                          <div className="bg-amber-50/90 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/70 rounded-xl p-3 text-xs space-y-1 mt-1">
+                            <div className="flex items-center justify-between gap-2 text-amber-900 dark:text-amber-200 font-bold">
+                              <span className="flex items-center gap-1.5">
+                                <AlertTriangle size={13} className="text-amber-600 dark:text-amber-400" />
+                                {language === "en" ? "Revision Required by Ahli Pertama" : "Perlu Perbaikan dari Ahli Pertama"}
+                                {tItem.revisionAuthor && <span className="font-normal text-amber-800 dark:text-amber-400">({tItem.revisionAuthor})</span>}
+                              </span>
+                              {tItem.revisionDate && (
+                                <span className="text-[10px] font-normal text-amber-700 dark:text-amber-400">
+                                  {tItem.revisionDate}
+                                </span>
+                              )}
+                            </div>
+                            {tItem.revisionNotes && (
+                              <p className="text-amber-900 dark:text-amber-300 pl-4 font-medium">
+                                "{tItem.revisionNotes}"
+                              </p>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       <button

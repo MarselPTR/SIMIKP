@@ -195,6 +195,7 @@ const PetugasDashboardPage = () => {
   const prosesCount = tasks.filter(
     (t) => t.status !== "COMPLETED" && t.status !== "SELESAI" && t.status !== "BELUM"
   ).length;
+  const revisiCount = tasks.filter((t) => t.status === "REVISI").length;
 
   const berkasCount = tasks.filter((t) => Boolean(t.workLink)).length;
 
@@ -321,6 +322,34 @@ const PetugasDashboardPage = () => {
         </div>
       </div>
 
+      {/* ── Alert Banner jika ada tugas yang perlu direvisi oleh Petugas ── */}
+      {revisiCount > 0 && (
+        <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/80 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-800 dark:text-amber-300 shrink-0">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-amber-950 dark:text-amber-200">
+                {language === "en" ? `${revisiCount} Assignment(s) Need Your Revision` : `Ada ${revisiCount} Penugasan Memerlukan Perbaikan / Revisi`}
+              </h3>
+              <p className="text-xs text-amber-800 dark:text-amber-400 mt-0.5">
+                {language === "en"
+                  ? "First Expert Officer has provided revision notes. Please review the notes and re-submit your deliverables."
+                  : "Pranata Ahli Pertama telah memberikan catatan perbaikan. Segera tinjau catatan dan kirim ulang berkas luaran kamu."}
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => navigate("/petugas/penugasan")}
+            className="bg-amber-600 hover:bg-amber-700 text-white font-bold shrink-0 self-start sm:self-auto shadow-xs cursor-pointer"
+          >
+            <span>{language === "en" ? "Review & Fix Now" : "Lihat & Perbaiki Sekarang"}</span>
+          </Button>
+        </div>
+      )}
+
       {/* ── 2. Stat Cards Grid dengan Efek Spotlight ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Total Tugas */}
@@ -337,12 +366,14 @@ const PetugasDashboardPage = () => {
         <SpotlightCard
           label={language === "en" ? "Tasks In Progress" : "Tugas Sedang Proses"}
           value={prosesCount}
-          subtitle={language === "en" ? "Under Way" : "Dalam Pengerjaan"}
+          subtitle={revisiCount > 0 ? (language === "en" ? `${revisiCount} needs revision` : `${revisiCount} perlu revisi`) : (language === "en" ? "Under Way" : "Dalam Pengerjaan")}
           icon={Clock}
-          accentColor="amber"
+          accentColor={revisiCount > 0 ? "amber" : "amber"}
           customBadge={{
-            text: `${prosesCount} ${language === "en" ? "Active" : "Aktif"}`,
-            className: "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800",
+            text: revisiCount > 0 ? `${revisiCount} ${language === "en" ? "Revision" : "Revisi"}` : `${prosesCount} ${language === "en" ? "Active" : "Aktif"}`,
+            className: revisiCount > 0
+              ? "bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 border-amber-300 dark:border-amber-700 font-bold"
+              : "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800",
           }}
           onClick={() => navigate("/petugas/penugasan")}
         />

@@ -235,6 +235,25 @@ const LoginPage = () => {
             {loading ? t("login_submitting") : t("login_submit_btn")}
           </button>
         </form>
+
+        <div className="mt-5 p-3.5 rounded-xl bg-gray-50 dark:bg-[#0d1117] border border-gray-200 dark:border-gray-700 text-xs text-gray-600 dark:text-gray-400 space-y-2">
+          <p className="font-semibold text-gray-900 dark:text-gray-200">Akun Pengujian / Demo:</p>
+          <div className="grid grid-cols-3 gap-2 pt-1">
+            <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/50">
+              <p className="font-bold text-indigo-700 dark:text-indigo-300">Ahli Pertama</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">User: <code className="font-bold text-gray-800 dark:text-gray-200">ahli</code></p>
+            </div>
+            <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/50">
+              <p className="font-bold text-blue-700 dark:text-blue-300">Admin IKP</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">User: <code className="font-bold text-gray-800 dark:text-gray-200">admin</code></p>
+            </div>
+            <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50">
+              <p className="font-bold text-emerald-700 dark:text-emerald-300">Petugas</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">User: <code className="font-bold text-gray-800 dark:text-gray-200">andi</code></p>
+            </div>
+          </div>
+          <p className="text-[11px] text-gray-400 pt-1">Password demo dapat diisi apa saja.</p>
+        </div>
       </div>
 
       {/* ── Forgot Password Modal ── */}

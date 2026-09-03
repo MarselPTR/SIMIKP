@@ -82,17 +82,23 @@ export const translations = {
 
     // Roles & Divisions
     role_super_admin: "Super Admin",
+    role_ahli_pertama: "Pranata Ahli Pertama",
     role_admin: "Admin",
     role_manager: "Manager",
     role_staff: "Staff",
     role_reviewer: "Reviewer",
     role_petugas: "Petugas Lapangan",
+    bidang_ahli_pertama: "Pengawas Fungsional Ahli Pertama",
     bidang_prahum: "Pranata Humas / Naskah",
     bidang_foto: "Fotografi & Visual",
     bidang_video: "Videografi & Reels",
     bidang_desainer: "Desain Grafis & Editor",
     bidang_reporter: "Reporter Lapangan",
     bidang_kontributor: "Kontributor Berita",
+    ahli_supervision: "Supervisi & Verifikasi Ahli",
+    ahli_executive_dashboard: "Panel Supervisi Ahli Pertama",
+    ahli_strategic_validation: "Telaah & Pengesahan Strategis",
+    ahli_sla_metrics: "Capaian SLA & Validasi Naskah",
 
     // Dashboard Page
     dash_total_activities_month: "Total Kegiatan Bulan Ini",
@@ -508,17 +514,23 @@ export const translations = {
 
     // Roles & Divisions
     role_super_admin: "Super Admin",
+    role_ahli_pertama: "First Expert Officer",
     role_admin: "Admin",
     role_manager: "Manager",
     role_staff: "Staff",
     role_reviewer: "Reviewer",
     role_petugas: "Field Officer",
+    bidang_ahli_pertama: "First Expert Functional Supervisor",
     bidang_prahum: "Public Relations / Script",
     bidang_foto: "Photography & Visuals",
     bidang_video: "Videography & Reels",
     bidang_desainer: "Graphic Design & Editor",
     bidang_reporter: "Field Reporter",
     bidang_kontributor: "News Contributor",
+    ahli_supervision: "Expert Supervision & Sign-off",
+    ahli_executive_dashboard: "First Expert Executive Panel",
+    ahli_strategic_validation: "Strategic Review & Endorsement",
+    ahli_sla_metrics: "SLA Performance & Script Validation",
 
     // Dashboard Page
     dash_total_activities_month: "Total Activities This Month",

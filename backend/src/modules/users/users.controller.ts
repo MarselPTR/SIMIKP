@@ -95,13 +95,23 @@ export class UsersController {
         active: true,
       });
 
-      // Find Petugas Role
-      const petugasRole = await db.select().from(roles).where(eq(roles.name, "PETUGAS")).limit(1);
-      if (petugasRole.length > 0) {
+      // Determine Role based on program
+      const targetRoleName = body.program === "AHLI_PERTAMA" ? "AHLI_PERTAMA" : "PETUGAS";
+      const targetRole = await db.select().from(roles).where(eq(roles.name, targetRoleName)).limit(1);
+      if (targetRole.length > 0) {
         await db.insert(userRoles).values({
           userId: userId,
-          roleId: petugasRole[0].id,
+          roleId: targetRole[0].id,
         });
+      } else {
+        // Fallback to any role if target not found
+        const fallbackRole = await db.select().from(roles).where(eq(roles.name, "PETUGAS")).limit(1);
+        if (fallbackRole.length > 0) {
+          await db.insert(userRoles).values({
+            userId: userId,
+            roleId: fallbackRole[0].id,
+          });
+        }
       }
 
       await logAudit(request, "CREATE_USER", "users", userId);

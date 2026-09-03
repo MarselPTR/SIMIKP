@@ -32,22 +32,33 @@ async function runSeed() {
 
     // 1. Create Roles
     console.log("Memasukkan role...");
+    const roleAhliId = crypto.randomUUID();
     const roleAdminId = crypto.randomUUID();
     const rolePetugasId = crypto.randomUUID();
     
     await db.insert(roles).values([
+      { id: roleAhliId, name: "AHLI_PERTAMA" },
       { id: roleAdminId, name: "SUPER_ADMIN" },
       { id: rolePetugasId, name: "PETUGAS" },
     ]);
 
     // 2. Create Users
-    console.log("Memasukkan user (Admin & Petugas)...");
+    console.log("Memasukkan user (Ahli Pertama, Admin & Petugas)...");
+    const ahliId = crypto.randomUUID();
     const adminId = crypto.randomUUID();
     const userAndiId = crypto.randomUUID();
     const userBudiId = crypto.randomUUID();
     const userCitraId = crypto.randomUUID();
     
     await db.insert(users).values([
+      {
+        id: ahliId,
+        username: "ahli",
+        passwordHash: "$2a$10$xyz", // Mock hash
+        name: "Bambang S., S.Kom (Ahli Pertama)",
+        staffType: "AHLI_PERTAMA",
+        email: "ahli@kominfo.batukota.go.id",
+      },
       {
         id: adminId,
         username: "admin",
@@ -80,6 +91,7 @@ async function runSeed() {
 
     // 3. Attach Roles
     await db.insert(userRoles).values([
+      { userId: ahliId, roleId: roleAhliId },
       { userId: adminId, roleId: roleAdminId },
       { userId: userAndiId, roleId: rolePetugasId },
       { userId: userBudiId, roleId: rolePetugasId },
