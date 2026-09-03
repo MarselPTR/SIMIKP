@@ -25,7 +25,6 @@ export const navConfig: NavItemConfig[] = [
   { path: "/tambah-petugas", key: "add_officer", icon: UserPlus },
 ];
 
-const NAVY = "#0f1f5c";
 
 interface SidebarProps {
   onClose?: () => void;
@@ -42,12 +41,12 @@ const Sidebar = ({ onClose }: SidebarProps) => {
         <div className="flex items-center gap-3">
           <img src={logoKotaBatu} alt="Logo Kota Batu" className="w-10 h-10 object-contain" />
           <div className="leading-tight">
-            <p className="text-sm font-bold" style={{ color: NAVY }}>SIMIKP</p>
+            <p className="text-sm font-bold text-[#0f1f5c] dark:text-sky-400">SIMIKP</p>
             <p className="text-[10px] text-gray-400 dark:text-gray-500">Diskominfo Kota Batu</p>
           </div>
         </div>
         {onClose && (
-          <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 lg:hidden" aria-label={t("close")}>
+          <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 lg:hidden" aria-label={t("close")}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
             </svg>

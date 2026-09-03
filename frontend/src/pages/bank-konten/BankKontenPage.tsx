@@ -28,10 +28,10 @@ const getCoverGradient = (folder: MockBankKontenFolder) => {
 
 const getCategoryBadgeColor = (kategori?: string) => {
   const cat = kategori?.toUpperCase();
-  if (cat === "SOSIAL") return "bg-blue-50 text-blue-700 border-blue-200";
-  if (cat === "EKONOMI") return "bg-emerald-50 text-emerald-700 border-emerald-200";
-  if (cat === "LINGKUNGAN") return "bg-green-50 text-green-700 border-green-200";
-  return "bg-purple-50 text-purple-700 border-purple-200";
+  if (cat === "SOSIAL") return "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800";
+  if (cat === "EKONOMI") return "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800";
+  if (cat === "LINGKUNGAN") return "bg-green-50 dark:bg-green-950/50 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800";
+  return "bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800";
 };
 
 const summarizeJenis = (folder: MockBankKontenFolder) => {
@@ -161,9 +161,9 @@ const BankKontenPage = () => {
       {/* Header Title Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-[#0f1f5c] tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-extrabold text-[#0f1f5c] dark:text-sky-400 tracking-tight flex items-center gap-2">
             <span>Bank Konten</span>
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100/80 text-[#0f1f5c] border border-blue-200/60">
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100/80 dark:bg-sky-500/20 text-[#0f1f5c] dark:text-sky-300 border border-blue-200/60 dark:border-sky-500/30">
               Arsip Digital
             </span>
           </h1>
@@ -187,49 +187,49 @@ const BankKontenPage = () => {
 
       {/* Modern Metric Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-2xl border border-gray-200/80 p-4 shadow-xs flex items-center justify-between">
+        <div className="bg-white dark:bg-[#161b22] rounded-2xl border border-gray-200/80 dark:border-gray-800 p-4 shadow-xs flex items-center justify-between">
           <div>
             <p className="text-xs font-medium text-gray-400">Total Folder Kegiatan</p>
-            <p className="text-2xl font-black text-gray-900 mt-0.5">{stats.totalFolders}</p>
+            <p className="text-2xl font-black text-gray-900 dark:text-white mt-0.5">{stats.totalFolders}</p>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
             <Folder className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-200/80 p-4 shadow-xs flex items-center justify-between">
+        <div className="bg-white dark:bg-[#161b22] rounded-2xl border border-gray-200/80 dark:border-gray-800 p-4 shadow-xs flex items-center justify-between">
           <div>
             <p className="text-xs font-medium text-gray-400">Total Arsip Foto</p>
             <p className="text-2xl font-black text-emerald-600 mt-0.5">{stats.totalFoto}</p>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
             <ImageIcon className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-200/80 p-4 shadow-xs flex items-center justify-between">
+        <div className="bg-white dark:bg-[#161b22] rounded-2xl border border-gray-200/80 dark:border-gray-800 p-4 shadow-xs flex items-center justify-between">
           <div>
             <p className="text-xs font-medium text-gray-400">Total Arsip Video</p>
             <p className="text-2xl font-black text-blue-600 mt-0.5">{stats.totalVideo}</p>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center">
             <Video className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-200/80 p-4 shadow-xs flex items-center justify-between">
+        <div className="bg-white dark:bg-[#161b22] rounded-2xl border border-gray-200/80 dark:border-gray-800 p-4 shadow-xs flex items-center justify-between">
           <div>
             <p className="text-xs font-medium text-gray-400">Kapasitas Terpakai</p>
-            <p className="text-2xl font-black text-gray-900 mt-0.5">1.2 TB</p>
+            <p className="text-2xl font-black text-gray-900 dark:text-white mt-0.5">1.2 TB</p>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-violet-50 dark:bg-violet-950/50 text-violet-600 dark:text-violet-400 flex items-center justify-center">
             <HardDrive className="w-5 h-5" />
           </div>
         </div>
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="bg-white rounded-2xl border border-gray-200/80 p-4 shadow-xs space-y-3">
+      <div className="bg-white dark:bg-[#161b22] rounded-2xl border border-gray-200/80 dark:border-gray-800 p-4 shadow-xs space-y-3">
         <div className="flex flex-col md:flex-row gap-3 items-center">
           <div className="relative flex-1 w-full">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -271,8 +271,8 @@ const BankKontenPage = () => {
               onClick={() => setSelectedCategory(cat)}
               className={`px-3 py-1 rounded-full font-medium transition-all shrink-0 ${
                 selectedCategory === cat
-                  ? "bg-[#0f1f5c] text-white shadow-xs"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  ? "bg-[#0f1f5c] dark:bg-blue-600 text-white shadow-xs"
+                  : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700 border border-transparent dark:border-gray-700"
               }`}
             >
               {cat === "ALL" ? "Semua Kategori" : cat}
@@ -298,13 +298,13 @@ const BankKontenPage = () => {
               <div
                 key={folder.id}
                 onClick={() => openFolder(folder)}
-                className="group bg-white rounded-2xl border border-gray-200/80 hover:border-indigo-300 hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden flex flex-col justify-between"
+                className="group bg-white dark:bg-[#161b22] rounded-2xl border border-gray-200/80 dark:border-gray-800 hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden flex flex-col justify-between"
               >
                 {/* 1. VISUAL COVER BANNER WITH GLASSMORPHISM BADGES */}
                 <div className={`h-36 bg-gradient-to-br ${coverGradient} relative p-4 flex flex-col justify-between border-b border-gray-100/80 overflow-hidden`}>
                   {/* Top Metadata Badges */}
                   <div className="flex items-center justify-between gap-2 z-10">
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-white/80 backdrop-blur-md text-gray-700 border border-white/40 shadow-2xs">
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-white/80 backdrop-blur-md text-gray-700 dark:text-gray-200 border border-white/40 dark:border-gray-700 shadow-2xs">
                       {folder.strakomNumber || "ARSIP"}
                     </span>
 
@@ -339,7 +339,7 @@ const BankKontenPage = () => {
                       )}
                     </div>
 
-                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-600 bg-white/80 backdrop-blur-md px-2 py-0.5 rounded-md">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-600 dark:text-gray-300 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md px-2 py-0.5 rounded-md">
                       <Calendar className="w-3 h-3 text-gray-400" />
                       {formatTanggal(folder.tanggal)}
                     </span>
@@ -349,7 +349,7 @@ const BankKontenPage = () => {
                 {/* 2. CARD CONTENT INFO */}
                 <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
                   <div>
-                    <h3 className="font-bold text-gray-900 text-sm group-hover:text-indigo-600 transition-colors line-clamp-2 leading-snug">
+                    <h3 className="font-bold text-gray-900 dark:text-gray-100 text-sm group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-2 leading-snug">
                       {folder.title}
                     </h3>
                   </div>
@@ -361,7 +361,7 @@ const BankKontenPage = () => {
                         {initial}
                       </div>
                       <div className="truncate">
-                        <p className="text-[11px] font-semibold text-gray-800 truncate">
+                        <p className="text-[11px] font-semibold text-gray-800 dark:text-gray-200 truncate">
                           {folder.petugas}
                         </p>
                       </div>
@@ -374,7 +374,7 @@ const BankKontenPage = () => {
                 </div>
 
                 {/* 3. CARD FOOTER BUTTON */}
-                <div className="px-4 py-2.5 bg-gray-50/70 border-t border-gray-100 flex items-center justify-between text-xs font-semibold text-gray-600 group-hover:text-indigo-600 group-hover:bg-indigo-50/40 transition-colors">
+                <div className="px-4 py-2.5 bg-gray-50/70 dark:bg-slate-900/60 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-xs font-semibold text-gray-600 dark:text-gray-300 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 group-hover:bg-indigo-50/40 dark:group-hover:bg-indigo-950/40 transition-colors">
                   <span>Lihat Semua File</span>
                   <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                 </div>
@@ -409,9 +409,9 @@ const BankKontenPage = () => {
                     {formatTanggal(selectedFolder.tanggal)}
                   </span>
                 </div>
-                <p className="text-xs text-gray-600 flex items-center gap-1">
+                <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1">
                   <User className="w-3.5 h-3.5 text-gray-400" />
-                  Petugas Dokumentasi: <span className="font-semibold text-gray-800">{selectedFolder.petugas}</span>
+                  Petugas Dokumentasi: <span className="font-semibold text-gray-800 dark:text-gray-200">{selectedFolder.petugas}</span>
                 </p>
               </div>
 
@@ -428,7 +428,7 @@ const BankKontenPage = () => {
 
             {/* Filter Tabs & Search inside Dialog */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-lg text-xs self-start">
+              <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-[#161b22] border border-transparent dark:border-gray-800 p-1 rounded-lg text-xs self-start">
                 <button
                   onClick={() => setDialogJenisKonten("ALL")}
                   className={`px-3 py-1 rounded-md font-medium transition-all ${
@@ -475,9 +475,9 @@ const BankKontenPage = () => {
 
             {/* Media Files Grid in Dialog */}
             {dialogFiles.length === 0 ? (
-              <div className="py-12 text-center text-gray-400 bg-gray-50 rounded-xl border border-gray-100">
+              <div className="py-12 text-center text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-[#161b22] rounded-xl border border-gray-100 dark:border-gray-800">
                 <FileCheck className="w-10 h-10 mx-auto mb-2 text-gray-300" />
-                <p className="text-xs font-semibold text-gray-600">Tidak ada file yang cocok</p>
+                <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">Tidak ada file yang cocok</p>
                 <p className="text-[11px] text-gray-400 mt-0.5">Coba ganti filter jenis konten atau kata kunci.</p>
               </div>
             ) : (
@@ -487,7 +487,7 @@ const BankKontenPage = () => {
                   return (
                     <div
                       key={file.id}
-                      className="group relative rounded-xl border border-gray-200/90 bg-white hover:border-indigo-300 hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col justify-between"
+                      className="group relative rounded-xl border border-gray-200/90 dark:border-gray-800 bg-white dark:bg-[#161b22] hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col justify-between"
                     >
                       <div className="h-28 bg-gray-900 flex flex-col items-center justify-center text-gray-400 relative overflow-hidden">
                         {file.thumbnailUrl ? (
@@ -519,7 +519,7 @@ const BankKontenPage = () => {
                       </div>
 
                       <div className="p-2.5 space-y-1.5">
-                        <p className="text-xs font-semibold text-gray-900 truncate" title={file.name}>
+                        <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate" title={file.name}>
                           {file.name}
                         </p>
                         <div className="flex items-center justify-between text-[10px] text-gray-400">
@@ -529,17 +529,17 @@ const BankKontenPage = () => {
                           </span>
                         </div>
 
-                        <div className="pt-1.5 flex items-center gap-1.5 border-t border-gray-100">
+                        <div className="pt-1.5 flex items-center gap-1.5 border-t border-gray-100 dark:border-gray-800">
                           <button
                             onClick={() => addToast(`Membuka pratinjau ${file.name}`, "info")}
-                            className="flex-1 py-1 text-[11px] font-medium text-gray-700 bg-gray-100 hover:bg-indigo-50 hover:text-indigo-700 rounded-md transition-colors flex items-center justify-center gap-1"
+                            className="flex-1 py-1 text-[11px] font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 hover:text-indigo-700 dark:hover:text-indigo-300 rounded-md transition-colors flex items-center justify-center gap-1"
                           >
                             <Eye className="w-3 h-3" />
                             <span>Lihat</span>
                           </button>
                           <button
                             onClick={() => handleDownloadSingle(file)}
-                            className="py-1 px-2 text-[11px] font-medium text-gray-700 bg-gray-100 hover:bg-emerald-50 hover:text-emerald-700 rounded-md transition-colors flex items-center justify-center"
+                            className="py-1 px-2 text-[11px] font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:text-emerald-700 dark:hover:text-emerald-300 rounded-md transition-colors flex items-center justify-center"
                             title="Unduh File"
                           >
                             <Download className="w-3 h-3" />

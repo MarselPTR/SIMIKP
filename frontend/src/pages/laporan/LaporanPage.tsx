@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getProductionReport, exportReportExcel, exportReportPdf } from "../../lib/reports-api";
 import type { ReportFilterParams, ReportRowData } from "../../lib/reports-api";
@@ -70,6 +71,7 @@ const getShortCtLabel = (ct: string) => {
 const LaporanPage = () => {
   const { addToast } = useToast();
   const { t, language } = useLanguage();
+
   
   const months = language === "en" ? MONTHS_EN : MONTHS_ID;
   const quarters = language === "en" ? QUARTERS_EN : QUARTERS_ID;
@@ -79,6 +81,16 @@ const LaporanPage = () => {
 
   // Selected Activity for Detail Modal
   const [selectedActivity, setSelectedActivity] = useState<ReportRowData | null>(null);
+
+  useEffect(() => {
+    if (!selectedActivity) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [selectedActivity]);
+
 
   // Filter states
   const [filterMode, setFilterMode] = useState<"month" | "quarter" | "range">("month");
@@ -487,7 +499,8 @@ const LaporanPage = () => {
                   <th rowSpan={3} className="px-2 py-1.5 text-center border-r border-slate-300 dark:border-gray-700 w-8">NO</th>
                   <th rowSpan={3} className="px-2 py-1.5 text-center border-r border-slate-300 dark:border-gray-700 w-20">Tanggal</th>
                   <th rowSpan={3} className="px-2 py-1.5 text-center border-r border-slate-300 dark:border-gray-700 w-24">No Strakom</th>
-                  <th rowSpan={3} className="px-2 py-1.5 text-left border-r border-slate-300 dark:border-gray-700 min-w-[160px]">Judul Kegiatan</th>
+                  <th rowSpan={3} className="px-2 py-1.5 text-left border-r border-slate-300 dark:border-gray-700 min-w-[150px]">Judul Kegiatan</th>
+                  <th rowSpan={3} className="px-2 py-1.5 text-left border-r border-slate-300 dark:border-gray-700 min-w-[150px]">Petugas Pelaksana</th>
                   
                   <th
                     colSpan={reportData.issues.length * reportData.contentTypes.length}
@@ -593,9 +606,15 @@ const LaporanPage = () => {
       )}
 
       {/* ACTIVITY DETAIL & ASSIGNMENTS MODAL */}
-      {selectedActivity && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#161b22] text-gray-900 dark:text-gray-100 rounded-3xl shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-gray-200 dark:border-gray-800">
+      {selectedActivity && typeof document !== "undefined" && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs overflow-y-auto animate-fade-in"
+          onClick={() => setSelectedActivity(null)}
+        >
+          <div
+            className="my-auto bg-white dark:bg-[#161b22] text-gray-900 dark:text-gray-100 rounded-3xl shadow-2xl max-w-2xl w-full max-h-[88vh] flex flex-col overflow-hidden border border-gray-200 dark:border-gray-800 transition-colors"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Modal Header */}
             <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900/60 border-b border-gray-200 dark:border-gray-800 flex items-start justify-between">
               <div>
@@ -733,7 +752,8 @@ const LaporanPage = () => {
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

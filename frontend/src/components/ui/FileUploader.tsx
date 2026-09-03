@@ -40,7 +40,7 @@ const FileUploader = ({ onUpload, accept = "*", multiple = false, className = ""
     <div className={className}>
       <div
         className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition ${
-          isDragging ? "border-indigo-500 bg-indigo-50" : "border-gray-300 hover:border-gray-400"
+          isDragging ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40" : "border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 bg-white dark:bg-[#161b22]"
         }`}
         onDragOver={(e) => {
           e.preventDefault();
@@ -52,7 +52,7 @@ const FileUploader = ({ onUpload, accept = "*", multiple = false, className = ""
       >
         <div className="flex flex-col items-center gap-2">
           <span className="text-4xl">📁</span>
-          <p className="text-sm text-gray-600">Seret &amp; lepas file di sini, atau klik untuk memilih</p>
+          <p className="text-sm text-gray-600 dark:text-gray-300">Seret &amp; lepas file di sini, atau klik untuk memilih</p>
           <p className="text-xs text-gray-400">Maksimal 10 MB per file</p>
           <input
             ref={inputRef}
@@ -68,7 +68,7 @@ const FileUploader = ({ onUpload, accept = "*", multiple = false, className = ""
       {files.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
           {files.map((file, idx) => (
-            <div key={idx} className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-1.5 text-sm">
+            <div key={idx} className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-1.5 text-sm">
               <span className="truncate max-w-[150px]">{file.name}</span>
               <span className="text-xs text-gray-500">({(file.size / 1024).toFixed(1)} KB)</span>
               <button onClick={() => removeFile(idx)} className="text-red-500 hover:text-red-700">

@@ -1,4 +1,6 @@
+import { createPortal } from "react-dom";
 import type { MouseEvent, ReactNode } from "react";
+import { useEffect } from "react";
 
 type DialogSize = "sm" | "md" | "lg" | "xl";
 
@@ -19,15 +21,24 @@ const sizes: Record<DialogSize, string> = {
 };
 
 const Dialog = ({ open, onClose, title, children, actions, size = "md" }: DialogProps) => {
-  if (!open) return null;
+  useEffect(() => {
+    if (!open) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [open]);
 
-  return (
+  if (!open || typeof document === "undefined") return null;
+
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/50 backdrop-blur-sm overflow-y-auto animate-fade-in"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className={`${sizes[size]} w-full my-auto bg-white dark:bg-[#161b22] border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[88vh] transition-colors`}
+        className={`${sizes[size]} w-full my-auto bg-white dark:bg-[#161b22] border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[88vh] transition-colors animate-fade-in`}
         onClick={(e: MouseEvent) => e.stopPropagation()}
       >
         {title && (
@@ -50,7 +61,8 @@ const Dialog = ({ open, onClose, title, children, actions, size = "md" }: Dialog
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
