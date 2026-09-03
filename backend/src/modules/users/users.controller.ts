@@ -118,12 +118,26 @@ export class UsersController {
 
       // Kirim email selamat datang dan kredensial akun jika email terisi
       if (body.email) {
+        const ROLE_LABEL_MAP: Record<string, string> = {
+          PRAHUM: "Pranata Humas (Penulis Naskah)",
+          FOTOGRAFER: "Petugas Fotografer",
+          VIDEOGRAFER: "Petugas Videografer",
+          DESAINER_EDITOR: "Desainer & Editor Grafis",
+          FOTO_VIDEO: "Petugas Foto & Video",
+          AHLI_PERTAMA: "Pranata Humas Ahli Pertama (Redaktur)",
+          ADMIN: "Administrator Sistem",
+          MANAGER: "Pimpinan / Manager",
+          REVIEWER: "Tim Reviewer",
+        };
+
+        const displayRole = (body.program && ROLE_LABEL_MAP[body.program]) || ROLE_LABEL_MAP[targetRoleName] || "Petugas Lapangan";
+
         sendWelcomeNewUserEmail({
           to: body.email,
           name: body.name || body.username,
           username: body.username,
           temporaryPassword: body.password || "Sesuai yang didaftarkan Admin",
-          roleName: "Petugas Lapangan",
+          roleName: displayRole,
         }).catch((err) => {
           console.error("[UsersController] Gagal mengirim welcome email:", err);
         });
