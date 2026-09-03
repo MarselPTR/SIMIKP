@@ -26,12 +26,14 @@
     "exceljs": "^4.4.0",
     "fastify": "^5.12.1",
     "mysql2": "^3.23.3",
+    "nodemailer": "^9.1.1",
     "pdfkit": "^0.20.1",
     "pdfkit-table": "^0.2.11",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
+    "@types/nodemailer": "^8.0.1",
     "drizzle-kit": "^0.31.10",
     "tsx": "^4.23.12",
     "typescript": "^7.0.2"

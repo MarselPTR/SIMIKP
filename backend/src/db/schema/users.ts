@@ -30,3 +30,12 @@ export const userRoles = mysqlTable("user_roles", {
 }, (t) => ({
   pk: primaryKey({ columns: [t.userId, t.roleId] }),
 }));
+
+export const passwordResetTokens = mysqlTable("password_reset_tokens", {
+  id: char("id", { length: 36 }).primaryKey(),
+  userId: char("user_id", { length: 36 }).notNull().references(() => users.id),
+  token: varchar("token", { length: 255 }).notNull().unique(),
+  expiresAt: datetime("expires_at").notNull(),
+  usedAt: datetime("used_at"),
+  createdAt: datetime("created_at").default(new Date()),
+});
