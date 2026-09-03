@@ -11,6 +11,7 @@ import {
   sendAssignmentCancelledEmail,
   sendReviewRevisionEmail,
   sendRevisionSubmissionAlertEmail,
+  sendWorkSubmissionAlertEmail,
 } from "../../services/mail.service";
 
 const createAssignmentSchema = z.object({
@@ -415,6 +416,7 @@ export class AssignmentsController {
           userId: assignments.userId,
           activityId: assignments.activityId,
           contentTypeId: assignments.contentTypeId,
+          workLink: assignments.workLink,
         })
         .from(assignments)
         .where(eq(assignments.id, id))
@@ -559,6 +561,53 @@ export class AssignmentsController {
                 workLink: body.workLink,
                 previousNotes: body.revisionNotes || undefined,
               }).catch((err) => console.error("[AssignmentsController] Gagal kirim email verifikasi revisi ke Ahli Pertama:", err));
+            }
+          }
+        }
+
+        // 4. Kirim notifikasi email "Draf Masuk" ke Ahli Pertama & Reviewer jika petugas pertama kali menyetor hasil liputan
+        const isInitialSubmission = !isSubmittingRevision && body.workLink !== undefined && body.workLink.trim() !== "" && (!existing[0]?.workLink || existing[0]?.workLink.trim() === "");
+        if (isInitialSubmission) {
+          const initSubmitDetail = await db
+            .select({
+              officerName: users.name,
+              activityTitle: activities.title,
+              contentType: contentTypes.name,
+            })
+            .from(assignments)
+            .leftJoin(users, eq(assignments.userId, users.id))
+            .leftJoin(activities, eq(assignments.activityId, activities.id))
+            .leftJoin(contentTypes, eq(assignments.contentTypeId, contentTypes.id))
+            .where(eq(assignments.id, id))
+            .limit(1);
+
+          const targetAhliReviewers = await db
+            .select({
+              name: users.name,
+              email: users.email,
+            })
+            .from(users)
+            .leftJoin(userRoles, eq(users.id, userRoles.userId))
+            .leftJoin(roles, eq(userRoles.roleId, roles.id))
+            .where(
+              or(
+                eq(roles.name, "AHLI_PERTAMA"),
+                eq(users.staffType, "AHLI_PERTAMA"),
+                eq(roles.name, "REVIEWER"),
+                eq(roles.name, "ADMIN")
+              )
+            );
+
+          for (const reviewer of targetAhliReviewers) {
+            if (reviewer.email) {
+              sendWorkSubmissionAlertEmail({
+                to: reviewer.email,
+                reviewerName: reviewer.name || "Pranata Humas Ahli Pertama",
+                officerName: initSubmitDetail[0]?.officerName || "Petugas Lapangan",
+                activityTitle: initSubmitDetail[0]?.activityTitle || "Liputan Kegiatan",
+                contentType: initSubmitDetail[0]?.contentType || "Konten Media",
+                workLink: body.workLink,
+              }).catch((err) => console.error("[AssignmentsController] Gagal kirim email draf masuk ke Ahli Pertama/Reviewer:", err));
             }
           }
         }
