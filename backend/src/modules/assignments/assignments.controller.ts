@@ -9,6 +9,7 @@ import {
   sendAssignmentNotificationEmail,
   sendAssignmentScheduleChangeEmail,
   sendAssignmentCancelledEmail,
+  sendReviewRevisionEmail,
 } from "../../services/mail.service";
 
 const createAssignmentSchema = z.object({
@@ -68,6 +69,8 @@ const updateAssignmentSchema = z.object({
   location: z.string().optional(),
   activityDate: z.string().optional(),
   workLink: z.string().optional(),
+  revisionNotes: z.string().optional(),
+  revisionAuthor: z.string().optional(),
 });
 
 export class AssignmentsController {
@@ -347,6 +350,39 @@ export class AssignmentsController {
         });
       });
 
+      // Kirim email konfirmasi pengambilan tugas mandiri (Self-Claim) ke petugas
+      const claimDetail = await db
+        .select({
+          name: users.name,
+          email: users.email,
+          activityTitle: activities.title,
+          activityDate: activities.activityDate,
+          locationName: locations.name,
+          contentType: contentTypes.name,
+        })
+        .from(assignments)
+        .innerJoin(users, eq(assignments.userId, users.id))
+        .innerJoin(activities, eq(assignments.activityId, activities.id))
+        .leftJoin(locations, eq(activities.locationId, locations.id))
+        .innerJoin(contentTypes, eq(assignments.contentTypeId, contentTypes.id))
+        .where(eq(assignments.id, newId))
+        .limit(1);
+
+      if (claimDetail.length > 0 && claimDetail[0].email) {
+        const appUrl = process.env.APP_URL || "http://localhost:5173";
+        sendAssignmentNotificationEmail({
+          to: claimDetail[0].email,
+          officerName: claimDetail[0].name || "Petugas",
+          activityTitle: claimDetail[0].activityTitle,
+          activityDate: claimDetail[0].activityDate ? claimDetail[0].activityDate.toString() : "",
+          locationName: claimDetail[0].locationName || undefined,
+          contentType: claimDetail[0].contentType,
+          instruction: "Tugas ini berhasil Anda ambil secara mandiri melalui menu Agenda Tersedia.",
+          assignmentId: newId,
+          targetUrl: `${appUrl}/petugas/penugasan`,
+        }).catch((err) => console.error("[AssignmentsController] Gagal kirim email klaim:", err));
+      }
+
       await logAudit(request, "CLAIM_ASSIGNMENT", "assignments", newId);
 
       return reply.send({ success: true, message: "Berhasil mengambil tugas", id: newId });
@@ -402,8 +438,36 @@ export class AssignmentsController {
           .where(eq(assignments.id, id));
         await logAudit(request, "UPDATE_ASSIGNMENT", "assignments", id);
 
-        // Kirim notifikasi email jika ada pembaruan jadwal atau instruksi
-        const isScheduleChanged = body.startTime !== undefined || body.endTime !== undefined || body.deadline !== undefined || body.instruction !== undefined || body.activityId !== undefined;
+        // 1. Kirim notifikasi email jika status diubah menjadi REVISI oleh Ahli Pertama / Reviewer
+        if (body.status && body.status.toUpperCase().includes("REVISI")) {
+          const revDetail = await db
+            .select({
+              officerName: users.name,
+              officerEmail: users.email,
+              activityTitle: activities.title,
+              contentType: contentTypes.name,
+            })
+            .from(assignments)
+            .leftJoin(users, eq(assignments.userId, users.id))
+            .leftJoin(activities, eq(assignments.activityId, activities.id))
+            .leftJoin(contentTypes, eq(assignments.contentTypeId, contentTypes.id))
+            .where(eq(assignments.id, id))
+            .limit(1);
+
+          if (revDetail.length > 0 && revDetail[0].officerEmail) {
+            sendReviewRevisionEmail({
+              to: revDetail[0].officerEmail,
+              authorName: revDetail[0].officerName || "Petugas",
+              activityTitle: revDetail[0].activityTitle || "Liputan Kegiatan",
+              contentType: revDetail[0].contentType || "Konten Media",
+              reviewerName: body.revisionAuthor || "Pranata Humas Ahli Pertama",
+              feedback: body.revisionNotes || body.instruction || "Terdapat catatan perbaikan materi naskah/liputan.",
+            }).catch((err) => console.error("[AssignmentsController] Gagal kirim email revisi:", err));
+          }
+        }
+
+        // 2. Kirim notifikasi email jika ada pembaruan jadwal pelaksanaan
+        const isScheduleChanged = body.startTime !== undefined || body.endTime !== undefined || body.deadline !== undefined || (body.instruction !== undefined && !body.status?.toUpperCase().includes("REVISI")) || body.activityId !== undefined;
         if (isScheduleChanged) {
           const detail = await db
             .select({

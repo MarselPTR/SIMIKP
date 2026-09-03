@@ -376,16 +376,24 @@ export class ProductionsController {
         });
       });
 
-      // Cari tim Reviewer dan Admin untuk dikirimi email hasil liputan baru
+      // Cari tim Reviewer, Ahli Pertama, Admin, dan Manager untuk dikirimi email hasil liputan baru
       const reviewerUsers = await db
         .select({
           name: users.name,
           email: users.email,
         })
         .from(users)
-        .innerJoin(userRoles, eq(users.id, userRoles.userId))
-        .innerJoin(roles, eq(userRoles.roleId, roles.id))
-        .where(or(eq(roles.name, "REVIEWER"), eq(roles.name, "ADMIN"), eq(roles.name, "MANAGER")));
+        .leftJoin(userRoles, eq(users.id, userRoles.userId))
+        .leftJoin(roles, eq(userRoles.roleId, roles.id))
+        .where(
+          or(
+            eq(roles.name, "REVIEWER"),
+            eq(roles.name, "AHLI_PERTAMA"),
+            eq(roles.name, "ADMIN"),
+            eq(roles.name, "MANAGER"),
+            eq(users.staffType, "AHLI_PERTAMA")
+          )
+        );
 
       for (const rev of reviewerUsers) {
         if (rev.email) {

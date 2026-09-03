@@ -804,9 +804,14 @@ export async function sendWorkSubmissionAlertEmail(data: WorkSubmissionAlertEmai
             </tr>
             ${data.workLink ? `
             <tr>
-              <td style="padding: 6px 0; font-size: 13px; color: #64748b; vertical-align: top;">Tautan Hasil Kerja:</td>
-              <td style="padding: 6px 0; font-size: 13px; vertical-align: top;">
-                <a href="${data.workLink}" target="_blank" style="color: #2563eb; text-decoration: underline; word-break: break-all;">Buka Berkas Liputan &rarr;</a>
+              <td style="padding: 10px 0 0 0; font-size: 13px; color: #64748b; vertical-align: top; border-top: 1px dashed #cbd5e1;">
+                ${(data.workLink.startsWith('http://') || data.workLink.startsWith('https://')) ? 'Tautan Hasil Kerja:' : 'Pratinjau Naskah Rilis:'}
+              </td>
+              <td style="padding: 10px 0 0 0; font-size: 13px; vertical-align: top; border-top: 1px dashed #cbd5e1;">
+                ${(data.workLink.startsWith('http://') || data.workLink.startsWith('https://'))
+                  ? `<a href="${data.workLink}" target="_blank" style="display: inline-block; padding: 6px 14px; background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; color: #2563eb; text-decoration: none; font-weight: 600; font-size: 12px;">Buka Berkas Liputan &rarr;</a>`
+                  : `<div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-left: 3px solid #2563eb; border-radius: 6px; padding: 12px; font-size: 12px; line-height: 1.6; color: #1e293b; max-height: 160px; overflow-y: auto; white-space: pre-wrap;">${data.workLink.length > 300 ? data.workLink.slice(0, 300) + '...' : data.workLink}</div>`
+                }
               </td>
             </tr>
             ` : ''}
@@ -816,7 +821,7 @@ export async function sendWorkSubmissionAlertEmail(data: WorkSubmissionAlertEmai
     </table>
 
     <p style="margin: 0; font-size: 13px; color: #64748b; line-height: 1.5;">
-      Mohon tinjau karya tersebut di modul Review untuk memberikan persetujuan tayang (*Approve*) atau catatan revisi (*Feedback*).
+      Mohon tinjau karya tersebut di modul Review untuk membaca naskah penuh atau memberikan persetujuan tayang (*Approve*) serta catatan revisi.
     </p>
   `;
 
@@ -828,11 +833,15 @@ export async function sendWorkSubmissionAlertEmail(data: WorkSubmissionAlertEmai
     title: "Hasil Liputan Baru Masuk",
     subtitle: `Agenda: ${data.activityTitle}`,
     contentHtml,
-    ctaText: "Buka Halaman Review",
+    ctaText: "Tinjau Karya di SIMIKP",
     ctaUrl: reviewUrl,
   });
 
-  const plainText = `[SIMIKP] Hasil Liputan Baru Masuk\n\nHalo ${data.reviewerName},\n\nPetugas ${data.officerName} telah mengunggah draf karya liputan untuk agenda "${data.activityTitle}" (${data.contentType}).\n\nSilakan tinjau karya tersebut di tautan berikut:\n${reviewUrl}\n\nDinas Komunikasi dan Informatika Pemerintah Kota Batu`;
+  const previewText = data.workLink
+    ? (data.workLink.startsWith('http') ? `Tautan: ${data.workLink}` : `Kutipan Naskah:\n"${data.workLink.slice(0, 200)}..."`)
+    : '';
+
+  const plainText = `[SIMIKP] Hasil Liputan Baru Masuk\n\nHalo ${data.reviewerName},\n\nPetugas ${data.officerName} telah mengunggah draf karya liputan untuk agenda "${data.activityTitle}" (${data.contentType}).\n\n${previewText}\n\nSilakan tinjau karya tersebut di tautan berikut:\n${reviewUrl}\n\nDinas Komunikasi dan Informatika Pemerintah Kota Batu`;
 
   try {
     const fromAddress = process.env.SMTP_FROM || `SIMIKP Pemkot Batu <${process.env.SMTP_USER}>`;
