@@ -85,9 +85,8 @@ const SpotlightStatCard = ({ card, onClick }: SpotlightStatCardProps) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onMouseMove={handleMouseMove}
-      className="relative text-left w-full rounded-2xl p-4 sm:p-5 overflow-hidden transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl active:translate-y-0 active:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1f5c] focus-visible:ring-offset-2 border border-slate-100/80 group"
+      className="relative text-left w-full rounded-2xl p-4 sm:p-5 overflow-hidden transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl active:translate-y-0 active:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1f5c] focus-visible:ring-offset-2 border border-slate-100/80 dark:border-slate-800 bg-white dark:bg-[#161b22] group shadow-xs hover:shadow-md dark:shadow-none"
       style={{
-        backgroundColor: "#ffffff",
         boxShadow: isHovered
           ? "0 20px 25px -5px rgba(15, 31, 92, 0.12), 0 8px 10px -6px rgba(15, 31, 92, 0.08)"
           : "0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05)",
@@ -95,10 +94,17 @@ const SpotlightStatCard = ({ card, onClick }: SpotlightStatCardProps) => {
       aria-label={`Buka ${card.label}`}
     >
       <div
-        className="pointer-events-none absolute inset-0 transition-opacity duration-300"
+        className="pointer-events-none absolute inset-0 transition-opacity duration-300 dark:hidden"
         style={{
           opacity: isHovered ? 1 : 0,
           background: `radial-gradient(190px circle at ${mousePos.x}px ${mousePos.y}px, rgba(15, 31, 92, ${navyOpacity}) 0%, rgba(56, 189, 248, ${navyOpacity * 0.6}) 45%, rgba(255, 255, 255, ${whiteOpacity}) 78%, transparent 100%)`,
+        }}
+      />
+      <div
+        className="pointer-events-none absolute inset-0 transition-opacity duration-300 hidden dark:block"
+        style={{
+          opacity: isHovered ? 1 : 0,
+          background: `radial-gradient(190px circle at ${mousePos.x}px ${mousePos.y}px, rgba(56, 189, 248, 0.15) 0%, rgba(14, 165, 233, 0.08) 45%, transparent 100%)`,
         }}
       />
       <div
@@ -109,14 +115,14 @@ const SpotlightStatCard = ({ card, onClick }: SpotlightStatCardProps) => {
         }}
       />
       <div className="relative z-10">
-        <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center mb-2.5 sm:mb-3.5 transition-all duration-300 bg-[#0f1f5c]/5 group-hover:bg-[#0f1f5c] group-hover:scale-105 shadow-2xs">
-          <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-[#0f1f5c] group-hover:text-white transition-colors duration-300" strokeWidth={2} />
+        <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center mb-2.5 sm:mb-3.5 transition-all duration-300 bg-[#0f1f5c]/5 dark:bg-sky-500/15 group-hover:bg-[#0f1f5c] dark:group-hover:bg-sky-500 group-hover:scale-105 shadow-2xs">
+          <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-[#0f1f5c] dark:text-sky-400 group-hover:text-white transition-colors duration-300" strokeWidth={2} />
         </div>
-        <p className="text-[11px] sm:text-xs font-semibold text-slate-500 tracking-tight group-hover:text-slate-700 transition-colors">
+        <p className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 tracking-tight group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors">
           {card.label}
         </p>
         <div className="flex items-end gap-2 mt-1">
-          <span className="text-2xl sm:text-3xl font-black text-[#0f1f5c] tracking-tight group-hover:scale-102 transition-transform duration-200">
+          <span className="text-2xl sm:text-3xl font-black text-[#0f1f5c] dark:text-white tracking-tight group-hover:scale-102 transition-transform duration-200">
             {card.value}
           </span>
         </div>
@@ -172,13 +178,13 @@ const initialsOf = (name: string) =>
 const TugasTerbaruTable = ({ items }: { items: MockKegiatan[] }) => {
   const navigate = useNavigate();
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden transition-shadow duration-200 hover:shadow-md">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-        <h3 className="text-base font-semibold text-gray-900">Tugas Terbaru &amp; Deadline Mendekati</h3>
+    <div className="bg-white dark:bg-[#161b22] rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden transition-shadow duration-200 hover:shadow-md">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+        <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Tugas Terbaru &amp; Deadline Mendekati</h3>
         <button
           type="button"
           onClick={() => navigate("/kegiatan")}
-          className="text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md p-1 transition-colors duration-150"
+          className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-sky-400 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-md p-1 transition-colors duration-150"
           aria-label="Lihat semua kegiatan"
         >
           <MoreHorizontal className="w-4 h-4" />
@@ -194,7 +200,7 @@ const TugasTerbaruTable = ({ items }: { items: MockKegiatan[] }) => {
             <col className="w-[14%]" />
           </colgroup>
           <thead>
-            <tr className="text-left text-[11px] text-gray-400 border-b border-gray-100">
+            <tr className="text-left text-[11px] text-gray-400 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800">
               <th className="px-3 py-2.5 font-medium">Nama Kegiatan</th>
               <th className="px-3 py-2.5 font-medium">Jenis Konten</th>
               <th className="px-3 py-2.5 font-medium">Penyelenggara</th>
@@ -202,7 +208,7 @@ const TugasTerbaruTable = ({ items }: { items: MockKegiatan[] }) => {
               <th className="px-3 py-2.5 font-medium">Status</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-50">
+          <tbody className="divide-y divide-gray-50 dark:divide-gray-800/60">
             {items.length === 0 ? (
               <tr>
                 <td colSpan={5} className="text-center py-8 text-gray-400">
@@ -223,15 +229,15 @@ const TugasTerbaruTable = ({ items }: { items: MockKegiatan[] }) => {
                     tabIndex={0}
                     role="button"
                     aria-label={`Lihat detail ${row.title}`}
-                    className="cursor-pointer transition-colors duration-150 hover:bg-blue-50/60 focus-visible:outline-none focus-visible:bg-blue-50/60"
+                    className="cursor-pointer transition-colors duration-150 hover:bg-blue-50/60 dark:hover:bg-slate-800/50 focus-visible:outline-none focus-visible:bg-blue-50/60 dark:focus-visible:bg-slate-800/50"
                   >
-                    <td className="px-3 py-3 font-medium text-gray-800">
+                    <td className="px-3 py-3 font-medium text-gray-800 dark:text-gray-100">
                       <span className="block truncate" title={row.title}>{row.title}</span>
                     </td>
-                    <td className="px-3 py-3 text-gray-500">
+                    <td className="px-3 py-3 text-gray-500 dark:text-gray-400">
                       <span className="block truncate" title={outputLabel}>{outputLabel}</span>
                     </td>
-                    <td className="px-3 py-3 text-gray-600">
+                    <td className="px-3 py-3 text-gray-600 dark:text-gray-300">
                       <span className="flex items-center gap-1.5 min-w-0">
                         <span
                           className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
@@ -242,7 +248,7 @@ const TugasTerbaruTable = ({ items }: { items: MockKegiatan[] }) => {
                         <span className="truncate">{opd}</span>
                       </span>
                     </td>
-                    <td className="px-3 py-3 text-gray-500 whitespace-nowrap">{formatShortDate(row.deadline)}</td>
+                    <td className="px-3 py-3 text-gray-500 dark:text-gray-400 whitespace-nowrap">{formatShortDate(row.deadline)}</td>
                     <td className="px-3 py-3">
                       <span
                         className="block truncate rounded-full px-2 py-1 text-center text-[11px] font-medium"
@@ -296,13 +302,13 @@ const PrahumPanel = ({ assignments }: { assignments: any[] }) => {
   return (
     <PanelShell title="PRAHUM" onMoreClick={() => navigate("/produksi")}>
       <div className="flex items-baseline justify-between mt-3 mb-2">
-        <span className="text-[11px] text-gray-400">Total tugas berjalan</span>
-        <span className="text-sm font-bold transition-colors duration-150" style={{ color: active ? active.color : NAVY }}>
+        <span className="text-[11px] text-gray-400 dark:text-gray-400">Total tugas berjalan</span>
+        <span className="text-sm font-bold transition-colors duration-150 text-[#0f1f5c] dark:text-white" style={{ color: active ? active.color : undefined }}>
           {active ? `${active.count} · ${active.label}` : total}
         </span>
       </div>
 
-      <div className="flex w-full h-3 rounded-full overflow-hidden bg-gray-100 gap-[2px]">
+      <div className="flex w-full h-3 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 gap-[2px]">
         {total === 0 ? (
            <div className="w-full h-full bg-gray-200" />
         ) : prahumStages.map((stage, i) => (
@@ -335,7 +341,7 @@ const PrahumPanel = ({ assignments }: { assignments: any[] }) => {
               onClick={() => navigate("/produksi")}
               onMouseEnter={() => setHovered(i)}
               onMouseLeave={() => setHovered(null)}
-              className="group flex flex-col items-center gap-1 rounded-lg py-2 transition-colors duration-150 hover:bg-gray-50 focus-visible:outline-none"
+              className="group flex flex-col items-center gap-1 rounded-lg py-2 transition-colors duration-150 hover:bg-gray-50 dark:hover:bg-slate-800/60 focus-visible:outline-none"
             >
               <div
                 className="w-7 h-7 rounded-full flex items-center justify-center transition-transform duration-200 ease-out group-hover:scale-110"
@@ -343,7 +349,7 @@ const PrahumPanel = ({ assignments }: { assignments: any[] }) => {
               >
                 <Icon className="w-3.5 h-3.5" style={{ color: stage.color }} strokeWidth={2.2} />
               </div>
-              <span className="text-xs font-bold text-gray-800">{stage.count}</span>
+              <span className="text-xs font-bold text-gray-800 dark:text-gray-100">{stage.count}</span>
               <span className="text-[8.5px] font-medium text-gray-400 text-center leading-tight">{stage.label}</span>
             </button>
           );
@@ -392,7 +398,7 @@ const FotoPanel = ({ assignments }: { assignments: any[] }) => {
           aria-label="Lihat detail produksi foto"
         >
           <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-            <circle cx="50" cy="50" r={FOTO_RADIUS} fill="none" stroke="#f1f5f9" strokeWidth="14" />
+            <circle cx="50" cy="50" r={FOTO_RADIUS} fill="none" stroke="#f1f5f9" className="dark:stroke-gray-800" strokeWidth="14" />
             {total > 0 && segments.map((seg, i) => (
               <circle
                 key={seg.label}
@@ -413,8 +419,8 @@ const FotoPanel = ({ assignments }: { assignments: any[] }) => {
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none px-3">
             <span
-              className="text-2xl font-bold transition-colors duration-200"
-              style={{ color: active ? active.color : NAVY }}
+              className="text-2xl font-bold transition-colors duration-200 text-[#0f1f5c] dark:text-white"
+              style={{ color: active ? active.color : undefined }}
             >
               {active ? active.value : total}
             </span>
@@ -434,7 +440,7 @@ const FotoPanel = ({ assignments }: { assignments: any[] }) => {
               onBlur={() => setHovered(null)}
               onClick={() => navigate("/produksi")}
               className={`flex items-center gap-1.5 text-xs whitespace-nowrap rounded px-1.5 py-1 transition-colors duration-150 focus-visible:outline-none ${
-                hovered === i ? "bg-gray-50 text-gray-900 font-semibold" : "text-gray-600"
+                hovered === i ? "bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-gray-100 font-semibold" : "text-gray-600 dark:text-gray-400"
               }`}
             >
               <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: d.color }} />
@@ -497,12 +503,12 @@ const VideoPanel = ({ assignments }: { assignments: any[] }) => {
               aria-label={`${bar.label}: ${total} konten`}
             >
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] font-medium text-gray-500 transition-colors duration-150 group-hover:text-gray-800">
+                <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 transition-colors duration-150 group-hover:text-gray-800 dark:group-hover:text-gray-200">
                   {bar.label}
                 </span>
-                <span className="text-xs font-bold text-gray-800">{total}</span>
+                <span className="text-xs font-bold text-gray-800 dark:text-gray-100">{total}</span>
               </div>
-              <div className="h-2.5 w-full rounded-full bg-gray-100 overflow-hidden">
+              <div className="h-2.5 w-full rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
                 <div
                   className="h-full flex rounded-full overflow-hidden transition-all duration-700 ease-out gap-[1.5px] group-hover:shadow-sm"
                   style={{ width: mounted ? `${trackWidthPct}%` : "0%" }}
@@ -527,7 +533,7 @@ const VideoPanel = ({ assignments }: { assignments: any[] }) => {
       </div>
       <div className="flex items-center justify-center gap-3 mt-4 flex-wrap">
         {(Object.keys(videoSegmentColors) as (keyof typeof videoSegmentColors)[]).map((key) => (
-          <span key={key} className="flex items-center gap-1 text-[10px] text-gray-500">
+          <span key={key} className="flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400">
             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: videoSegmentColors[key] }} />
             {videoSegmentLabels[key]}
           </span>
@@ -547,9 +553,9 @@ const DesainerPanel = ({ assignments }: { assignments: any[] }) => {
   const selesai = data.filter((a) => a.status === "SELESAI" || a.status === "COMPLETED");
 
   const desainerColumns = [
-    { label: "ANTREAN", count: antrean.length, color: "#9ca3af", bg: "bg-gray-100", text: "text-gray-700", items: antrean.slice(0,2).map(a => a.title) },
-    { label: "DIPROSES", count: diproses.length, color: "#f59e0b", bg: "bg-amber-100", text: "text-amber-700", items: diproses.slice(0,2).map(a => a.title) },
-    { label: "SELESAI", count: selesai.length, color: "#22c55e", bg: "bg-emerald-100", text: "text-emerald-700", items: selesai.slice(0,2).map(a => a.title) },
+    { label: "ANTREAN", count: antrean.length, color: "#9ca3af", bg: "bg-gray-100 dark:bg-gray-800", text: "text-gray-700 dark:text-gray-300", items: antrean.slice(0,2).map(a => a.title) },
+    { label: "DIPROSES", count: diproses.length, color: "#f59e0b", bg: "bg-amber-100 dark:bg-amber-950/40", text: "text-amber-700 dark:text-amber-400", items: diproses.slice(0,2).map(a => a.title) },
+    { label: "SELESAI", count: selesai.length, color: "#22c55e", bg: "bg-emerald-100 dark:bg-emerald-950/40", text: "text-emerald-700 dark:text-emerald-400", items: selesai.slice(0,2).map(a => a.title) },
   ];
 
   return (
@@ -566,7 +572,7 @@ const DesainerPanel = ({ assignments }: { assignments: any[] }) => {
                 type="button"
                 key={idx}
                 onClick={() => navigate("/produksi")}
-                className="text-left bg-gray-50 border-l-2 rounded px-2 py-1.5 text-[10px] text-gray-600 leading-tight transition-all duration-200 ease-out hover:bg-white hover:shadow-md hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 truncate block w-full"
+                className="text-left bg-gray-50 dark:bg-slate-800/60 border-l-2 rounded px-2 py-1.5 text-[10px] text-gray-600 dark:text-gray-300 leading-tight transition-all duration-200 ease-out hover:bg-white dark:hover:bg-slate-700 hover:shadow-md hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 truncate block w-full"
                 style={{ borderColor: col.color }}
                 title={item}
               >
@@ -589,13 +595,13 @@ const PanelShell = ({
   children: ReactNode;
   onMoreClick?: () => void;
 }) => (
-  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 transition-shadow duration-200 hover:shadow-md">
+  <div className="bg-white dark:bg-[#161b22] rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm p-4 transition-shadow duration-200 hover:shadow-md">
     <div className="flex items-center justify-between">
-      <h4 className="text-sm font-bold text-gray-800 tracking-wide">{title}</h4>
+      <h4 className="text-sm font-bold text-gray-800 dark:text-gray-100 tracking-wide">{title}</h4>
       <button
         type="button"
         onClick={onMoreClick}
-        className="text-gray-300 hover:text-blue-600 hover:bg-blue-50 rounded-md p-1 transition-colors duration-150"
+        className="text-gray-300 dark:text-gray-600 hover:text-blue-600 dark:hover:text-sky-400 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-md p-1 transition-colors duration-150"
         aria-label={`Lihat detail produksi ${title.toLowerCase()}`}
       >
         <MoreHorizontal className="w-4 h-4" />
@@ -715,7 +721,7 @@ const DashboardPage = () => {
     <div className="space-y-5 sm:space-y-6 pb-12">
       {/* Page header */}
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold" style={{ color: NAVY }}>
+        <h1 className="text-xl sm:text-2xl font-bold text-[#0f1f5c] dark:text-sky-400">
           Dashboard
         </h1>
         <p className="text-xs sm:text-sm text-gray-400 mt-0.5">Ringkasan Kegiatan &amp; Publikasi Real-Time</p>
@@ -755,7 +761,7 @@ const DashboardPage = () => {
 
         {/* Right: status alur kerja produksi */}
         <div className="lg:col-span-6 space-y-4">
-          <h3 className="text-base font-semibold text-gray-900">Status Alur Kerja Produksi</h3>
+          <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Status Alur Kerja Produksi</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <PrahumPanel assignments={assignments} />
             <FotoPanel assignments={assignments} />
@@ -765,19 +771,19 @@ const DashboardPage = () => {
 
           {/* OPD Volume & Leaderboard (if stats available) */}
           {stats?.opdProduction && stats.opdProduction.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mt-4">
-              <h4 className="text-sm font-bold text-gray-800 mb-3">Volume Kegiatan per OPD</h4>
+            <div className="bg-white dark:bg-[#161b22] rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm p-4 mt-4">
+              <h4 className="text-sm font-bold text-gray-800 dark:text-gray-100 mb-3">Volume Kegiatan per OPD</h4>
               <div className="space-y-2.5">
                 {stats.opdProduction.map((opd) => {
                   const pct = (opd.count / maxOpdCount) * 100;
                   return (
                     <div key={opd.name}>
                       <div className="flex justify-between text-xs mb-1">
-                        <span className="font-medium text-gray-700">{opd.singkatan || opd.name}</span>
-                        <span className="font-bold text-gray-900">{opd.count}</span>
+                        <span className="font-medium text-gray-700 dark:text-gray-200">{opd.singkatan || opd.name}</span>
+                        <span className="font-bold text-gray-900 dark:text-gray-100">{opd.count}</span>
                       </div>
-                      <div className="w-full bg-gray-100 rounded-full h-1.5">
-                        <div className="bg-indigo-600 h-1.5 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                      <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5">
+                        <div className="bg-indigo-600 dark:bg-indigo-500 h-1.5 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
                       </div>
                     </div>
                   );
@@ -814,14 +820,14 @@ const DashboardPage = () => {
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-8 text-center">
-              <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mb-2">
-                <CalendarDays className="w-5 h-5 text-gray-300" />
+              <div className="w-12 h-12 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center mb-2">
+                <CalendarDays className="w-5 h-5 text-gray-300 dark:text-gray-500" />
               </div>
-              <p className="text-sm text-gray-500">Belum ada kegiatan terjadwal pada tanggal ini.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Belum ada kegiatan terjadwal pada tanggal ini.</p>
             </div>
           )}
 
-          <div className="pt-4 mt-4 border-t border-gray-100 flex justify-end gap-2">
+          <div className="pt-4 mt-4 border-t border-gray-100 dark:border-gray-800 flex justify-end gap-2">
             <Button variant="outline" onClick={() => setSelectedDateKey(null)}>
               Tutup
             </Button>

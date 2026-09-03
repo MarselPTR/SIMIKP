@@ -270,7 +270,11 @@ export async function generateExcelReport(filter: ReportFilter): Promise<Buffer>
   const judulHeader = sheet.getCell('D5');
   judulHeader.value = "Judul";
 
-  let colIdx = 5; // Column E is 5
+  sheet.mergeCells('E5:E7');
+  const petugasHeader = sheet.getCell('E5');
+  petugasHeader.value = "Petugas & Bagian Tugas";
+
+  let colIdx = 6; // Column F is 6 (Matrix starts after Petugas)
 
   const totalMatrixCols = data.issues.length * data.contentTypes.length;
   const startColLetter = getColumnLetter(colIdx);
@@ -342,7 +346,15 @@ export async function generateExcelReport(filter: ReportFilter): Promise<Buffer>
     row.getCell(3).value = rowData.noStrakom;
     row.getCell(4).value = rowData.judul;
 
-    let c = 5;
+    const petugasText = rowData.assignmentsList && rowData.assignmentsList.length > 0
+      ? rowData.assignmentsList.map(a => `${a.userName} (${a.contentTypeName})`).join("\r\n")
+      : "-";
+    row.getCell(5).value = petugasText;
+
+    const asgnCount = rowData.assignmentsList?.length || 1;
+    row.height = Math.max(22, asgnCount * 16 + 6);
+
+    let c = 6;
     for (const issue of data.issues) {
       for (const ct of data.contentTypes) {
         const val = rowData.matrix[issue]?.[ct] || 0;
@@ -360,7 +372,7 @@ export async function generateExcelReport(filter: ReportFilter): Promise<Buffer>
 
       if (col === 1 || col === 2 || col === 3) {
         cell.alignment = { horizontal: "center", vertical: "middle" };
-      } else if (col === 4) {
+      } else if (col === 4 || col === 5) {
         cell.alignment = { horizontal: "left", vertical: "middle", wrapText: true };
       } else {
         cell.alignment = { horizontal: "center", vertical: "middle" };
@@ -374,13 +386,13 @@ export async function generateExcelReport(filter: ReportFilter): Promise<Buffer>
   const summaryRow = sheet.getRow(currentRowIdx);
   summaryRow.height = 24;
 
-  sheet.mergeCells(`A${currentRowIdx}:D${currentRowIdx}`);
+  sheet.mergeCells(`A${currentRowIdx}:E${currentRowIdx}`);
   const labelTotalCell = summaryRow.getCell(1);
   labelTotalCell.value = "TOTAL PRODUKSI";
   labelTotalCell.font = { name: "Arial", size: 9, bold: true };
   labelTotalCell.alignment = { horizontal: "center", vertical: "middle" };
 
-  let summaryColIdx = 5;
+  let summaryColIdx = 6;
   for (const issue of data.issues) {
     for (const ct of data.contentTypes) {
       const colTotal = data.columnTotals[issue]?.[ct] || 0;
@@ -404,9 +416,10 @@ export async function generateExcelReport(filter: ReportFilter): Promise<Buffer>
   sheet.getColumn(1).width = 6;
   sheet.getColumn(2).width = 12;
   sheet.getColumn(3).width = 15;
-  sheet.getColumn(4).width = 30;
+  sheet.getColumn(4).width = 28;
+  sheet.getColumn(5).width = 30;
 
-  for (let col = 5; col <= summaryColIdx; col++) {
+  for (let col = 6; col <= summaryColIdx; col++) {
     sheet.getColumn(col).width = 10;
   }
 
@@ -460,11 +473,12 @@ export async function generatePdfReport(filter: ReportFilter): Promise<Buffer> {
       .moveDown(1);
 
     const headers = [
-      { label: "NO", width: 30 },
-      { label: "Tanggal", width: 65 },
-      { label: "No Strakom", width: 85 },
-      { label: "Judul Kegiatan", width: 220 },
-      { label: "Total Produksi", width: 80 },
+      { label: "NO", width: 25 },
+      { label: "Tanggal", width: 60 },
+      { label: "No Strakom", width: 75 },
+      { label: "Judul Kegiatan", width: 165 },
+      { label: "Petugas Pelaksana", width: 175 },
+      { label: "Total", width: 65 },
     ];
 
     let startX = 30;
@@ -480,7 +494,7 @@ export async function generatePdfReport(filter: ReportFilter): Promise<Buffer> {
       currentX += h.width;
     }
 
-    doc.text("Sebaran Isu Strategis", currentX, startY + 6, { width: 290, align: "center" });
+    doc.text("Sebaran Isu Strategis", currentX, startY + 6, { width: 217, align: "center" });
 
     startY += 22;
 
@@ -499,10 +513,15 @@ export async function generatePdfReport(filter: ReportFilter): Promise<Buffer> {
         .filter(Boolean)
         .join(" | ");
 
-      // Calculate dynamic height based on Judul Kegiatan text
-      const titleTextHeight = doc.heightOfString(row.judul, { width: 210 });
-      const issueTextHeight = doc.heightOfString(issueSummaryText || "-", { width: 280 });
-      const rowHeight = Math.max(26, Math.max(titleTextHeight, issueTextHeight) + 10);
+      // Calculate dynamic height based on Judul, Petugas, and Isu text
+      const petugasText = row.assignmentsList && row.assignmentsList.length > 0
+        ? row.assignmentsList.map(a => `• ${a.userName} (${a.contentTypeName})`).join("\n")
+        : "-";
+
+      const titleTextHeight = doc.heightOfString(row.judul, { width: 155 });
+      const petugasTextHeight = doc.heightOfString(petugasText, { width: 165 });
+      const issueTextHeight = doc.heightOfString(issueSummaryText || "-", { width: 210 });
+      const rowHeight = Math.max(26, Math.max(titleTextHeight, Math.max(petugasTextHeight, issueTextHeight)) + 12);
 
       // Check for page overflow
       if (startY + rowHeight > 520) {
@@ -514,24 +533,28 @@ export async function generatePdfReport(filter: ReportFilter): Promise<Buffer> {
       doc.rect(startX, startY, 782, rowHeight).stroke("#cccccc");
 
       currentX = startX + 5;
-      doc.text(String(row.no), currentX, startY + 6, { width: 25, align: "center" });
-      currentX += 30;
+      doc.text(String(row.no), currentX, startY + 6, { width: 20, align: "center" });
+      currentX += 25;
 
-      doc.text(row.tanggal, currentX, startY + 6, { width: 60, align: "center" });
+      doc.text(row.tanggal, currentX, startY + 6, { width: 55, align: "center" });
+      currentX += 60;
+
+      doc.text(row.noStrakom, currentX, startY + 6, { width: 70, align: "left" });
+      currentX += 75;
+
+      // Judul Kegiatan
+      doc.text(row.judul, currentX, startY + 6, { width: 155, align: "left", height: rowHeight - 6 });
+      currentX += 165;
+
+      // Petugas Pelaksana & Bagian Tugas
+      doc.text(petugasText, currentX, startY + 6, { width: 165, align: "left", height: rowHeight - 6 });
+      currentX += 175;
+
+      doc.font("Helvetica-Bold").text(`${row.jumlahProduksi} Konten`, currentX, startY + 6, { width: 60, align: "center" });
       currentX += 65;
 
-      doc.text(row.noStrakom, currentX, startY + 6, { width: 80, align: "left" });
-      currentX += 85;
-
-      // Judul Kegiatan with automatic wrapping and padded height
-      doc.text(row.judul, currentX, startY + 6, { width: 210, align: "left", height: rowHeight - 6 });
-      currentX += 220;
-
-      doc.font("Helvetica-Bold").text(`${row.jumlahProduksi} Konten`, currentX, startY + 6, { width: 75, align: "center" });
-      currentX += 80;
-
       doc.font("Helvetica");
-      doc.text(issueSummaryText || "-", currentX, startY + 6, { width: 280, align: "left" });
+      doc.text(issueSummaryText || "-", currentX, startY + 6, { width: 210, align: "left" });
 
       startY += rowHeight;
     }
