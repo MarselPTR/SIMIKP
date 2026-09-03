@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import logoKotaBatu from "../assets/Logo_Kota_Batu.png";
 import { useLanguage, type TranslationKey } from "../lib/LanguageContext";
+import { useAuth } from "../lib/AuthContext";
 
 interface NavItemConfig {
   path: string;
@@ -12,18 +13,26 @@ interface NavItemConfig {
   icon: typeof Home;
 }
 
-export const navConfig: NavItemConfig[] = [
+// Navigasi untuk Admin / Manajemen (Review & Persetujuan telah dipindahkan ke Ahli Pertama)
+export const adminNavConfig: NavItemConfig[] = [
   { path: "/dashboard", key: "dashboard", icon: Home },
   { path: "/kegiatan", key: "activities", icon: CalendarDays },
   { path: "/penugasan", key: "assignments", icon: Users },
   { path: "/produksi", key: "production", icon: Video },
-  { path: "/review", key: "review_approval", icon: CheckSquare },
   { path: "/publikasi", key: "media_pub", icon: Megaphone },
   { path: "/bank-konten", key: "content_bank", icon: FolderOpen },
   { path: "/laporan", key: "reports_stats", icon: BarChart3 },
   { path: "/daftar-anggota", key: "member_list", icon: Contact },
   { path: "/tambah-petugas", key: "add_officer", icon: UserPlus },
 ];
+
+// Navigasi khusus Ahli Pertama (Fokus Pengawasan: Dashboard & Review/Persetujuan)
+export const ahliPertamaNavConfig: NavItemConfig[] = [
+  { path: "/dashboard", key: "dashboard", icon: Home },
+  { path: "/review", key: "review_approval", icon: CheckSquare },
+];
+
+export const navConfig = adminNavConfig;
 
 const NAVY = "#0f1f5c";
 
@@ -34,6 +43,9 @@ interface SidebarProps {
 const Sidebar = ({ onClose }: SidebarProps) => {
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const { user } = useAuth();
+  const isAhliPertama = user?.role?.toLowerCase() === "ahli_pertama" || user?.staffType === "AHLI_PERTAMA";
+  const activeNavItems = isAhliPertama ? ahliPertamaNavConfig : adminNavConfig;
 
   return (
     <aside className="h-full w-64 flex flex-col border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-[#161b22] shadow-2xl lg:shadow-none transition-colors">
@@ -57,7 +69,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-3 px-3 space-y-0.5">
-        {navConfig.map((item) => {
+        {activeNavItems.map((item) => {
           const Icon = item.icon;
           const label = t(item.key);
           return (

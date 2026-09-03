@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Search, Plus, Mail, Shield, User, Filter, ShieldCheck, Camera, Edit3, Image as ImageIcon, X, Trash2 } from "lucide-react";
+import { Search, Plus, Mail, Shield, User, Filter, ShieldCheck, Camera, Edit3, Image as ImageIcon, X, Trash2, Sparkles } from "lucide-react";
 import { apiFetch } from "../../lib/api-client";
 import { useToast } from "../../contexts/ToastContext";
 
@@ -19,6 +19,7 @@ interface Petugas {
 
 // Keys must match the values TambahPetugasPage sends as `program` / users.staff_type
 const PROGRAM_LABELS: Record<string, string> = {
+  AHLI_PERTAMA: "Pranata Ahli Pertama",
   FOTO_VIDEO: "Foto & Video",
   PRAHUM: "Pranata Humas (Berita)",
   DESAINER_EDITOR: "Desainer & Editor",
@@ -26,6 +27,7 @@ const PROGRAM_LABELS: Record<string, string> = {
 };
 
 const PROGRAM_ICONS: Record<string, any> = {
+  AHLI_PERTAMA: Sparkles,
   FOTO_VIDEO: Camera,
   PRAHUM: Edit3,
   DESAINER_EDITOR: ImageIcon,

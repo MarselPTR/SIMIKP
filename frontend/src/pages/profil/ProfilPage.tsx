@@ -36,6 +36,8 @@ const NAVY = "#0f1f5c";
 
 const ROLE_LABELS_ID: Record<string, string> = {
   super_admin: "Super Admin",
+  ahli_pertama: "Pranata Ahli Pertama",
+  AHLI_PERTAMA: "Pranata Ahli Pertama",
   admin: "Administrator",
   manager: "Manajer / Pimpinan",
   staff: "Staff Operasional",
@@ -45,6 +47,8 @@ const ROLE_LABELS_ID: Record<string, string> = {
 
 const ROLE_LABELS_EN: Record<string, string> = {
   super_admin: "Super Admin",
+  ahli_pertama: "First Expert Officer",
+  AHLI_PERTAMA: "First Expert Officer",
   admin: "Administrator",
   manager: "Manager / Executive",
   staff: "Operational Staff",
@@ -56,6 +60,13 @@ const BIDANG_CONFIG_ID: Record<
   string,
   { label: string; bg: string; text: string; border: string; desc: string }
 > = {
+  AHLI_PERTAMA: {
+    label: "Pranata Komputer / Humas Ahli Pertama",
+    bg: "bg-indigo-500/10 dark:bg-indigo-500/20",
+    text: "text-indigo-700 dark:text-indigo-300",
+    border: "border-indigo-200 dark:border-indigo-800",
+    desc: "Supervisi konten, telaah strategis naskah narasi publik, dan pengesahan akhir materi publikasi Diskominfo",
+  },
   PRAHUM: {
     label: "Pranata Humas (PRAHUM)",
     bg: "bg-blue-500/10 dark:bg-blue-500/20",
@@ -83,6 +94,13 @@ const BIDANG_CONFIG_EN: Record<
   string,
   { label: string; bg: string; text: string; border: string; desc: string }
 > = {
+  AHLI_PERTAMA: {
+    label: "First Expert Computer / PR Officer",
+    bg: "bg-indigo-500/10 dark:bg-indigo-500/20",
+    text: "text-indigo-700 dark:text-indigo-300",
+    border: "border-indigo-200 dark:border-indigo-800",
+    desc: "Content oversight, strategic public narrative review, and final endorsement of Diskominfo publications",
+  },
   PRAHUM: {
     label: "Public Relations Officer (PRAHUM)",
     bg: "bg-blue-500/10 dark:bg-blue-500/20",

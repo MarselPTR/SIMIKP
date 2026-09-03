@@ -12,6 +12,7 @@ import {
   User,
   Users,
   Camera,
+  FileCheck2,
 } from "lucide-react";
 
 import { apiFetch } from "../../lib/api-client";
@@ -21,6 +22,8 @@ import EventCalendar, { dateKeyOf } from "../../components/shared/EventCalendar"
 import type { CalendarEvent } from "../../components/shared/EventCalendar";
 import Button from "../../components/ui/Button";
 import Dialog from "../../components/ui/Dialog";
+import { useAuth } from "../../lib/AuthContext";
+import { useLanguage } from "../../lib/LanguageContext";
 
 const NAVY = "#0f1f5c";
 
@@ -41,13 +44,6 @@ interface StatCardMeta {
   icon: typeof CalendarDays;
   path: string;
 }
-
-const STAT_CARD_META: StatCardMeta[] = [
-  { key: "totalBulanIni", label: "Total Kegiatan Bulan Ini", icon: CalendarDays, path: "/kegiatan" },
-  { key: "tugasDalamProses", label: "Tugas Dalam Proses", icon: ClipboardList, path: "/produksi" },
-  { key: "kontenSiapReview", label: "Konten Siap Review", icon: Pencil, path: "/review" },
-  { key: "publikasiSukses", label: "Publikasi Sukses", icon: Megaphone, path: "/publikasi" },
-];
 
 const BANK_KONTEN_CARD: StatCard = {
   label: "Total File di Bank Konten",
@@ -689,6 +685,10 @@ const DashboardPage = () => {
     return [...upcoming, ...past].slice(0, 5);
   }, [kegiatanList]);
 
+  const { user } = useAuth();
+  const { language } = useLanguage();
+  const isAhliPertama = user?.role?.toLowerCase() === "ahli_pertama" || user?.staffType === "AHLI_PERTAMA";
+
   const statCards: StatCard[] = useMemo(() => {
     const monthPrefix = `${calYear}-${String(calMonth + 1).padStart(2, "0")}`;
     const values: Record<StatCardMeta["key"], number> = {
@@ -697,16 +697,64 @@ const DashboardPage = () => {
       kontenSiapReview: stats?.reviewPending ?? kegiatanList.filter((k) => k.status === "review").length,
       publikasiSukses: stats?.publikasiPublished ?? kegiatanList.filter((k) => k.status === "done").length,
     };
+
+    if (isAhliPertama) {
+      return [
+        {
+          label: language === "en" ? "Pending Review & Sign-off" : "Konten Siap Review",
+          value: String(values.kontenSiapReview),
+          icon: Pencil,
+          path: "/review",
+        },
+        {
+          label: language === "en" ? "Approved & Published" : "Publikasi Disetujui",
+          value: String(values.publikasiSukses),
+          icon: Megaphone,
+          path: "/review",
+        },
+        {
+          label: language === "en" ? "Production In-Progress" : "Tugas Dalam Proses",
+          value: String(values.tugasDalamProses),
+          icon: ClipboardList,
+          path: "/review",
+        },
+        {
+          label: language === "en" ? "Scheduled Activities" : "Agenda Kegiatan",
+          value: String(values.totalBulanIni),
+          icon: CalendarDays,
+          path: "/dashboard",
+        },
+      ];
+    }
+
     return [
-      ...STAT_CARD_META.map((meta) => ({
-        label: meta.label,
-        value: String(values[meta.key]),
-        icon: meta.icon,
-        path: meta.path,
-      })),
+      {
+        label: "Total Kegiatan Bulan Ini",
+        value: String(values.totalBulanIni),
+        icon: CalendarDays,
+        path: "/kegiatan",
+      },
+      {
+        label: "Tugas Dalam Proses",
+        value: String(values.tugasDalamProses),
+        icon: ClipboardList,
+        path: "/produksi",
+      },
+      {
+        label: "Menunggu Telaah Ahli",
+        value: String(values.kontenSiapReview),
+        icon: Pencil,
+        path: "/produksi",
+      },
+      {
+        label: "Publikasi Sukses",
+        value: String(values.publikasiSukses),
+        icon: Megaphone,
+        path: "/publikasi",
+      },
       BANK_KONTEN_CARD,
     ];
-  }, [kegiatanList, calYear, calMonth, stats]);
+  }, [kegiatanList, calYear, calMonth, stats, isAhliPertama, language]);
 
   const selectedEvents = selectedDateKey ? dashboardCalendarEvents[selectedDateKey] ?? [] : [];
   const maxOpdCount = Math.max(...(stats?.opdProduction?.map((o) => o.count) ?? [1]), 1);
@@ -714,11 +762,32 @@ const DashboardPage = () => {
   return (
     <div className="space-y-5 sm:space-y-6 pb-12">
       {/* Page header */}
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold" style={{ color: NAVY }}>
-          Dashboard
-        </h1>
-        <p className="text-xs sm:text-sm text-gray-400 mt-0.5">Ringkasan Kegiatan &amp; Publikasi Real-Time</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: NAVY }}>
+            {isAhliPertama ? (language === "en" ? "Executive Supervision Dashboard" : "Panel Supervisi Ahli Pertama") : "Dashboard"}
+          </h1>
+          <p className="text-xs sm:text-sm text-gray-400 mt-0.5">
+            {isAhliPertama
+              ? (language === "en"
+                  ? "Strategic oversight, publication quality assurance, and cross-OPD coverage monitoring"
+                  : "Pengawasan strategis, penjaminan mutu publikasi, dan pemantauan liputan lintas OPD")
+              : "Ringkasan Kegiatan & Publikasi Real-Time"}
+          </p>
+        </div>
+
+        {isAhliPertama && (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => navigate("/review")}
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-[#0f1f5c] dark:bg-blue-600 text-white hover:bg-blue-900 transition shadow-sm cursor-pointer"
+            >
+              <FileCheck2 className="w-4 h-4" />
+              <span>{language === "en" ? "Review & Approval Portal" : "Buka Review & Persetujuan"}</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Stat cards — interactive cursor-following spotlight glow */}

@@ -15,6 +15,8 @@ interface TopbarProps {
 
 const ROLE_LABELS_ID: Record<string, string> = {
   super_admin: "Super Admin",
+  ahli_pertama: "Pranata Ahli Pertama",
+  AHLI_PERTAMA: "Pranata Ahli Pertama",
   admin: "Admin",
   manager: "Manager",
   staff: "Staff",
@@ -24,6 +26,8 @@ const ROLE_LABELS_ID: Record<string, string> = {
 
 const ROLE_LABELS_EN: Record<string, string> = {
   super_admin: "Super Admin",
+  ahli_pertama: "First Expert Officer",
+  AHLI_PERTAMA: "First Expert Officer",
   admin: "Admin",
   manager: "Manager",
   staff: "Staff",

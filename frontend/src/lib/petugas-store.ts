@@ -1,6 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "./api-client";
 
+export interface RevisionRecord {
+  id: string;
+  notes: string;
+  author: string;
+  date: string;
+}
+
 export interface PetugasTaskItem {
   id: string;
   kegiatan: string;
@@ -17,6 +24,7 @@ export interface PetugasTaskItem {
   revisionNotes?: string;
   revisionAuthor?: string;
   revisionDate?: string;
+  revisionHistory?: RevisionRecord[];
 }
 
 export const INITIAL_PETUGAS_TASKS: PetugasTaskItem[] = [];
@@ -57,7 +65,7 @@ export const updatePetugasTaskStatus = async (id: string, status: string): Promi
   return updated;
 };
 
-export const requestTaskRevision = async (id: string, notes: string, author = "Admin Diskominfo"): Promise<PetugasTaskItem[]> => {
+export const requestTaskRevision = async (id: string, notes: string, author = "Bambang S., S.Kom (Ahli Pertama)"): Promise<PetugasTaskItem[]> => {
   const current = getStoredPetugasTasks();
   const nowStr = new Date().toLocaleDateString("id-ID", {
     day: "numeric",
@@ -67,23 +75,34 @@ export const requestTaskRevision = async (id: string, notes: string, author = "A
     minute: "2-digit",
   }) + " WIB";
 
-  const updated = current.map((t) =>
-    t.id === id
-      ? {
-          ...t,
-          status: "REVISI",
-          revisionNotes: notes,
-          revisionAuthor: author,
-          revisionDate: nowStr,
-        }
-      : t
-  );
+  const updated = current.map((t) => {
+    if (t.id !== id) return t;
+
+    const newEntry: RevisionRecord = {
+      id: `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      notes,
+      author,
+      date: nowStr,
+    };
+
+    const prevHistory = Array.isArray(t.revisionHistory) ? t.revisionHistory : [];
+    const newHistory = [...prevHistory, newEntry];
+
+    return {
+      ...t,
+      status: "REVISI",
+      revisionNotes: notes,
+      revisionAuthor: author,
+      revisionDate: nowStr,
+      revisionHistory: newHistory,
+    };
+  });
   saveStoredPetugasTasks(updated);
 
   try {
     await apiFetch(`/assignments/${id}`, {
       method: "PUT",
-      body: JSON.stringify({ status: "REVISI" }), // If REVISI is supported, else IN_PROGRESS
+      body: JSON.stringify({ status: "REVISI", revisionNotes: notes }),
     });
   } catch {}
 
@@ -97,9 +116,6 @@ export const approveTaskContent = async (id: string): Promise<PetugasTaskItem[]>
       ? {
           ...t,
           status: "SIAP_TAYANG",
-          revisionNotes: undefined,
-          revisionAuthor: undefined,
-          revisionDate: undefined,
         }
       : t
   );
@@ -118,8 +134,12 @@ export const approveTaskContent = async (id: string): Promise<PetugasTaskItem[]>
 export const submitPetugasTaskWork = async (id: string, workLink: string): Promise<PetugasTaskItem[]> => {
   const current = getStoredPetugasTasks();
   const target = current.find((t) => t.id === id);
-  // If task was in REVISI status, advancing it moves to SIAP_TAYANG (ready for final review/tayang)
-  const nextStatus = target?.status === "REVISI" ? "SIAP_TAYANG" : "SELESAI";
+
+  // Jika tugas sebelumnya berstatus REVISI, kirim ulang kembali ke workflow telaah (NEED_REVIEW)
+  const isFromRevision = target?.status === "REVISI";
+  const nextStatus = isFromRevision
+    ? (target?.bidang === "PRAHUM" ? "MENULIS" : target?.bidang === "DESAINER_EDITOR" ? "DESAIN" : "LIPUTAN")
+    : "SELESAI";
 
   const updated = current.map((t) =>
     t.id === id
@@ -157,34 +177,63 @@ export const usePetugasTasksStore = (userBidang?: string | null) => {
     apiFetch<{ success: boolean; data: any[] }>("/assignments")
       .then((res) => {
         if (res.data && res.data.length > 0) {
-          const mapped: PetugasTaskItem[] = res.data.map((a: any) => ({
-            id: a.id,
-            kegiatan: a.activityTitle || a.activity?.title || "Kegiatan",
-            lokasi: a.location || "Balaikota",
-            jenisPekerjaan: a.contentType || "Liputan",
-            deadline: a.activityDate || "2026-08-27",
-            bidang: a.staffType || userBidang || "PRAHUM",
-            status: a.status === "COMPLETED" ? "SELESAI" : a.status === "IN_PROGRESS" ? "LIPUTAN" : "BELUM",
-            kategori: ((a.activityTitle || "").toLowerCase().includes("rapat")
-              ? "rapat"
-              : (a.activityTitle || "").toLowerCase().includes("sidang")
-              ? "sidang"
-              : (a.activityTitle || "").toLowerCase().includes("upacara")
-              ? "upacara"
-              : "peresmian") as PetugasTaskItem["kategori"],
-            instruksi: a.instruction || "Lakukan tugas sesuai arahan.",
-            workLink: a.workLink,
-          }));
+          const currentStored = getStoredPetugasTasks();
+          const currentMap = new Map(currentStored.map((t) => [t.id, t]));
 
-          saveStoredPetugasTasks(mapped);
-          setTasks(mapped);
-        } else {
-          saveStoredPetugasTasks([]);
-          setTasks([]);
+          const mapped: PetugasTaskItem[] = res.data.map((a: any) => {
+            const existing = currentMap.get(a.id);
+
+            // Tentukan status yang sinkron tanpa merusak status REVISI
+            let finalStatus = a.status;
+            if (existing?.status === "REVISI") {
+              finalStatus = "REVISI";
+            } else if (a.status === "COMPLETED") {
+              finalStatus = "SELESAI";
+            } else if (a.status === "IN_PROGRESS") {
+              finalStatus = existing?.status || "LIPUTAN";
+            } else if (a.status === "ASSIGNED") {
+              finalStatus = existing?.status || "BELUM";
+            } else if (a.status === "REVISI") {
+              finalStatus = "REVISI";
+            } else if (!finalStatus) {
+              finalStatus = existing?.status || "BELUM";
+            }
+
+            return {
+              id: a.id,
+              kegiatan: a.activityTitle || a.activity?.title || existing?.kegiatan || "Kegiatan",
+              lokasi: a.location || existing?.lokasi || "Balaikota",
+              jenisPekerjaan: a.contentType || existing?.jenisPekerjaan || "Liputan",
+              deadline: a.activityDate ? String(a.activityDate).split("T")[0] : existing?.deadline || "2026-08-27",
+              bidang: a.staffType || existing?.bidang || userBidang || "PRAHUM",
+              status: finalStatus,
+              kategori: ((a.activityTitle || existing?.kegiatan || "").toLowerCase().includes("rapat")
+                ? "rapat"
+                : (a.activityTitle || existing?.kegiatan || "").toLowerCase().includes("sidang")
+                ? "sidang"
+                : (a.activityTitle || existing?.kegiatan || "").toLowerCase().includes("upacara")
+                ? "upacara"
+                : "peresmian") as PetugasTaskItem["kategori"],
+              instruksi: a.instruction || existing?.instruksi || "Lakukan tugas sesuai arahan.",
+              workLink: a.workLink || existing?.workLink,
+              revisionNotes: existing?.revisionNotes,
+              revisionAuthor: existing?.revisionAuthor,
+              revisionDate: existing?.revisionDate,
+              revisionHistory: existing?.revisionHistory,
+            };
+          });
+
+          // Pertahankan tugas lokal yang belum tersimpan di backend
+          const backendIds = new Set(mapped.map((m) => m.id));
+          const onlyLocal = currentStored.filter((t) => !backendIds.has(t.id));
+          const merged = [...mapped, ...onlyLocal];
+
+          saveStoredPetugasTasks(merged);
+          setTasks(merged);
         }
       })
       .catch(() => {
-        setTasks([]);
+        // Jangan hapus task lokal saat offline atau fetch gagal
       });
 
     window.addEventListener(EVENT_NAME, sync);
