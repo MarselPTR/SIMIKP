@@ -10,6 +10,7 @@ import {
   sendAssignmentScheduleChangeEmail,
   sendAssignmentCancelledEmail,
   sendReviewRevisionEmail,
+  sendRevisionSubmissionAlertEmail,
 } from "../../services/mail.service";
 
 const createAssignmentSchema = z.object({
@@ -71,6 +72,7 @@ const updateAssignmentSchema = z.object({
   workLink: z.string().optional(),
   revisionNotes: z.string().optional(),
   revisionAuthor: z.string().optional(),
+  isRevisionSubmission: z.boolean().optional(),
 });
 
 export class AssignmentsController {
@@ -406,6 +408,20 @@ export class AssignmentsController {
       const { id } = request.params;
       const body = updateAssignmentSchema.parse(request.body);
 
+      // Cek status penugasan sebelum update untuk mendeteksi penyerahan hasil revisi
+      const existing = await db
+        .select({
+          status: assignments.status,
+          userId: assignments.userId,
+          activityId: assignments.activityId,
+          contentTypeId: assignments.contentTypeId,
+        })
+        .from(assignments)
+        .where(eq(assignments.id, id))
+        .limit(1);
+
+      const isSubmittingRevision = (body.isRevisionSubmission === true || (existing.length > 0 && existing[0].status === "REVISI")) && body.workLink !== undefined;
+
       const updateData: Record<string, any> = {};
 
       if (body.activityId) {
@@ -498,6 +514,52 @@ export class AssignmentsController {
               locationName: detail[0].locationName || undefined,
               notes: body.instruction || "Jadwal dan detail penugasan telah diperbarui.",
             }).catch(err => console.error("[AssignmentsController] Gagal kirim email perubahan jadwal:", err));
+          }
+        }
+
+        // 3. Kirim notifikasi email ke Ahli Pertama & Reviewer jika petugas mengirimkan hasil revisi/perbaikan
+        if (isSubmittingRevision) {
+          const revSubmitDetail = await db
+            .select({
+              officerName: users.name,
+              activityTitle: activities.title,
+              contentType: contentTypes.name,
+            })
+            .from(assignments)
+            .leftJoin(users, eq(assignments.userId, users.id))
+            .leftJoin(activities, eq(assignments.activityId, activities.id))
+            .leftJoin(contentTypes, eq(assignments.contentTypeId, contentTypes.id))
+            .where(eq(assignments.id, id))
+            .limit(1);
+
+          const targetAhliReviewers = await db
+            .select({
+              name: users.name,
+              email: users.email,
+            })
+            .from(users)
+            .leftJoin(userRoles, eq(users.id, userRoles.userId))
+            .leftJoin(roles, eq(userRoles.roleId, roles.id))
+            .where(
+              or(
+                eq(roles.name, "AHLI_PERTAMA"),
+                eq(users.staffType, "AHLI_PERTAMA"),
+                eq(roles.name, "REVIEWER")
+              )
+            );
+
+          for (const reviewer of targetAhliReviewers) {
+            if (reviewer.email) {
+              sendRevisionSubmissionAlertEmail({
+                to: reviewer.email,
+                reviewerName: reviewer.name || "Pranata Humas Ahli Pertama",
+                officerName: revSubmitDetail[0]?.officerName || "Petugas Lapangan",
+                activityTitle: revSubmitDetail[0]?.activityTitle || "Liputan Kegiatan",
+                contentType: revSubmitDetail[0]?.contentType || "Konten Media",
+                workLink: body.workLink,
+                previousNotes: body.revisionNotes || undefined,
+              }).catch((err) => console.error("[AssignmentsController] Gagal kirim email verifikasi revisi ke Ahli Pertama:", err));
+            }
           }
         }
       }

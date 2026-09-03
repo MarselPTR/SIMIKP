@@ -877,3 +877,118 @@ export async function sendWorkSubmissionAlertEmail(data: WorkSubmissionAlertEmai
     return false;
   }
 }
+
+// ── 5. Notifikasi ke Ahli Pertama / Reviewer: Hasil Revisi Telah Dikirim Ulang ──
+export interface RevisionSubmissionAlertEmailData {
+  to: string;
+  reviewerName: string;
+  officerName: string;
+  activityTitle: string;
+  contentType: string;
+  workLink?: string;
+  previousNotes?: string;
+  reviewUrl?: string;
+}
+
+export async function sendRevisionSubmissionAlertEmail(data: RevisionSubmissionAlertEmailData): Promise<boolean> {
+  const transporter = getMailTransporter();
+  if (!transporter) return false;
+
+  const appUrl = process.env.APP_URL || "http://localhost:5173";
+  const reviewUrl = data.reviewUrl || `${appUrl}/review`;
+
+  const isPrahum = data.contentType && (data.contentType.toLowerCase().includes("naskah") || data.contentType.toLowerCase().includes("prahum"));
+  const isUrl = data.workLink && (data.workLink.startsWith("http://") || data.workLink.startsWith("https://"));
+
+  const contentHtml = `
+    <p style="margin: 0 0 16px 0; font-size: 14px; color: #334155; line-height: 1.6;">
+      Halo <strong>${data.reviewerName}</strong>,
+    </p>
+    <p style="margin: 0 0 16px 0; font-size: 14px; color: #334155; line-height: 1.6;">
+      Petugas lapangan <strong>${data.officerName}</strong> telah menindaklanjuti catatan perbaikan dan <strong>mengirimkan ulang hasil revisi ${isPrahum ? 'naskah berita' : 'karya liputan'}</strong> untuk agenda berikut:
+    </p>
+
+    <!-- Kartu Rincian Revisi Masuk -->
+    <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 20px;">
+      <tr>
+        <td style="padding: 18px 20px;">
+          <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
+            <tr>
+              <td style="padding: 6px 0; font-size: 13px; color: #64748b; width: 38%; vertical-align: top;">Nama Agenda:</td>
+              <td style="padding: 6px 0; font-size: 13px; font-weight: 700; color: #0f1f5c; vertical-align: top;">${data.activityTitle}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; font-size: 13px; color: #64748b; vertical-align: top;">Petugas Peliput:</td>
+              <td style="padding: 6px 0; font-size: 13px; font-weight: 600; color: #1e293b; vertical-align: top;">${data.officerName}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; font-size: 13px; color: #64748b; vertical-align: top;">Jenis Konten:</td>
+              <td style="padding: 6px 0; font-size: 13px; font-weight: 700; color: #0284c7; vertical-align: top;">${data.contentType}</td>
+            </tr>
+            ${data.previousNotes ? `
+            <tr>
+              <td style="padding: 6px 0; font-size: 13px; color: #64748b; vertical-align: top;">Catatan Sebelumnya:</td>
+              <td style="padding: 6px 0; font-size: 13px; color: #881337; font-style: italic; vertical-align: top;">&ldquo;${data.previousNotes}&rdquo;</td>
+            </tr>
+            ` : ''}
+            ${data.workLink ? `
+            <tr>
+              <td style="padding: 10px 0 0 0; font-size: 13px; color: #64748b; vertical-align: top; border-top: 1px dashed #cbd5e1;">
+                ${isUrl ? 'Tautan Hasil Revisi:' : 'Pratinjau Hasil Perbaikan Naskah:'}
+              </td>
+              <td style="padding: 10px 0 0 0; font-size: 13px; vertical-align: top; border-top: 1px dashed #cbd5e1;">
+                ${isUrl
+                  ? `<a href="${data.workLink}" target="_blank" style="display: inline-block; padding: 6px 14px; background-color: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px; color: #0284c7; text-decoration: none; font-weight: 600; font-size: 12px;">Buka Berkas Revisi &rarr;</a>`
+                  : `<div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-left: 3px solid #0284c7; border-radius: 6px; padding: 12px; font-size: 12px; line-height: 1.6; color: #1e293b; max-height: 160px; overflow-y: auto; white-space: pre-wrap;">${data.workLink.length > 300 ? data.workLink.slice(0, 300) + '...' : data.workLink}</div>`
+                }
+              </td>
+            </tr>
+            ` : ''}
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px;">
+      <p style="margin: 0; font-size: 12px; color: #166534; line-height: 1.5;">
+        <strong>Tindakan Selanjutnya:</strong> Mohon buka modul Review & Approval untuk memverifikasi kesesuaian hasil perbaikan dan memberikan persetujuan tayang (Approve).
+      </p>
+    </div>
+  `;
+
+  const html = renderBaseLayout({
+    badgeTitle: "Verifikasi Revisi",
+    badgeColor: "#0284c7",
+    badgeBg: "#e0f2fe",
+    badgeBorder: "#bae6fd",
+    title: "Hasil Revisi Siap Diverifikasi",
+    subtitle: `Agenda: ${data.activityTitle}`,
+    contentHtml,
+    ctaText: "Verifikasi & Tinjau Karya",
+    ctaUrl: reviewUrl,
+  });
+
+  const previewText = data.workLink
+    ? (isUrl ? `Tautan: ${data.workLink}` : `Kutipan Naskah:\n"${data.workLink.slice(0, 200)}..."`)
+    : '';
+
+  const plainText = `[SIMIKP] Verifikasi Revisi: Hasil Perbaikan Masuk\n\nHalo ${data.reviewerName},\n\nPetugas ${data.officerName} telah mengirimkan ulang hasil revisi untuk agenda "${data.activityTitle}" (${data.contentType}).\n\n${previewText}\n\nSilakan verifikasi karya tersebut di tautan berikut:\n${reviewUrl}\n\nDinas Komunikasi dan Informatika Pemerintah Kota Batu`;
+
+  try {
+    const fromAddress = process.env.SMTP_FROM || `SIMIKP Pemkot Batu <${process.env.SMTP_USER}>`;
+    await transporter.sendMail({
+      from: fromAddress,
+      to: data.to,
+      subject: `[SIMIKP] Verifikasi Revisi: ${data.officerName} - ${data.activityTitle}`,
+      text: plainText,
+      html,
+      attachments: getEmailAttachments(),
+    });
+    console.log(`[MailService] ✓ Email verifikasi revisi berhasil dikirim ke Ahli Pertama: ${data.to}`);
+    return true;
+  } catch (error) {
+    console.error(`[MailService] ✗ Gagal mengirim email verifikasi revisi ke ${data.to}:`, error);
+    return false;
+  }
+}
+

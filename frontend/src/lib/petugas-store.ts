@@ -178,7 +178,12 @@ export const submitPetugasTaskWork = async (id: string, workLink: string): Promi
   try {
     await apiFetch(`/assignments/${id}`, {
       method: "PUT",
-      body: JSON.stringify({ workLink, status: nextStatus === "SELESAI" ? "COMPLETED" : "IN_PROGRESS" }),
+      body: JSON.stringify({
+        workLink,
+        status: nextStatus === "SELESAI" ? "COMPLETED" : "IN_PROGRESS",
+        isRevisionSubmission: isFromRevision,
+        revisionNotes: target?.revisionNotes,
+      }),
     });
   } catch {}
 
