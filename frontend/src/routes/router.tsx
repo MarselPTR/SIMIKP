@@ -5,6 +5,7 @@ import HomeRedirect from "./HomeRedirect";
 import AppLayout from "../layouts/AppLayout";
 import PetugasLayout from "../layouts/PetugasLayout";
 import LoginPage from "../pages/auth/LoginPage";
+import ResetPasswordPage from "../pages/auth/ResetPasswordPage";
 import DashboardPage from "../pages/dashboard/DashboardPage";
 import KegiatanPage from "../pages/kegiatan/KegiatanPage";
 import PenugasanPage from "../pages/penugasan/PenugasanPage";
@@ -23,6 +24,7 @@ import { Role } from "../lib/mock-data";
 
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
+  { path: "/reset-password", element: <ResetPasswordPage /> },
   {
     element: <ProtectedRoute />,
     children: [

@@ -1,12 +1,13 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { db } from "../../db";
-import { assignments, activities, contentTypes, users, archiveAssets } from "../../db/schema";
+import { assignments, activities, contentTypes, users, archiveAssets, userRoles, roles } from "../../db/schema";
 import { productionItems, productionVersions, productionFiles } from "../../db/schema/production";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, or, desc } from "drizzle-orm";
 import { z } from "zod";
 import crypto from "crypto";
 import { logAudit } from "../system/audit.service";
 import { createNotification } from "../system/notifications.service";
+import { sendWorkSubmissionAlertEmail } from "../../services/mail.service";
 
 const updateStatusSchema = z.object({
   status: z.string(),
@@ -307,10 +308,12 @@ export class ProductionsController {
         .select({
           activityTitle: activities.title,
           contentType: contentTypes.name,
+          petugasName: users.name,
         })
         .from(assignments)
         .innerJoin(activities, eq(assignments.activityId, activities.id))
         .innerJoin(contentTypes, eq(assignments.contentTypeId, contentTypes.id))
+        .leftJoin(users, eq(assignments.userId, users.id))
         .where(eq(assignments.id, assignmentId))
         .limit(1);
 
@@ -372,6 +375,30 @@ export class ProductionsController {
           createdAt: new Date(),
         });
       });
+
+      // Cari tim Reviewer dan Admin untuk dikirimi email hasil liputan baru
+      const reviewerUsers = await db
+        .select({
+          name: users.name,
+          email: users.email,
+        })
+        .from(users)
+        .innerJoin(userRoles, eq(users.id, userRoles.userId))
+        .innerJoin(roles, eq(userRoles.roleId, roles.id))
+        .where(or(eq(roles.name, "REVIEWER"), eq(roles.name, "ADMIN"), eq(roles.name, "MANAGER")));
+
+      for (const rev of reviewerUsers) {
+        if (rev.email) {
+          sendWorkSubmissionAlertEmail({
+            to: rev.email,
+            reviewerName: rev.name || "Tim Reviewer",
+            officerName: assignmentData[0]?.petugasName || "Petugas Lapangan",
+            activityTitle: assignmentData[0]?.activityTitle || "Liputan Kegiatan",
+            contentType: assignmentData[0]?.contentType || "Konten Media",
+            workLink,
+          }).catch(err => console.error("[ProductionsController] Gagal kirim email alert ke reviewer:", err));
+        }
+      }
 
       return reply.send({ success: true, message: "Pekerjaan berhasil dikirim!" });
     } catch (error) {

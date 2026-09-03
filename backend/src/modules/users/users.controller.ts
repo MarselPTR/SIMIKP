@@ -3,6 +3,7 @@ import { db } from "../../db";
 import { users, userRoles, roles } from "../../db/schema";
 import { isNotNull, eq } from "drizzle-orm";
 import { logAudit } from "../system/audit.service";
+import { sendWelcomeNewUserEmail } from "../../services/mail.service";
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
@@ -102,6 +103,19 @@ export class UsersController {
       }
 
       await logAudit(request, "CREATE_USER", "users", userId);
+
+      // Kirim email selamat datang dan kredensial akun jika email terisi
+      if (body.email) {
+        sendWelcomeNewUserEmail({
+          to: body.email,
+          name: body.name || body.username,
+          username: body.username,
+          temporaryPassword: body.password || "Sesuai yang didaftarkan Admin",
+          roleName: "Petugas Lapangan",
+        }).catch((err) => {
+          console.error("[UsersController] Gagal mengirim welcome email:", err);
+        });
+      }
 
       return reply.send({ success: true, message: "Petugas berhasil ditambahkan", id: userId });
     } catch (error) {
