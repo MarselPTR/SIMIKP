@@ -43,6 +43,13 @@
       "when": 1788432000000,
       "tag": "0005_add_password_reset_tokens",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1788436000000,
+      "tag": "0006_add_assignments_work_link",
+      "breakpoints": true
     }
   ]
 }

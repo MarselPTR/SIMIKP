@@ -87,6 +87,7 @@ export class AssignmentsController {
           endTime: assignments.endTime,
           status: assignments.status,
           instruction: assignments.instruction,
+          workLink: assignments.workLink,
         })
         .from(assignments)
         .leftJoin(activities, eq(assignments.activityId, activities.id))
@@ -393,6 +394,7 @@ export class AssignmentsController {
       if (body.deadline !== undefined) updateData.deadline = body.deadline ? new Date(body.deadline) : null;
       if (body.status !== undefined) updateData.status = body.status;
       if (body.instruction !== undefined) updateData.instruction = body.instruction;
+      if (body.workLink !== undefined) updateData.workLink = body.workLink;
 
       if (Object.keys(updateData).length > 0) {
         await db.update(assignments)

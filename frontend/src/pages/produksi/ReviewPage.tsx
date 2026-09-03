@@ -43,6 +43,9 @@ const ReviewPage = () => {
   const [revisionNotesInput, setRevisionNotesInput] = useState("");
   const [isSubmittingRevision, setIsSubmittingRevision] = useState(false);
 
+  // Modal state untuk pratinjau naskah Prahum (bukan tautan berkas)
+  const [previewNaskahTask, setPreviewNaskahTask] = useState<PetugasTaskItem | null>(null);
+
   const getCategoryLabel = (cat: string) => {
     if (cat === "ALL") return t("all");
     const found = CATEGORY_MAP[cat];
@@ -320,16 +323,27 @@ const ReviewPage = () => {
                   {/* Review Action Buttons */}
                   <div className="flex flex-wrap items-center gap-2 self-start lg:self-auto shrink-0">
                     {tItem.workLink && (
-                      <a
-                        href={tItem.workLink}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 transition cursor-pointer"
-                      >
-                        <Eye size={14} />
-                        <span>{t("review_btn_preview")}</span>
-                        <ExternalLink size={12} className="opacity-70" />
-                      </a>
+                      tItem.bidang === "PRAHUM" ? (
+                        <button
+                          type="button"
+                          onClick={() => setPreviewNaskahTask(tItem)}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 transition cursor-pointer"
+                        >
+                          <Eye size={14} />
+                          <span>{language === "en" ? "Read Article" : "Baca Naskah"}</span>
+                        </button>
+                      ) : (
+                        <a
+                          href={tItem.workLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 transition cursor-pointer"
+                        >
+                          <Eye size={14} />
+                          <span>{t("review_btn_preview")}</span>
+                          <ExternalLink size={12} className="opacity-70" />
+                        </a>
+                      )
                     )}
 
                     <button
@@ -518,6 +532,23 @@ const ReviewPage = () => {
               {language === "en" ? "* These notes will instantly appear in the officer's workspace." : "* Catatan ini akan langsung tampil di banner ruang kerja Petugas Lapangan terkait."}
             </p>
           </div>
+        </div>
+      </Dialog>
+
+      {/* Naskah Preview Dialog (Prahum) */}
+      <Dialog
+        open={!!previewNaskahTask}
+        onClose={() => setPreviewNaskahTask(null)}
+        title={language === "en" ? "Article Text" : "Isi Naskah Berita"}
+        size="lg"
+      >
+        <div className="space-y-3 text-xs sm:text-sm">
+          <p className="font-bold text-gray-900 dark:text-gray-100">
+            {language === "en" ? "Activity" : "Kegiatan"}: <span className="font-normal text-gray-700 dark:text-gray-300">{previewNaskahTask?.kegiatan}</span>
+          </p>
+          <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed bg-gray-50 dark:bg-gray-900/60 rounded-xl p-4 border border-gray-100 dark:border-gray-800 max-h-[60vh] overflow-y-auto">
+            {previewNaskahTask?.workLink}
+          </p>
         </div>
       </Dialog>
     </div>

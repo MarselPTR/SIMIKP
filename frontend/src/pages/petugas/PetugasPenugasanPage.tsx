@@ -122,6 +122,8 @@ const PetugasPenugasanPage = () => {
           const totalSteps = taskWorkflow.length;
           const rawStatus = selectedTask.status.toUpperCase();
           const isRevision = rawStatus === "REVISI";
+          // Prahum tidak unggah tautan berkas — cukup kirim isi naskah beritanya langsung.
+          const isPrahum = selectedTask.bidang === "PRAHUM";
           const isCompleted = rawStatus === "SELESAI" || selectedTask.status === "COMPLETED";
           const progressPercent = isCompleted ? 100 : Math.round(((stepIndex + 1) / totalSteps) * 100);
 
@@ -238,30 +240,53 @@ const PetugasPenugasanPage = () => {
                   <div className="bg-white dark:bg-gray-900/60 rounded-2xl border border-gray-200 dark:border-gray-800 p-5 space-y-4 shadow-xs">
                     <div>
                       <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">
-                        {isRevision
+                        {isPrahum
+                          ? (isRevision
+                              ? (language === "en" ? "Revised Article Text" : "Teks Naskah Hasil Perbaikan")
+                              : (language === "en" ? "News Article Text" : "Isi Naskah Berita"))
+                          : isRevision
                           ? (language === "en" ? "Upload Revised Deliverables Link" : "Tautan Berkas Hasil Perbaikan")
                           : (language === "en" ? "Deliverable Cloud Link (Google Drive / Canva)" : "Tautan Berkas (Google Drive / Cloud)")}
                       </h3>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {isRevision
+                        {isPrahum
+                          ? (isRevision
+                              ? (language === "en" ? "Update the article text after completing revision notes from Ahli Pertama." : "Perbarui isi naskah setelah melakukan perbaikan sesuai catatan Ahli Pertama.")
+                              : (language === "en" ? "Write the full article text here for review." : "Tulis isi naskah berita secara lengkap di sini untuk direview pimpinan."))
+                          : isRevision
                           ? (language === "en" ? "Update your deliverable link after completing revision notes from Ahli Pertama." : "Perbarui tautan berkas setelah melakukan perbaikan sesuai catatan Ahli Pertama.")
                           : (language === "en" ? "Enter your Google Drive or Canva link for quality review." : "Masukkan tautan Google Drive atau Canva untuk review pimpinan.")}
                       </p>
                     </div>
 
-                    <input
-                      type="url"
-                      value={uploadLink}
-                      onChange={(e) => setUploadLink(e.target.value)}
-                      placeholder="https://drive.google.com/drive/folders/..."
-                      className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0a1647] dark:focus:ring-sky-500"
-                    />
+                    {isPrahum ? (
+                      <textarea
+                        rows={10}
+                        value={uploadLink}
+                        onChange={(e) => setUploadLink(e.target.value)}
+                        placeholder={language === "en" ? "Write the news article here..." : "Tulis naskah berita di sini..."}
+                        className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0a1647] dark:focus:ring-sky-500 leading-relaxed"
+                      />
+                    ) : (
+                      <input
+                        type="url"
+                        value={uploadLink}
+                        onChange={(e) => setUploadLink(e.target.value)}
+                        placeholder="https://drive.google.com/drive/folders/..."
+                        className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0a1647] dark:focus:ring-sky-500"
+                      />
+                    )}
 
                     <button
                       type="button"
                       onClick={async () => {
                         if (!uploadLink.trim()) {
-                          addToast(language === "en" ? "Please enter file link" : "Harap masukkan tautan berkas", "warning");
+                          addToast(
+                            isPrahum
+                              ? (language === "en" ? "Please write the article text" : "Harap tulis isi naskahnya")
+                              : (language === "en" ? "Please enter file link" : "Harap masukkan tautan berkas"),
+                            "warning"
+                          );
                           return;
                         }
                         await storeSubmitWork(selectedTask.id, uploadLink.trim());
@@ -290,27 +315,39 @@ const PetugasPenugasanPage = () => {
                       ) : (
                         <>
                           <Upload size={14} />
-                          <span>{language === "en" ? "Save & Submit Deliverables" : "Simpan & Kirim Luaran"}</span>
+                          <span>{isPrahum ? (language === "en" ? "Save & Submit Article" : "Simpan & Kirim Naskah") : (language === "en" ? "Save & Submit Deliverables" : "Simpan & Kirim Luaran")}</span>
                         </>
                       )}
                     </button>
 
                     {selectedTask.workLink && (
-                      <div className="pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between gap-2 text-xs">
-                        <span className="font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
-                          <CheckCircle2 size={13} className="text-emerald-600 dark:text-emerald-400" />
-                          {language === "en" ? "Link Saved" : "Tautan Aktif Tersimpan"}
-                        </span>
-                        <a
-                          href={selectedTask.workLink}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="font-medium text-[#0a1647] dark:text-sky-400 hover:underline flex items-center gap-1 truncate max-w-[200px]"
-                        >
-                          <span className="truncate">{language === "en" ? "Open in New Tab" : "Buka di Tab Baru"}</span>
-                          <ExternalLink size={12} className="shrink-0" />
-                        </a>
-                      </div>
+                      isPrahum ? (
+                        <div className="pt-3 border-t border-gray-100 dark:border-gray-800 space-y-1.5 text-xs">
+                          <span className="font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                            <CheckCircle2 size={13} className="text-emerald-600 dark:text-emerald-400" />
+                            {language === "en" ? "Article Saved" : "Naskah Tersimpan"}
+                          </span>
+                          <p className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap max-h-32 overflow-y-auto bg-gray-50 dark:bg-gray-900/60 rounded-lg p-2.5 border border-gray-100 dark:border-gray-800">
+                            {selectedTask.workLink}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between gap-2 text-xs">
+                          <span className="font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                            <CheckCircle2 size={13} className="text-emerald-600 dark:text-emerald-400" />
+                            {language === "en" ? "Link Saved" : "Tautan Aktif Tersimpan"}
+                          </span>
+                          <a
+                            href={selectedTask.workLink}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-medium text-[#0a1647] dark:text-sky-400 hover:underline flex items-center gap-1 truncate max-w-[200px]"
+                          >
+                            <span className="truncate">{language === "en" ? "Open in New Tab" : "Buka di Tab Baru"}</span>
+                            <ExternalLink size={12} className="shrink-0" />
+                          </a>
+                        </div>
+                      )
                     )}
                   </div>
                 </div>
