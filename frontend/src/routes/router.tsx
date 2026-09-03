@@ -17,6 +17,7 @@ import TambahPetugasPage from "../pages/petugas/TambahPetugasPage";
 import DaftarAnggotaPage from "../pages/petugas/DaftarAnggotaPage";
 import PetugasDashboardPage from "../pages/petugas/PetugasDashboardPage";
 import PetugasPenugasanPage from "../pages/petugas/PetugasPenugasanPage";
+import PetugasAgendaTersediaPage from "../pages/petugas/PetugasAgendaTersediaPage";
 import ProfilPage from "../pages/profil/ProfilPage";
 import PengaturanPage from "../pages/pengaturan/PengaturanPage";
 import { Role } from "../lib/mock-data";
@@ -60,6 +61,7 @@ export const router = createBrowserRouter([
             children: [
               { path: "petugas", element: <Navigate to="/petugas/dashboard" replace /> },
               { path: "petugas/dashboard", element: <PetugasDashboardPage /> },
+              { path: "petugas/agenda-tersedia", element: <PetugasAgendaTersediaPage /> },
               { path: "petugas/penugasan", element: <PetugasPenugasanPage /> },
               { path: "petugas/bank-konten", element: <BankKontenPage /> },
               { path: "petugas/profil", element: <ProfilPage /> },

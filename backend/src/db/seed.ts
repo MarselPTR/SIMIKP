@@ -67,7 +67,7 @@ async function runSeed() {
         username: "budi",
         passwordHash: "$2a$10$xyz",
         name: "Budi Fotografer",
-        staffType: "FOTO_VIDEO",
+        staffType: "FOTOGRAFER",
       },
       {
         id: userCitraId,

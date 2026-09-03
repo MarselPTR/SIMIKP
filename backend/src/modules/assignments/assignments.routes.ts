@@ -4,6 +4,7 @@ import { AssignmentsController } from "./assignments.controller";
 export async function assignmentRoutes(server: FastifyInstance) {
   server.get("/", AssignmentsController.getAllAssignments);
   server.post("/", AssignmentsController.createAssignment);
+  server.post("/claim", AssignmentsController.claimAssignment);
   server.put("/:id", AssignmentsController.updateAssignment);
   server.delete("/:id", AssignmentsController.deleteAssignment);
 }

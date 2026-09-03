@@ -621,7 +621,7 @@ const KegiatanPage = () => {
             <div className="bg-gray-50 rounded-xl p-3.5 border border-gray-100 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  👥 Penugasan Tim Terkait ({getAssignedTasks(form.title).length})
+                  👥 Penugasan Khusus Terkait ({getAssignedTasks(form.title).length})
                 </span>
                 <button
                   type="button"

@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { db } from "../../db";
-import { assignments, activities, users, contentTypes } from "../../db/schema";
+import { assignments, activities, users, contentTypes, activityRequiredContents } from "../../db/schema";
 import { eq, and, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { createNotification } from "../system/notifications.service";
@@ -20,6 +20,34 @@ const createAssignmentSchema = z.object({
   location: z.string().optional(),
   activityDate: z.string().optional(),
 });
+
+const claimAssignmentSchema = z.object({
+  activityId: z.string(),
+  contentTypeId: z.string().optional(),
+  contentType: z.string().optional(),
+});
+
+// Jenis konten (role) -> jabatan yang boleh mengklaimnya. Cocok dengan checklist
+// "Output yang Dibutuhkan" di form Kegiatan.
+const CONTENT_TYPE_TO_STAFF_TYPE: Record<string, string> = {
+  "Naskah Berita": "PRAHUM",
+  Foto: "FOTOGRAFER",
+  Video: "VIDEOGRAFER",
+  Reels: "VIDEOGRAFER",
+  Infografis: "DESAINER_EDITOR",
+  Audio: "DESAINER_EDITOR",
+};
+
+// Petugas tanpa jabatan tetap bebas mengklaim role apapun; "FOTO_VIDEO" adalah
+// nilai jabatan lama (sebelum dipecah jadi Fotografer/Videografer) dan tetap boleh keduanya.
+function staffTypeMatchesContentType(staffType: string | null | undefined, contentTypeName: string): boolean {
+  if (!staffType) return true;
+  const required = CONTENT_TYPE_TO_STAFF_TYPE[contentTypeName];
+  if (!required) return true;
+  if (staffType === required) return true;
+  if (staffType === "FOTO_VIDEO" && (required === "FOTOGRAFER" || required === "VIDEOGRAFER")) return true;
+  return false;
+}
 
 const updateAssignmentSchema = z.object({
   activityId: z.string().optional(),
@@ -44,6 +72,7 @@ export class AssignmentsController {
         .select({
           id: assignments.id,
           activityId: assignments.activityId,
+          userId: assignments.userId,
           activityTitle: activities.title,
           activityDate: activities.activityDate,
           picName: users.name,
@@ -184,6 +213,92 @@ export class AssignmentsController {
       }
       request.log.error(error);
       return reply.status(500).send({ success: false, error: "Gagal membuat penugasan" });
+    }
+  }
+
+  // Petugas mengambil sendiri slot role yang masih kosong di sebuah agenda.
+  static async claimAssignment(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const body = claimAssignmentSchema.parse(request.body);
+
+      const cookieSession = request.cookies["simikp_session"];
+      let userId: string | null = null;
+      if (cookieSession) {
+        try {
+          const session = JSON.parse(Buffer.from(cookieSession, "base64").toString("utf-8"));
+          userId = session.id;
+        } catch (e) {}
+      }
+      const validUser = userId
+        ? await db.select({ id: users.id, staffType: users.staffType }).from(users).where(eq(users.id, userId)).limit(1)
+        : [];
+      if (validUser.length === 0) {
+        return reply.status(401).send({ success: false, error: "Sesi tidak valid, silakan login ulang", message: "Sesi tidak valid, silakan login ulang" });
+      }
+      const finalUserId = validUser[0].id;
+
+      const actMatches = await db.select().from(activities).where(or(eq(activities.id, body.activityId), eq(activities.title, body.activityId))).limit(1);
+      if (!actMatches.length) {
+        return reply.status(404).send({ success: false, error: "Agenda tidak ditemukan", message: "Agenda tidak ditemukan" });
+      }
+      const finalActivityId = actMatches[0].id;
+
+      const contentTypeKey = body.contentTypeId || body.contentType;
+      if (!contentTypeKey) {
+        return reply.status(400).send({ success: false, error: "Role/jenis konten wajib dipilih", message: "Role/jenis konten wajib dipilih" });
+      }
+      const ctMatches = await db.select().from(contentTypes).where(or(eq(contentTypes.id, contentTypeKey), eq(contentTypes.name, contentTypeKey))).limit(1);
+      if (!ctMatches.length) {
+        return reply.status(404).send({ success: false, error: "Jenis konten tidak ditemukan", message: "Jenis konten tidak ditemukan" });
+      }
+      const finalContentTypeId = ctMatches[0].id;
+
+      if (!staffTypeMatchesContentType(validUser[0].staffType, ctMatches[0].name)) {
+        return reply.status(403).send({ success: false, error: "Role ini bukan bagian dari jabatan Anda", message: "Role ini bukan bagian dari jabatan Anda" });
+      }
+
+      const newId = crypto.randomUUID();
+
+      await db.transaction(async (tx) => {
+        const required = await tx.select().from(activityRequiredContents).where(
+          and(eq(activityRequiredContents.activityId, finalActivityId), eq(activityRequiredContents.contentTypeId, finalContentTypeId))
+        ).limit(1);
+        if (!required.length) {
+          throw new Error("NOT_REQUIRED");
+        }
+
+        const taken = await tx.select({ id: assignments.id }).from(assignments).where(
+          and(eq(assignments.activityId, finalActivityId), eq(assignments.contentTypeId, finalContentTypeId))
+        ).limit(1);
+        if (taken.length) {
+          throw new Error("ALREADY_TAKEN");
+        }
+
+        await tx.insert(assignments).values({
+          id: newId,
+          activityId: finalActivityId,
+          userId: finalUserId,
+          contentTypeId: finalContentTypeId,
+          status: "ASSIGNED",
+          createdBy: finalUserId,
+        });
+      });
+
+      await logAudit(request, "CLAIM_ASSIGNMENT", "assignments", newId);
+
+      return reply.send({ success: true, message: "Berhasil mengambil tugas", id: newId });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return reply.status(400).send({ success: false, error: error.issues });
+      }
+      if (error?.message === "NOT_REQUIRED") {
+        return reply.status(400).send({ success: false, error: "Role ini tidak dibutuhkan pada agenda ini", message: "Role ini tidak dibutuhkan pada agenda ini" });
+      }
+      if (error?.message === "ALREADY_TAKEN") {
+        return reply.status(409).send({ success: false, error: "Slot ini sudah diambil petugas lain", message: "Slot ini sudah diambil petugas lain" });
+      }
+      request.log.error(error);
+      return reply.status(500).send({ success: false, error: "Gagal mengambil tugas", message: "Gagal mengambil tugas" });
     }
   }
 

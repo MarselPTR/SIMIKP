@@ -31,9 +31,9 @@ const PetugasPenugasanPage = () => {
   const { addToast } = useToast();
   const { t, language } = useLanguage();
 
-  const userBidang = user?.staffType || (user as any)?.bidang || "PRAHUM";
-
-  const { tasks: userTasks, submitWork: storeSubmitWork } = usePetugasTasksStore(userBidang);
+  // Identitas (userId), bukan kategori tetap — role sekarang melekat per-tugas.
+  const { tasks: userTasks, submitWork: storeSubmitWork } = usePetugasTasksStore(user?.id);
+  const userBidang = userTasks[0]?.bidang || "PRAHUM";
 
   const initialTaskId = (location.state as { taskId?: string } | null)?.taskId ?? null;
   const [selectedId, setSelectedId] = useState<string | null>(initialTaskId);
@@ -103,11 +103,13 @@ const PetugasPenugasanPage = () => {
               : `Daftar seluruh tugas operasional yang dialokasikan untuk kamu ${user?.name ? `• ${user.name}` : ""}`}
           </p>
         </div>
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          <span className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-[#161b22] text-[#0a1647] dark:text-sky-400 border border-gray-200 dark:border-gray-800 shadow-xs">
-            {language === "en" ? "Sector" : "Sektor"}: {userBidang || "PRAHUM"}
-          </span>
-        </div>
+        {userTasks.length > 0 && (
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <span className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-[#161b22] text-[#0a1647] dark:text-sky-400 border border-gray-200 dark:border-gray-800 shadow-xs">
+              {language === "en" ? "Sector" : "Sektor"}: {userBidang}
+            </span>
+          </div>
+        )}
       </div>
 
       {selectedTask ? (

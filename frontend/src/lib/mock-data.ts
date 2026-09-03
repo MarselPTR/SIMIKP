@@ -26,8 +26,11 @@ export const mockUsers: MockUser[] = [];
 // Alur status per bidang kerja petugas lapangan — dipakai di halaman Penugasan Saya.
 export const WORKFLOWS: Record<string, string[]> = {
   PRAHUM: ["BELUM", "LIPUTAN", "MENULIS", "SIAP_TAYANG", "SELESAI"],
-  FOTO_VIDEO: ["BELUM", "LIPUTAN", "SIAP_TAYANG", "SELESAI"],
+  FOTOGRAFER: ["BELUM", "LIPUTAN", "SIAP_TAYANG", "SELESAI"],
+  VIDEOGRAFER: ["BELUM", "LIPUTAN", "SIAP_TAYANG", "SELESAI"],
   DESAINER_EDITOR: ["BELUM", "DESAIN", "REVISI", "SIAP_TAYANG", "SELESAI"],
+  // Nilai lama sebelum jabatan Foto & Video dipecah — dipertahankan untuk data yang sudah ada.
+  FOTO_VIDEO: ["BELUM", "LIPUTAN", "SIAP_TAYANG", "SELESAI"],
 };
 
 export interface MockTugasPetugas {

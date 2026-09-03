@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { db } from "../../db";
 import { users, userRoles, roles } from "../../db/schema";
-import { isNotNull, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { logAudit } from "../system/audit.service";
 import crypto from "crypto";
 import fs from "fs";
@@ -26,7 +26,9 @@ export class UsersController {
           active: users.active,
         })
         .from(users)
-        .where(isNotNull(users.staffType));
+        .innerJoin(userRoles, eq(userRoles.userId, users.id))
+        .innerJoin(roles, eq(roles.id, userRoles.roleId))
+        .where(eq(roles.name, "PETUGAS"));
 
       return reply.send({ success: true, data });
     } catch (error) {
@@ -82,7 +84,7 @@ export class UsersController {
         username: body.username,
         passwordHash,
         name: body.name,
-        staffType: body.program,
+        staffType: body.program || null,
         email: body.email,
         nik: body.nik,
         gender: body.gender,

@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   ClipboardList,
   FolderOpen,
+  CalendarPlus,
 } from "lucide-react";
 import { useLanguage } from "../lib/LanguageContext";
 import logoKotaBatu from "../assets/Logo_Kota_Batu.png";
@@ -16,6 +17,7 @@ const PetugasSidebar = ({ onClose }: PetugasSidebarProps) => {
 
   const petugasMenuItems = [
     { path: "/petugas/dashboard", label: t("dashboard"), icon: LayoutDashboard },
+    { path: "/petugas/agenda-tersedia", label: t("available_agenda"), icon: CalendarPlus },
     { path: "/petugas/penugasan", label: t("my_assignments"), icon: ClipboardList },
     { path: "/petugas/bank-konten", label: t("content_bank"), icon: FolderOpen },
   ];

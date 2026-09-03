@@ -1,8 +1,31 @@
 import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "./api-client";
 
+// Jenis konten (role) tugas -> jabatan/sektor alur kerja (dipakai untuk lookup
+// WORKFLOWS dan untuk membatasi role apa yang boleh diklaim petugas sesuai jabatannya).
+// Cocok dengan checklist "Output yang Dibutuhkan" di form Kegiatan.
+export const CONTENT_TYPE_TO_BIDANG: Record<string, string> = {
+  "Naskah Berita": "PRAHUM",
+  Foto: "FOTOGRAFER",
+  Video: "VIDEOGRAFER",
+  Reels: "VIDEOGRAFER",
+  Infografis: "DESAINER_EDITOR",
+  Audio: "DESAINER_EDITOR",
+};
+
+// Jabatan lama "FOTO_VIDEO" (sebelum dipecah) tetap boleh mengklaim keduanya.
+export const staffTypeMatchesContentType = (staffType: string | null | undefined, contentType: string): boolean => {
+  if (!staffType) return true; // belum ada jabatan tetap = bebas pilih role apapun
+  const bucket = CONTENT_TYPE_TO_BIDANG[contentType];
+  if (!bucket) return true;
+  if (staffType === bucket) return true;
+  if (staffType === "FOTO_VIDEO" && (bucket === "FOTOGRAFER" || bucket === "VIDEOGRAFER")) return true;
+  return false;
+};
+
 export interface PetugasTaskItem {
   id: string;
+  userId?: string;
   kegiatan: string;
   lokasi: string;
   jenisPekerjaan: string;
@@ -145,7 +168,7 @@ export const submitPetugasTaskWork = async (id: string, workLink: string): Promi
 /**
  * Reactive React Hook that stays in sync across Dashboard & Penugasan Saya
  */
-export const usePetugasTasksStore = (userBidang?: string | null) => {
+export const usePetugasTasksStore = (userId?: string | null) => {
   const [tasks, setTasks] = useState<PetugasTaskItem[]>(() => getStoredPetugasTasks());
 
   const sync = useCallback(() => {
@@ -159,11 +182,12 @@ export const usePetugasTasksStore = (userBidang?: string | null) => {
         if (res.data && res.data.length > 0) {
           const mapped: PetugasTaskItem[] = res.data.map((a: any) => ({
             id: a.id,
+            userId: a.userId,
             kegiatan: a.activityTitle || a.activity?.title || "Kegiatan",
             lokasi: a.location || "Balaikota",
             jenisPekerjaan: a.contentType || "Liputan",
             deadline: a.activityDate || "2026-08-27",
-            bidang: a.staffType || userBidang || "PRAHUM",
+            bidang: CONTENT_TYPE_TO_BIDANG[a.contentType] || "PRAHUM",
             status: a.status === "COMPLETED" ? "SELESAI" : a.status === "IN_PROGRESS" ? "LIPUTAN" : "BELUM",
             kategori: ((a.activityTitle || "").toLowerCase().includes("rapat")
               ? "rapat"
@@ -194,9 +218,11 @@ export const usePetugasTasksStore = (userBidang?: string | null) => {
       window.removeEventListener(EVENT_NAME, sync);
       window.removeEventListener("storage", sync);
     };
-  }, [sync, userBidang]);
+  }, [sync, userId]);
 
-  const userTasks = tasks.filter((t) => !userBidang || t.bidang === userBidang);
+  // Identitas, bukan kategori: role sekarang melekat per-tugas, jadi tugas
+  // milik petugas lain (walau kebetulan role-nya sama) tidak boleh ikut tampil.
+  const userTasks = tasks.filter((t) => !userId || t.userId === userId);
 
   return {
     tasks: userTasks,
