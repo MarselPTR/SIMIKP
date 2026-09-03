@@ -34,8 +34,6 @@ export const ahliPertamaNavConfig: NavItemConfig[] = [
 
 export const navConfig = adminNavConfig;
 
-const NAVY = "#0f1f5c";
-
 interface SidebarProps {
   onClose?: () => void;
 }
