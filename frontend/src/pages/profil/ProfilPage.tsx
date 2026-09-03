@@ -979,9 +979,10 @@ export default function ProfilPage() {
               </button>
               <button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
                   setShowLogoutConfirm(false);
-                  logout();
+                  await logout();
+                  navigate("/login", { replace: true, state: {} });
                 }}
                 className="flex-1 py-2.5 text-xs font-bold rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition cursor-pointer"
               >

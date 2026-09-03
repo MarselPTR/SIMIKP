@@ -22,6 +22,7 @@ import { useToast } from "../../contexts/ToastContext";
 import { useTheme } from "../../lib/ThemeContext";
 import { useLanguage } from "../../lib/LanguageContext";
 import type { Language } from "../../lib/LanguageContext";
+import { apiFetch } from "../../lib/api-client";
 
 const NAVY = "#0f1f5c";
 
@@ -46,7 +47,7 @@ export default function PengaturanPage() {
   // ── Profil / Data States ──
   const [name, setName] = useState(user?.name ?? "");
   const [username, setUsername] = useState(user?.username ?? "");
-  const [phone, setPhone] = useState("0812-3456-7890");
+  const [phone, setPhone] = useState(user?.phone ?? "0812-3456-7890");
   const [staffType, setStaffType] = useState(user?.staffType ?? "");
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
@@ -81,7 +82,7 @@ export default function PengaturanPage() {
 
   const pwStrength = getPasswordStrength(newPassword);
 
-  const handleSavePassword = (e: FormEvent) => {
+  const handleSavePassword = async (e: FormEvent) => {
     e.preventDefault();
     if (!currentPassword) {
       addToast(t("password_current_error"), "error");
@@ -97,16 +98,29 @@ export default function PengaturanPage() {
     }
 
     setIsSavingPw(true);
-    setTimeout(() => {
-      setIsSavingPw(false);
+    try {
+      const res = await apiFetch<{ success: boolean; message: string }>("/auth/change-password", {
+        method: "POST",
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+          userId: user?.id,
+          username: user?.username,
+        }),
+      });
+
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      addToast(t("password_saved_success"), "success");
-    }, 600);
+      addToast(res.message || t("password_saved_success"), "success");
+    } catch (err: any) {
+      addToast(err.message || "Gagal memperbarui kata sandi. Pastikan kata sandi saat ini benar.", "error");
+    } finally {
+      setIsSavingPw(false);
+    }
   };
 
-  const handleSaveProfile = (e: FormEvent) => {
+  const handleSaveProfile = async (e: FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
       addToast(language === "en" ? "Full name cannot be empty." : "Nama lengkap tidak boleh kosong.", "error");
@@ -114,15 +128,19 @@ export default function PengaturanPage() {
     }
 
     setIsSavingProfile(true);
-    setTimeout(() => {
-      updateUser({
-        name,
-        username,
+    try {
+      await updateUser({
+        name: name.trim(),
+        username: username.trim(),
+        phone: phone.trim(),
         staffType,
       });
-      setIsSavingProfile(false);
       addToast(t("profile_saved_success"), "success");
-    }, 500);
+    } catch (err: any) {
+      addToast(err.message || "Gagal menyimpan perubahan profil", "error");
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
 
   const isPetugas = user?.role?.toLowerCase() === "petugas";

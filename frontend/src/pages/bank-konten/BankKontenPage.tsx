@@ -146,11 +146,24 @@ const BankKontenPage = () => {
   };
 
   const handleDownloadAllFolder = () => {
-    if (!selectedFolder) return;
+    if (!selectedFolder || !selectedFolder.files.length) return;
     addToast(
       `Memulai pengunduhan ${selectedFolder.files.length} arsip kegiatan ${selectedFolder.title}...`,
       "success"
     );
+    selectedFolder.files.forEach((file, index) => {
+      setTimeout(() => {
+        if (file.workLink) {
+          const link = document.createElement("a");
+          link.href = file.workLink;
+          link.target = "_blank";
+          link.download = file.name;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      }, index * 250);
+    });
   };
 
   if (isLoading) return <LoadingSpinner />;
@@ -531,7 +544,13 @@ const BankKontenPage = () => {
 
                         <div className="pt-1.5 flex items-center gap-1.5 border-t border-gray-100 dark:border-gray-800">
                           <button
-                            onClick={() => addToast(`Membuka pratinjau ${file.name}`, "info")}
+                            onClick={() => {
+                              if (file.workLink || file.thumbnailUrl) {
+                                window.open(file.workLink || file.thumbnailUrl, "_blank");
+                              } else {
+                                addToast(`Pratinjau berkas ${file.name} tidak tersedia`, "info");
+                              }
+                            }}
                             className="flex-1 py-1 text-[11px] font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 hover:text-indigo-700 dark:hover:text-indigo-300 rounded-md transition-colors flex items-center justify-center gap-1"
                           >
                             <Eye className="w-3 h-3" />

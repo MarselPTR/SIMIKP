@@ -58,9 +58,26 @@ const LoginPage = () => {
     }
   };
 
+  const getDestinationForUser = (role?: string, requestedPath?: string) => {
+    const isPetugas = role?.toLowerCase() === Role.PETUGAS.toLowerCase();
+    const isAhliPertama = role?.toLowerCase() === Role.AHLI_PERTAMA.toLowerCase();
+
+    if (isPetugas) {
+      if (requestedPath && requestedPath.startsWith("/petugas")) {
+        return requestedPath;
+      }
+      return "/petugas/dashboard";
+    }
+
+    // Manajemen (Ahli Pertama, Admin, Super Admin, dsb)
+    if (requestedPath && !requestedPath.startsWith("/petugas") && requestedPath !== "/login") {
+      return requestedPath;
+    }
+    return isAhliPertama ? "/review" : "/dashboard";
+  };
+
   if (isAuthenticated && user) {
-    const defaultDest = user.role === Role.PETUGAS ? "/petugas/dashboard" : "/dashboard";
-    return <Navigate to={from || defaultDest} replace />;
+    return <Navigate to={getDestinationForUser(user.role, from)} replace />;
   }
 
   const handleSubmit = async (e: FormEvent) => {
@@ -71,8 +88,7 @@ const LoginPage = () => {
       setError(result.error ?? t("login_failed"));
       return;
     }
-    const defaultDest = result.user?.role === Role.PETUGAS ? "/petugas/dashboard" : "/dashboard";
-    navigate(from || defaultDest, { replace: true });
+    navigate(getDestinationForUser(result.user?.role, from), { replace: true });
   };
 
   return (

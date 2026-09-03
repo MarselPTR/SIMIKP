@@ -30,6 +30,24 @@ export interface RevisionRecord {
   date: string;
 }
 
+export interface MediaFileInfo {
+  url: string;
+  filename: string;
+  originalName: string;
+  fileSize: number;
+  mimeType: string;
+  isCurated?: boolean;
+}
+
+export interface MediaWorkPayload {
+  type: "MEDIA_SUBMISSION";
+  subType?: "foto" | "video" | "desain";
+  files: MediaFileInfo[];
+  caption?: string;
+  targetPlatform?: string;
+  editorNotes?: string;
+}
+
 export interface PetugasTaskItem {
   id: string;
   userId?: string;
@@ -44,6 +62,10 @@ export interface PetugasTaskItem {
   hasConflict?: boolean;
   conflictMessage?: string;
   workLink?: string;
+  mediaData?: MediaWorkPayload;
+  caption?: string;
+  targetPlatform?: string;
+  editorNotes?: string;
   revisionNotes?: string;
   revisionAuthor?: string;
   revisionDate?: string;
@@ -154,9 +176,15 @@ export const approveTaskContent = async (id: string): Promise<PetugasTaskItem[]>
   return updated;
 };
 
-export const submitPetugasTaskWork = async (id: string, workLink: string): Promise<PetugasTaskItem[]> => {
+export const submitPetugasTaskWork = async (
+  id: string,
+  workLinkOrPayload: string | MediaWorkPayload
+): Promise<PetugasTaskItem[]> => {
   const current = getStoredPetugasTasks();
   const target = current.find((t) => t.id === id);
+
+  const isMediaObj = typeof workLinkOrPayload !== "string";
+  const finalWorkLink = isMediaObj ? JSON.stringify(workLinkOrPayload) : workLinkOrPayload;
 
   // Jika tugas sebelumnya berstatus REVISI, kirim ulang kembali ke workflow telaah (NEED_REVIEW)
   const isFromRevision = target?.status === "REVISI";
@@ -168,7 +196,11 @@ export const submitPetugasTaskWork = async (id: string, workLink: string): Promi
     t.id === id
       ? {
           ...t,
-          workLink,
+          workLink: finalWorkLink,
+          mediaData: isMediaObj ? workLinkOrPayload : t.mediaData,
+          caption: isMediaObj ? workLinkOrPayload.caption : t.caption,
+          targetPlatform: isMediaObj ? workLinkOrPayload.targetPlatform : t.targetPlatform,
+          editorNotes: isMediaObj ? workLinkOrPayload.editorNotes : t.editorNotes,
           status: nextStatus,
         }
       : t
@@ -179,7 +211,7 @@ export const submitPetugasTaskWork = async (id: string, workLink: string): Promi
     await apiFetch(`/assignments/${id}`, {
       method: "PUT",
       body: JSON.stringify({
-        workLink,
+        workLink: finalWorkLink,
         status: nextStatus === "SELESAI" ? "COMPLETED" : "IN_PROGRESS",
         isRevisionSubmission: isFromRevision,
         revisionNotes: target?.revisionNotes,
@@ -227,6 +259,14 @@ export const usePetugasTasksStore = (userId?: string | null) => {
               finalStatus = existing?.status || "BELUM";
             }
 
+            const rawLink = a.workLink || existing?.workLink;
+            let parsedMedia: MediaWorkPayload | undefined = existing?.mediaData;
+            if (rawLink && typeof rawLink === "string" && rawLink.startsWith('{"type":"MEDIA_SUBMISSION"')) {
+              try {
+                parsedMedia = JSON.parse(rawLink);
+              } catch {}
+            }
+
             return {
               id: a.id,
               userId: a.userId,
@@ -246,10 +286,14 @@ export const usePetugasTasksStore = (userId?: string | null) => {
                 ? "upacara"
                 : "peresmian") as PetugasTaskItem["kategori"],
               instruksi: a.instruction || existing?.instruksi || "Lakukan tugas sesuai arahan.",
-              workLink: a.workLink || existing?.workLink,
-              revisionNotes: existing?.revisionNotes,
-              revisionAuthor: existing?.revisionAuthor,
-              revisionDate: existing?.revisionDate,
+              workLink: rawLink,
+              mediaData: parsedMedia,
+              caption: parsedMedia?.caption || existing?.caption,
+              targetPlatform: parsedMedia?.targetPlatform || existing?.targetPlatform,
+              editorNotes: parsedMedia?.editorNotes || existing?.editorNotes,
+              revisionNotes: a.revisionNotes || existing?.revisionNotes,
+              revisionAuthor: a.revisionAuthor || existing?.revisionAuthor,
+              revisionDate: a.revisionDate || existing?.revisionDate,
               revisionHistory: existing?.revisionHistory,
             };
           });
@@ -284,7 +328,7 @@ export const usePetugasTasksStore = (userId?: string | null) => {
     tasks: userTasks,
     allTasks: tasks,
     updateStatus: (id: string, status: string) => updatePetugasTaskStatus(id, status),
-    submitWork: (id: string, link: string) => submitPetugasTaskWork(id, link),
+    submitWork: (id: string, link: string | MediaWorkPayload) => submitPetugasTaskWork(id, link),
     requestRevision: (id: string, notes: string, author?: string) => requestTaskRevision(id, notes, author),
     approveContent: (id: string) => approveTaskContent(id),
     refresh: sync,

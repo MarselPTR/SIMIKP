@@ -9,4 +9,5 @@ export default async function productionsRoutes(server: FastifyInstance) {
   server.get("/my-tasks", ProductionsController.getMyTasks);
   server.post("/:assignmentId/status", ProductionsController.updateStatus);
   server.post("/:assignmentId/submit", ProductionsController.submitWork);
+  server.post("/curate-approval", ProductionsController.curateAndApprove);
 }

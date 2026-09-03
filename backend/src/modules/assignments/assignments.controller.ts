@@ -94,6 +94,9 @@ export class AssignmentsController {
           status: assignments.status,
           instruction: assignments.instruction,
           workLink: assignments.workLink,
+          revisionNotes: assignments.revisionNotes,
+          revisionAuthor: assignments.revisionAuthor,
+          revisionDate: assignments.revisionDate,
         })
         .from(assignments)
         .leftJoin(activities, eq(assignments.activityId, activities.id))
@@ -449,6 +452,18 @@ export class AssignmentsController {
       if (body.status !== undefined) updateData.status = body.status;
       if (body.instruction !== undefined) updateData.instruction = body.instruction;
       if (body.workLink !== undefined) updateData.workLink = body.workLink;
+
+      if (body.revisionNotes !== undefined) {
+        updateData.revisionNotes = body.revisionNotes;
+        updateData.revisionAuthor = body.revisionAuthor || "Pranata Humas Ahli Pertama";
+        updateData.revisionDate = new Date().toLocaleDateString("id-ID", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }) + " WIB";
+      }
 
       if (Object.keys(updateData).length > 0) {
         await db.update(assignments)
