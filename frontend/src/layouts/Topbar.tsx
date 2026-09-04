@@ -1,13 +1,11 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { HelpCircle, Bell, ChevronDown, Globe } from "lucide-react";
+import { HelpCircle, Bell, ChevronDown, Globe, User, Settings, LogOut } from "lucide-react";
 import { useAuth } from "../lib/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "../lib/api-client";
 import { useLanguage, type Language } from "../lib/LanguageContext";
 import { useToast } from "../contexts/ToastContext";
-
-const NAVY = "#0f1f5c";
 
 interface TopbarProps {
   onMenuClick: () => void;
@@ -38,10 +36,27 @@ const ROLE_LABELS_EN: Record<string, string> = {
 const Topbar = ({ onMenuClick }: TopbarProps) => {
   const [showProfile, setShowProfile] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
+
   const { user, logout } = useAuth();
   const { t, language, setLanguage } = useLanguage();
   const { addToast } = useToast();
   const navigate = useNavigate();
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setShowProfile(false);
+      }
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setShowActivity(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const { data: notifications = [], refetch: refetchNotifs } = useQuery({
     queryKey: ["topbar-notifications"],
@@ -109,7 +124,7 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
       </button>
 
       {/* Notification bell */}
-      <div className="relative">
+      <div className="relative" ref={notifRef}>
         <button type="button" onClick={() => { setShowActivity((v) => !v); setShowProfile(false); }} className="relative w-9 h-9 rounded-full flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition" aria-label={t("notifications")}>
           <Bell className="w-5 h-5" strokeWidth={1.8} />
           {(unreadCount > 0 || recentActivities.length > 0) && (
@@ -118,7 +133,7 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
         </button>
 
         {showActivity && (
-          <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-[#1c2128] rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 z-50 overflow-hidden">
+          <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-[#1c2128] rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">
               <div className="flex items-center gap-2">
                 <Bell className="w-4 h-4 text-gray-500 dark:text-gray-400" strokeWidth={1.8} />
@@ -132,9 +147,9 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
                   await apiFetch("/system/notifications/read-all", { method: "PATCH" });
                   refetchNotifs();
                 }}
-                className="text-[11px] text-blue-600 hover:underline font-medium"
+                className="text-[11px] text-blue-600 hover:underline font-medium cursor-pointer"
               >
-                Tandai dibaca
+                {language === "en" ? "Mark as read" : "Tandai dibaca"}
               </button>
             </div>
             <div className="max-h-80 overflow-y-auto divide-y divide-gray-50 dark:divide-gray-800">
@@ -151,18 +166,18 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
                   >
                     <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">{n.title}</p>
                     <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{n.message}</p>
-                    <p className="text-[10px] text-gray-400 mt-1">{new Date(n.createdAt).toLocaleDateString('id-ID', { hour: '2-digit', minute: '2-digit' })}</p>
+                    <p className="text-[10px] text-gray-400 mt-1">{new Date(n.createdAt).toLocaleDateString(language === 'en' ? 'en-US' : 'id-ID', { hour: '2-digit', minute: '2-digit' })}</p>
                   </div>
                 ))
               ) : recentActivities.length === 0 ? (
                 <div className="px-4 py-6 text-center text-xs text-gray-400">
-                  Belum ada notifikasi atau aktivitas baru.
+                  {language === "en" ? "No new notifications or activity." : "Belum ada notifikasi atau aktivitas baru."}
                 </div>
               ) : (
                 recentActivities.slice(0, 6).map((item: any) => (
                   <div key={item.id} className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer" onClick={() => { navigate("/kegiatan"); setShowActivity(false); }}>
                     <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{item.title}</p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{item.opdPenyelenggara || "Pemkot Batu"} • {item.deadline || "Tersedia"}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{item.opdPenyelenggara || (language === "en" ? "Batu City Gov" : "Pemkot Batu")} • {item.deadline || (language === "en" ? "Available" : "Tersedia")}</p>
                   </div>
                 ))
               )}
@@ -171,61 +186,50 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
         )}
       </div>
 
-      {/* User profile */}
-      <div className="relative ml-1 flex items-center">
-        {/* Tombol Nama & Avatar: Langsung masuk ke Halaman Profil */}
+      {/* User profile dropdown trigger & menu */}
+      <div className="relative ml-1" ref={profileRef}>
         <button
           type="button"
           onClick={() => {
-            setShowProfile(false);
-            navigate(isPetugas ? "/petugas/profil" : "/profil");
+            setShowProfile((v) => !v);
+            setShowActivity(false);
           }}
-          title={t("profile")}
-          className="flex items-center gap-2 rounded-lg pl-3 pr-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 transition cursor-pointer group"
+          aria-expanded={showProfile}
+          className="flex items-center gap-2 rounded-xl pl-3 pr-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-150 cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1f5c]"
         >
           <div className="hidden sm:block text-right leading-tight">
-            <p className="text-sm font-bold text-gray-900 dark:text-gray-100 group-hover:text-[#0f1f5c] dark:group-hover:text-sky-400 transition">
+            <p className="text-sm font-bold text-gray-900 dark:text-gray-100 group-hover:text-[#0f1f5c] dark:group-hover:text-sky-400 transition-colors">
               {user?.name ?? roleLabel}
             </p>
             <p className="text-xs text-gray-400 dark:text-gray-500">
               {language === "en" ? "Batu City Government Diskominfo" : "Diskominfo Pemerintah Kota Batu"}
             </p>
           </div>
-          <div className="w-8 h-8 rounded-full bg-[#0f1f5c] text-white flex items-center justify-center font-bold text-xs shadow-xs group-hover:scale-105 transition overflow-hidden">
+          <div className="w-8 h-8 rounded-full bg-[#0f1f5c] text-white flex items-center justify-center font-bold text-xs shadow-xs group-hover:scale-105 transition-transform overflow-hidden ring-2 ring-transparent group-hover:ring-[#0f1f5c]/20">
             {user?.avatar ? (
               <img src={user.avatar} alt={user?.name ?? "Avatar"} className="w-full h-full object-cover" />
             ) : (
               initials
             )}
           </div>
-        </button>
-
-        {/* Tombol Chevron Panah: Buka Dropdown Opsi */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowProfile((v) => !v);
-            setShowActivity(false);
-          }}
-          title={t("settings")}
-          className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition cursor-pointer"
-        >
-          <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showProfile ? "rotate-180" : ""}`} strokeWidth={2} />
+          <ChevronDown
+            className={`w-4 h-4 text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200 transition-transform duration-200 ${showProfile ? "rotate-180" : ""}`}
+            strokeWidth={2}
+          />
         </button>
 
         {showProfile && (
-          <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-[#1c2128] rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 py-2 z-50">
+          <div className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-[#1c2128] rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
             {/* Header Profil dalam Dropdown: Klik langsung ke Profil */}
             <div
               onClick={() => {
                 setShowProfile(false);
                 navigate(isPetugas ? "/petugas/profil" : "/profil");
               }}
-              className="px-4 py-2.5 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50/80 dark:hover:bg-gray-800/60 cursor-pointer transition group"
+              className="px-4 py-3 border-b border-gray-100 dark:border-gray-700/80 hover:bg-gray-50/80 dark:hover:bg-gray-800/60 cursor-pointer transition-colors group"
             >
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-[#0f1f5c] text-white flex items-center justify-center font-bold text-xs overflow-hidden">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#0f1f5c] text-white flex items-center justify-center font-bold text-xs overflow-hidden shadow-xs flex-shrink-0">
                   {user?.avatar ? (
                     <img src={user.avatar} alt={user?.name ?? "Avatar"} className="w-full h-full object-cover" />
                   ) : (
@@ -233,34 +237,28 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate group-hover:text-[#0f1f5c] transition">
+                  <p className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate group-hover:text-[#0f1f5c] dark:group-hover:text-sky-400 transition-colors">
                     {user?.name ?? "User"}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.username ?? ""}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    {user?.username?.includes("@") ? user.username : user?.username ? `@${user.username}` : (language === "en" ? "Diskominfo Batu City" : "Diskominfo Kota Batu")}
+                  </p>
                 </div>
-              </div>
-              <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                <span className="inline-block text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${NAVY}15`, color: NAVY }}>
-                  {roleLabel}
-                </span>
-                {user?.staffType && (
-                  <span className="inline-block text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60">
-                    {user.staffType}
-                  </span>
-                )}
               </div>
             </div>
 
-            <div className="py-1 border-b border-gray-100 dark:border-gray-700">
+            {/* Menu Items: Profil & Pengaturan */}
+            <div className="py-1.5 border-b border-gray-100 dark:border-gray-700/80">
               <button
                 type="button"
                 onClick={() => {
                   setShowProfile(false);
                   navigate(isPetugas ? "/petugas/profil" : "/profil");
                 }}
-                className="w-full text-left px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer"
+                className="w-full flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-blue-50/60 dark:hover:bg-slate-800/80 hover:text-[#0f1f5c] dark:hover:text-sky-400 transition-colors cursor-pointer"
               >
-                {t("profile")}
+                <User className="w-4 h-4 text-gray-400 dark:text-gray-500" strokeWidth={2} />
+                <span>{t("profile")}</span>
               </button>
               <button
                 type="button"
@@ -268,13 +266,15 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
                   setShowProfile(false);
                   navigate(isPetugas ? "/petugas/pengaturan" : "/pengaturan");
                 }}
-                className="w-full text-left px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer"
+                className="w-full flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-blue-50/60 dark:hover:bg-slate-800/80 hover:text-[#0f1f5c] dark:hover:text-sky-400 transition-colors cursor-pointer"
               >
-                {t("settings")}
+                <Settings className="w-4 h-4 text-gray-400 dark:text-gray-500" strokeWidth={2} />
+                <span>{t("settings")}</span>
               </button>
             </div>
 
-            <div className="py-1">
+            {/* Logout button */}
+            <div className="pt-1.5 pb-0.5">
               <button
                 type="button"
                 onClick={async () => {
@@ -282,9 +282,10 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
                   await logout();
                   navigate("/login", { replace: true, state: {} });
                 }}
-                className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition cursor-pointer font-medium"
+                className="w-full flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
               >
-                {t("logout")}
+                <LogOut className="w-4 h-4 text-rose-500 dark:text-rose-400" strokeWidth={2} />
+                <span>{t("logout")}</span>
               </button>
             </div>
           </div>

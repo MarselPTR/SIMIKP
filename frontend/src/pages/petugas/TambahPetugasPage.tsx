@@ -55,7 +55,7 @@ export default function TambahPetugasPage() {
       });
 
       if (res.success) {
-        addToast(res.message, "success");
+        addToast(language === "en" ? "Field officer registered successfully." : (res.message || "Petugas berhasil didaftarkan"), "success");
         setForm({
           program: "",
           namaLengkap: "",
@@ -97,7 +97,9 @@ export default function TambahPetugasPage() {
             <h2 className="text-2xl font-bold mb-2 text-[#0f1f5c] dark:text-sky-400">
               {language === "en" ? "SIMIKP Field Officer" : "Petugas SIMIKP"}
             </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Diskominfo Pemerintah Kota Batu</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+              {language === "en" ? "Batu City Government Diskominfo" : "Diskominfo Pemerintah Kota Batu"}
+            </p>
           </div>
         </div>
 

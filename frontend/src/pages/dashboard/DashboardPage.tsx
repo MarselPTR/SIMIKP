@@ -36,6 +36,7 @@ interface StatCard {
   value: string;
   icon: typeof CalendarDays;
   path: string;
+  accentColor?: "blue" | "amber" | "rose" | "emerald" | "purple";
 }
 
 interface StatCardMeta {
@@ -44,13 +45,6 @@ interface StatCardMeta {
   icon: typeof CalendarDays;
   path: string;
 }
-
-const BANK_KONTEN_CARD: StatCard = {
-  label: "Total File di Bank Konten",
-  value: "0 File",
-  icon: FolderOpen,
-  path: "/bank-konten",
-};
 
 interface SpotlightStatCardProps {
   card: StatCard;
@@ -71,8 +65,70 @@ const SpotlightStatCard = ({ card, onClick }: SpotlightStatCardProps) => {
     setMousePos({ x, y, distFromCenter });
   };
 
-  const navyOpacity = 0.12 + mousePos.distFromCenter * 0.32;
-  const whiteOpacity = Math.max(0.15, (1 - mousePos.distFromCenter) * 0.75);
+  const getThemeStyles = () => {
+    const accent = card.accentColor || "blue";
+    if (accent === "amber") {
+      return {
+        text: "text-amber-600 dark:text-amber-400",
+        iconBg: "bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 group-hover:bg-amber-500 group-hover:text-white",
+        border: "border-slate-200/80 dark:border-amber-900/60",
+        lightGlow: "rgba(245, 158, 11, 0.15)",
+        darkStart: "rgba(245, 158, 11, 0.24)",
+        darkMid: "rgba(217, 119, 6, 0.08)",
+        darkBorderHighlight: "rgba(245, 158, 11, 0.5)",
+        darkGlowShadow: "rgba(245, 158, 11, 0.25)",
+      };
+    }
+    if (accent === "rose") {
+      return {
+        text: "text-rose-600 dark:text-rose-400",
+        iconBg: "bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 group-hover:bg-rose-600 group-hover:text-white",
+        border: "border-slate-200/80 dark:border-rose-900/60",
+        lightGlow: "rgba(244, 63, 94, 0.15)",
+        darkStart: "rgba(244, 63, 94, 0.24)",
+        darkMid: "rgba(225, 29, 72, 0.08)",
+        darkBorderHighlight: "rgba(244, 63, 94, 0.5)",
+        darkGlowShadow: "rgba(244, 63, 94, 0.25)",
+      };
+    }
+    if (accent === "emerald") {
+      return {
+        text: "text-emerald-600 dark:text-emerald-400",
+        iconBg: "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-600 group-hover:text-white",
+        border: "border-slate-200/80 dark:border-emerald-900/60",
+        lightGlow: "rgba(16, 185, 129, 0.15)",
+        darkStart: "rgba(16, 185, 129, 0.24)",
+        darkMid: "rgba(5, 150, 105, 0.08)",
+        darkBorderHighlight: "rgba(16, 185, 129, 0.5)",
+        darkGlowShadow: "rgba(16, 185, 129, 0.25)",
+      };
+    }
+    if (accent === "purple") {
+      return {
+        text: "text-indigo-600 dark:text-indigo-400",
+        iconBg: "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white",
+        border: "border-slate-200/80 dark:border-indigo-900/60",
+        lightGlow: "rgba(99, 102, 241, 0.15)",
+        darkStart: "rgba(99, 102, 241, 0.24)",
+        darkMid: "rgba(79, 70, 229, 0.08)",
+        darkBorderHighlight: "rgba(99, 102, 241, 0.5)",
+        darkGlowShadow: "rgba(99, 102, 241, 0.25)",
+      };
+    }
+    return {
+      text: "text-[#0f1f5c] dark:text-sky-400",
+      iconBg: "bg-[#0f1f5c]/5 dark:bg-blue-950/60 text-[#0f1f5c] dark:text-sky-400 group-hover:bg-[#0f1f5c] dark:group-hover:bg-blue-600 group-hover:text-white",
+      border: "border-slate-200/80 dark:border-blue-900/60",
+      lightGlow: "rgba(15, 31, 92, 0.12)",
+      darkStart: "rgba(56, 189, 248, 0.24)",
+      darkMid: "rgba(14, 165, 233, 0.08)",
+      darkBorderHighlight: "rgba(56, 189, 248, 0.5)",
+      darkGlowShadow: "rgba(56, 189, 248, 0.22)",
+    };
+  };
+
+  const theme = getThemeStyles();
+  const angle = Math.round((Math.atan2(mousePos.y - 75, mousePos.x - 100) * 180) / Math.PI + 180);
 
   return (
     <button
@@ -81,44 +137,42 @@ const SpotlightStatCard = ({ card, onClick }: SpotlightStatCardProps) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onMouseMove={handleMouseMove}
-      className="relative text-left w-full rounded-2xl p-4 sm:p-5 overflow-hidden transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl active:translate-y-0 active:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1f5c] focus-visible:ring-offset-2 border border-slate-100/80 dark:border-slate-800 bg-white dark:bg-[#161b22] group shadow-xs hover:shadow-md dark:shadow-none"
+      className={`relative text-left w-full rounded-2xl p-4 sm:p-5 overflow-hidden transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl active:translate-y-0 active:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1f5c] focus-visible:ring-offset-2 border ${theme.border} bg-white dark:bg-[#161b22] group shadow-xs hover:shadow-md dark:shadow-none cursor-pointer`}
       style={{
         boxShadow: isHovered
-          ? "0 20px 25px -5px rgba(15, 31, 92, 0.12), 0 8px 10px -6px rgba(15, 31, 92, 0.08)"
+          ? `0 12px 28px -6px ${theme.darkGlowShadow}, 0 4px 8px -2px rgba(0, 0, 0, 0.05)`
           : "0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05)",
       }}
       aria-label={`Buka ${card.label}`}
     >
+      {/* ── Mode Terang: Mengikuti Posisi Kursor Mouse (Spotlight Glow) ── */}
       <div
         className="pointer-events-none absolute inset-0 transition-opacity duration-300 dark:hidden"
         style={{
           opacity: isHovered ? 1 : 0,
-          background: `radial-gradient(190px circle at ${mousePos.x}px ${mousePos.y}px, rgba(15, 31, 92, ${navyOpacity}) 0%, rgba(56, 189, 248, ${navyOpacity * 0.6}) 45%, rgba(255, 255, 255, ${whiteOpacity}) 78%, transparent 100%)`,
+          background: `radial-gradient(190px circle at ${mousePos.x}px ${mousePos.y}px, ${theme.lightGlow} 0%, rgba(56, 189, 248, 0.06) 45%, rgba(255, 255, 255, 0.7) 78%, transparent 100%)`,
         }}
       />
+
+      {/* ── Mode Gelap: Transisi Gradasi Halus Mengikuti Arah Kursor ── */}
       <div
-        className="pointer-events-none absolute inset-0 transition-opacity duration-300 hidden dark:block"
+        className="pointer-events-none absolute inset-0 transition-opacity duration-300 ease-out hidden dark:block rounded-2xl"
         style={{
           opacity: isHovered ? 1 : 0,
-          background: `radial-gradient(190px circle at ${mousePos.x}px ${mousePos.y}px, rgba(56, 189, 248, 0.15) 0%, rgba(14, 165, 233, 0.08) 45%, transparent 100%)`,
+          background: `linear-gradient(${angle}deg, ${theme.darkStart} 0%, ${theme.darkMid} 40%, transparent 85%)`,
+          boxShadow: `inset 0 0 0 1px ${theme.darkBorderHighlight}`,
         }}
       />
-      <div
-        className="pointer-events-none absolute inset-0 rounded-2xl transition-opacity duration-300"
-        style={{
-          opacity: isHovered ? 1 : 0,
-          boxShadow: "inset 0 0 0 1px rgba(15, 31, 92, 0.15)",
-        }}
-      />
+
       <div className="relative z-10">
-        <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center mb-2.5 sm:mb-3.5 transition-all duration-300 bg-[#0f1f5c]/5 dark:bg-sky-500/15 group-hover:bg-[#0f1f5c] dark:group-hover:bg-sky-500 group-hover:scale-105 shadow-2xs">
-          <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-[#0f1f5c] dark:text-sky-400 group-hover:text-white transition-colors duration-300" strokeWidth={2} />
+        <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center mb-2.5 sm:mb-3.5 transition-all duration-300 ${theme.iconBg} group-hover:scale-105 shadow-2xs`}>
+          <Icon className="w-4 h-4 sm:w-5 sm:h-5 transition-colors duration-300" strokeWidth={2} />
         </div>
         <p className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 tracking-tight group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors">
           {card.label}
         </p>
         <div className="flex items-end gap-2 mt-1">
-          <span className="text-2xl sm:text-3xl font-black text-[#0f1f5c] dark:text-white tracking-tight group-hover:scale-102 transition-transform duration-200">
+          <span className={`text-2xl sm:text-3xl font-black ${theme.text} tracking-tight group-hover:scale-102 transition-transform duration-200`}>
             {card.value}
           </span>
         </div>
@@ -128,23 +182,13 @@ const SpotlightStatCard = ({ card, onClick }: SpotlightStatCardProps) => {
 };
 
 /* ---------------------------------------------------------------------- */
-/* Calendar legend items                                                   */
-/* ---------------------------------------------------------------------- */
-
-const dashboardCalendarLegend = (Object.keys(KEGIATAN_STATUS_LABELS) as MockKegiatan["status"][]).map((status) => ({
-  status,
-  label: KEGIATAN_STATUS_LABELS[status],
-  color: KEGIATAN_STATUS_COLORS[status],
-}));
-
-/* ---------------------------------------------------------------------- */
 /* Helpers                                                                 */
 /* ---------------------------------------------------------------------- */
 
-const formatIndonesianDate = (dateKey: string) => {
+const formatDateDisplay = (dateKey: string, language: string) => {
   const [y, m, d] = dateKey.split("-").map(Number);
   if (!y || !m || !d) return dateKey;
-  return new Date(y, m - 1, d).toLocaleDateString("id-ID", {
+  return new Date(y, m - 1, d).toLocaleDateString(language === "en" ? "en-US" : "id-ID", {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -152,10 +196,10 @@ const formatIndonesianDate = (dateKey: string) => {
   });
 };
 
-const formatShortDate = (dateKey: string) => {
+const formatShortDate = (dateKey: string, language: string) => {
   const [y, m, d] = dateKey.split("-").map(Number);
   if (!y || !m || !d) return dateKey;
-  return new Date(y, m - 1, d).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+  return new Date(y, m - 1, d).toLocaleDateString(language === "en" ? "en-US" : "id-ID", { day: "numeric", month: "short", year: "numeric" });
 };
 
 const todayDateKey = () => {
@@ -171,17 +215,34 @@ const initialsOf = (name: string) =>
     .join("")
     .toUpperCase();
 
+const getKegiatanStatusLabel = (status: MockKegiatan["status"], language: string) => {
+  if (language === "en") {
+    const map: Record<MockKegiatan["status"], string> = {
+      active: "Active",
+      review: "Review",
+      done: "Completed",
+      pending: "Pending",
+    };
+    return map[status] || status;
+  }
+  return KEGIATAN_STATUS_LABELS[status] || status;
+};
+
 const TugasTerbaruTable = ({ items }: { items: MockKegiatan[] }) => {
   const navigate = useNavigate();
+  const { language } = useLanguage();
+
   return (
     <div className="bg-white dark:bg-[#161b22] rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden transition-shadow duration-200 hover:shadow-md">
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
-        <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Tugas Terbaru &amp; Deadline Mendekati</h3>
+        <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+          {language === "en" ? "Latest Tasks & Approaching Deadlines" : "Tugas Terbaru & Deadline Mendekati"}
+        </h3>
         <button
           type="button"
           onClick={() => navigate("/kegiatan")}
-          className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-sky-400 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-md p-1 transition-colors duration-150"
-          aria-label="Lihat semua kegiatan"
+          className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-sky-400 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-md p-1 transition-colors duration-150 cursor-pointer"
+          aria-label={language === "en" ? "View all activities" : "Lihat semua kegiatan"}
         >
           <MoreHorizontal className="w-4 h-4" />
         </button>
@@ -197,18 +258,18 @@ const TugasTerbaruTable = ({ items }: { items: MockKegiatan[] }) => {
           </colgroup>
           <thead>
             <tr className="text-left text-[11px] text-gray-400 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800">
-              <th className="px-3 py-2.5 font-medium">Nama Kegiatan</th>
-              <th className="px-3 py-2.5 font-medium">Jenis Konten</th>
-              <th className="px-3 py-2.5 font-medium">Penyelenggara</th>
-              <th className="px-3 py-2.5 font-medium">Deadline</th>
-              <th className="px-3 py-2.5 font-medium">Status</th>
+              <th className="px-3 py-2.5 font-medium">{language === "en" ? "Activity Name" : "Nama Kegiatan"}</th>
+              <th className="px-3 py-2.5 font-medium">{language === "en" ? "Content Type" : "Jenis Konten"}</th>
+              <th className="px-3 py-2.5 font-medium">{language === "en" ? "Organizer / OPD" : "Penyelenggara"}</th>
+              <th className="px-3 py-2.5 font-medium">{language === "en" ? "Deadline" : "Deadline"}</th>
+              <th className="px-3 py-2.5 font-medium">{language === "en" ? "Status" : "Status"}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50 dark:divide-gray-800/60">
             {items.length === 0 ? (
               <tr>
                 <td colSpan={5} className="text-center py-8 text-gray-400">
-                  Belum ada kegiatan terjadwal di database.
+                  {language === "en" ? "No scheduled activities in the database." : "Belum ada kegiatan terjadwal di database."}
                 </td>
               </tr>
             ) : (
@@ -244,7 +305,7 @@ const TugasTerbaruTable = ({ items }: { items: MockKegiatan[] }) => {
                         <span className="truncate">{opd}</span>
                       </span>
                     </td>
-                    <td className="px-3 py-3 text-gray-500 dark:text-gray-400 whitespace-nowrap">{formatShortDate(row.deadline)}</td>
+                    <td className="px-3 py-3 text-gray-500 dark:text-gray-400 whitespace-nowrap">{formatShortDate(row.deadline, language)}</td>
                     <td className="px-3 py-3">
                       <span
                         className="block truncate rounded-full px-2 py-1 text-center text-[11px] font-medium"
@@ -253,7 +314,7 @@ const TugasTerbaruTable = ({ items }: { items: MockKegiatan[] }) => {
                           color: KEGIATAN_STATUS_COLORS[row.status],
                         }}
                       >
-                        {KEGIATAN_STATUS_LABELS[row.status]}
+                        {getKegiatanStatusLabel(row.status, language)}
                       </span>
                     </td>
                   </tr>
@@ -273,6 +334,7 @@ const TugasTerbaruTable = ({ items }: { items: MockKegiatan[] }) => {
 
 const PrahumPanel = ({ assignments }: { assignments: any[] }) => {
   const navigate = useNavigate();
+  const { language } = useLanguage();
   const [hovered, setHovered] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -287,18 +349,18 @@ const PrahumPanel = ({ assignments }: { assignments: any[] }) => {
   const selesai = data.filter((a) => a.status === "SELESAI" || a.status === "COMPLETED").length;
 
   const prahumStages = [
-    { label: "BELUM", count: belum, color: "#9ca3af", icon: User },
-    { label: "DIPROSES", count: diproses, color: "#f59e0b", icon: Users },
-    { label: "SELESAI", count: selesai, color: "#22c55e", icon: Camera },
+    { label: language === "en" ? "PENDING" : "BELUM", count: belum, color: "#9ca3af", icon: User },
+    { label: language === "en" ? "IN PROGRESS" : "DIPROSES", count: diproses, color: "#f59e0b", icon: Users },
+    { label: language === "en" ? "COMPLETED" : "SELESAI", count: selesai, color: "#22c55e", icon: Camera },
   ];
 
   const total = prahumStages.reduce((s, stage) => s + stage.count, 0);
   const active = hovered !== null ? prahumStages[hovered] : null;
 
   return (
-    <PanelShell title="PRAHUM" onMoreClick={() => navigate("/produksi")}>
+    <PanelShell title={language === "en" ? "PUBLIC RELATIONS" : "PRAHUM"} onMoreClick={() => navigate("/produksi")}>
       <div className="flex items-baseline justify-between mt-3 mb-2">
-        <span className="text-[11px] text-gray-400 dark:text-gray-400">Total tugas berjalan</span>
+        <span className="text-[11px] text-gray-400 dark:text-gray-400">{language === "en" ? "Total active tasks" : "Total tugas berjalan"}</span>
         <span className="text-sm font-bold transition-colors duration-150 text-[#0f1f5c] dark:text-white" style={{ color: active ? active.color : undefined }}>
           {active ? `${active.count} · ${active.label}` : total}
         </span>
@@ -316,8 +378,8 @@ const PrahumPanel = ({ assignments }: { assignments: any[] }) => {
             onMouseLeave={() => setHovered(null)}
             onFocus={() => setHovered(i)}
             onBlur={() => setHovered(null)}
-            aria-label={`${stage.count} tugas pada tahap ${stage.label}`}
-            className="h-full transition-all duration-500 ease-out focus-visible:outline-none"
+            aria-label={`${stage.count} ${stage.label}`}
+            className="h-full transition-all duration-500 ease-out focus-visible:outline-none cursor-pointer"
             style={{
               width: mounted ? `${(stage.count / total) * 100}%` : "0%",
               backgroundColor: stage.color,
@@ -337,7 +399,7 @@ const PrahumPanel = ({ assignments }: { assignments: any[] }) => {
               onClick={() => navigate("/produksi")}
               onMouseEnter={() => setHovered(i)}
               onMouseLeave={() => setHovered(null)}
-              className="group flex flex-col items-center gap-1 rounded-lg py-2 transition-colors duration-150 hover:bg-gray-50 dark:hover:bg-slate-800/60 focus-visible:outline-none"
+              className="group flex flex-col items-center gap-1 rounded-lg py-2 transition-colors duration-150 hover:bg-gray-50 dark:hover:bg-slate-800/60 focus-visible:outline-none cursor-pointer"
             >
               <div
                 className="w-7 h-7 rounded-full flex items-center justify-center transition-transform duration-200 ease-out group-hover:scale-110"
@@ -360,6 +422,7 @@ const FOTO_CIRC = 2 * Math.PI * FOTO_RADIUS;
 
 const FotoPanel = ({ assignments }: { assignments: any[] }) => {
   const navigate = useNavigate();
+  const { language } = useLanguage();
   const [hovered, setHovered] = useState<number | null>(null);
 
   const data = assignments.filter((a) => ["Foto"].includes(a.contentType));
@@ -368,9 +431,9 @@ const FotoPanel = ({ assignments }: { assignments: any[] }) => {
   const selesai = data.filter((a) => a.status === "SELESAI" || a.status === "COMPLETED").length;
 
   const fotoData = [
-    { label: "BELUM", value: belum, color: "#9ca3af" },
-    { label: "DIPROSES", value: diproses, color: "#f59e0b" },
-    { label: "SELESAI", value: selesai, color: "#22c55e" },
+    { label: language === "en" ? "PENDING" : "BELUM", value: belum, color: "#9ca3af" },
+    { label: language === "en" ? "IN PROGRESS" : "DIPROSES", value: diproses, color: "#f59e0b" },
+    { label: language === "en" ? "COMPLETED" : "SELESAI", value: selesai, color: "#22c55e" },
   ];
 
   const total = fotoData.reduce((sum, d) => sum + d.value, 0);
@@ -385,12 +448,12 @@ const FotoPanel = ({ assignments }: { assignments: any[] }) => {
   const active = hovered !== null ? segments[hovered] : null;
 
   return (
-    <PanelShell title="FOTO" onMoreClick={() => navigate("/produksi")}>
+    <PanelShell title={language === "en" ? "PHOTOGRAPHY" : "FOTO"} onMoreClick={() => navigate("/produksi")}>
       <div className="flex flex-col items-center gap-3 mt-4">
         <button
           type="button"
           onClick={() => navigate("/produksi")}
-          className="relative w-32 h-32 flex-shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+          className="relative w-32 h-32 flex-shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 cursor-pointer"
           aria-label="Lihat detail produksi foto"
         >
           <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
@@ -435,7 +498,7 @@ const FotoPanel = ({ assignments }: { assignments: any[] }) => {
               onFocus={() => setHovered(i)}
               onBlur={() => setHovered(null)}
               onClick={() => navigate("/produksi")}
-              className={`flex items-center gap-1.5 text-xs whitespace-nowrap rounded px-1.5 py-1 transition-colors duration-150 focus-visible:outline-none ${
+              className={`flex items-center gap-1.5 text-xs whitespace-nowrap rounded px-1.5 py-1 transition-colors duration-150 focus-visible:outline-none cursor-pointer ${
                 hovered === i ? "bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-gray-100 font-semibold" : "text-gray-600 dark:text-gray-400"
               }`}
             >
@@ -451,18 +514,19 @@ const FotoPanel = ({ assignments }: { assignments: any[] }) => {
   );
 };
 
-const videoSegmentColors = { belum: "#9ca3af", liputan: "#f59e0b", siapTayang: "#3b82f6", finis: "#22c55e" };
-const videoSegmentLabels: Record<keyof typeof videoSegmentColors, string> = {
-  belum: "Belum",
-  liputan: "Liputan",
-  siapTayang: "Siap Tayang",
-  finis: "Finis",
-};
-
 const VideoPanel = ({ assignments }: { assignments: any[] }) => {
   const navigate = useNavigate();
+  const { language } = useLanguage();
   const [mounted, setMounted] = useState(false);
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
+
+  const videoSegmentColors = { belum: "#9ca3af", liputan: "#f59e0b", siapTayang: "#3b82f6", finis: "#22c55e" };
+  const videoSegmentLabels: Record<keyof typeof videoSegmentColors, string> = {
+    belum: language === "en" ? "Pending" : "Belum",
+    liputan: language === "en" ? "Coverage" : "Liputan",
+    siapTayang: language === "en" ? "Ready to Air" : "Siap Tayang",
+    finis: language === "en" ? "Finished" : "Finis",
+  };
 
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 50);
@@ -475,15 +539,15 @@ const VideoPanel = ({ assignments }: { assignments: any[] }) => {
   const finishedTasks = data.filter((a) => a.status === "SELESAI" || a.status === "COMPLETED");
 
   const videoBars = [
-    { label: "Tugas Baru", segments: [{ key: "belum", v: newTasks.length }] },
-    { label: "Sedang Dikerjakan", segments: [{ key: "liputan", v: inProgressTasks.length }] },
-    { label: "Finis", segments: [{ key: "finis", v: finishedTasks.length }] },
+    { label: language === "en" ? "New Tasks" : "Tugas Baru", segments: [{ key: "belum", v: newTasks.length }] },
+    { label: language === "en" ? "In Progress" : "Sedang Dikerjakan", segments: [{ key: "liputan", v: inProgressTasks.length }] },
+    { label: language === "en" ? "Finished" : "Finis", segments: [{ key: "finis", v: finishedTasks.length }] },
   ] as const;
 
   const maxTotal = Math.max(...videoBars.map((b) => b.segments.reduce((s, seg) => s + seg.v, 0)), 1);
 
   return (
-    <PanelShell title="VIDEO" onMoreClick={() => navigate("/produksi")}>
+    <PanelShell title={language === "en" ? "VIDEOGRAPHY" : "VIDEO"} onMoreClick={() => navigate("/produksi")}>
       <div className="mt-3 space-y-3">
         {videoBars.map((bar, i) => {
           const total = bar.segments.reduce((s, seg) => s + seg.v, 0);
@@ -495,8 +559,8 @@ const VideoPanel = ({ assignments }: { assignments: any[] }) => {
               onClick={() => navigate("/produksi")}
               onMouseEnter={() => setHoveredBar(i)}
               onMouseLeave={() => setHoveredBar(null)}
-              className="group block w-full text-left focus-visible:outline-none"
-              aria-label={`${bar.label}: ${total} konten`}
+              className="group block w-full text-left focus-visible:outline-none cursor-pointer"
+              aria-label={`${bar.label}: ${total}`}
             >
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 transition-colors duration-150 group-hover:text-gray-800 dark:group-hover:text-gray-200">
@@ -541,6 +605,7 @@ const VideoPanel = ({ assignments }: { assignments: any[] }) => {
 
 const DesainerPanel = ({ assignments }: { assignments: any[] }) => {
   const navigate = useNavigate();
+  const { language } = useLanguage();
 
   const data = assignments.filter((a) => ["Desain Grafis", "Infografis", "Banner/Spanduk", "Logo/Ikon"].includes(a.contentType));
   
@@ -549,13 +614,13 @@ const DesainerPanel = ({ assignments }: { assignments: any[] }) => {
   const selesai = data.filter((a) => a.status === "SELESAI" || a.status === "COMPLETED");
 
   const desainerColumns = [
-    { label: "ANTREAN", count: antrean.length, color: "#9ca3af", bg: "bg-gray-100 dark:bg-gray-800", text: "text-gray-700 dark:text-gray-300", items: antrean.slice(0,2).map(a => a.title) },
-    { label: "DIPROSES", count: diproses.length, color: "#f59e0b", bg: "bg-amber-100 dark:bg-amber-950/40", text: "text-amber-700 dark:text-amber-400", items: diproses.slice(0,2).map(a => a.title) },
-    { label: "SELESAI", count: selesai.length, color: "#22c55e", bg: "bg-emerald-100 dark:bg-emerald-950/40", text: "text-emerald-700 dark:text-emerald-400", items: selesai.slice(0,2).map(a => a.title) },
+    { label: language === "en" ? "QUEUE" : "ANTREAN", count: antrean.length, color: "#9ca3af", bg: "bg-gray-100 dark:bg-gray-800", text: "text-gray-700 dark:text-gray-300", items: antrean.slice(0,2).map(a => a.title) },
+    { label: language === "en" ? "IN PROGRESS" : "DIPROSES", count: diproses.length, color: "#f59e0b", bg: "bg-amber-100 dark:bg-amber-950/40", text: "text-amber-700 dark:text-amber-400", items: diproses.slice(0,2).map(a => a.title) },
+    { label: language === "en" ? "COMPLETED" : "SELESAI", count: selesai.length, color: "#22c55e", bg: "bg-emerald-100 dark:bg-emerald-950/40", text: "text-emerald-700 dark:text-emerald-400", items: selesai.slice(0,2).map(a => a.title) },
   ];
 
   return (
-    <PanelShell title="DESAINER" onMoreClick={() => navigate("/produksi")}>
+    <PanelShell title={language === "en" ? "GRAPHIC DESIGN" : "DESAINER"} onMoreClick={() => navigate("/produksi")}>
       <div className="grid grid-cols-3 gap-2 mt-3">
         {desainerColumns.map((col) => (
           <div key={col.label} className="flex flex-col gap-1.5">
@@ -568,7 +633,7 @@ const DesainerPanel = ({ assignments }: { assignments: any[] }) => {
                 type="button"
                 key={idx}
                 onClick={() => navigate("/produksi")}
-                className="text-left bg-gray-50 dark:bg-slate-800/60 border-l-2 rounded px-2 py-1.5 text-[10px] text-gray-600 dark:text-gray-300 leading-tight transition-all duration-200 ease-out hover:bg-white dark:hover:bg-slate-700 hover:shadow-md hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 truncate block w-full"
+                className="text-left bg-gray-50 dark:bg-slate-800/60 border-l-2 rounded px-2 py-1.5 text-[10px] text-gray-600 dark:text-gray-300 leading-tight transition-all duration-200 ease-out hover:bg-white dark:hover:bg-slate-700 hover:shadow-md hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 truncate block w-full cursor-pointer"
                 style={{ borderColor: col.color }}
                 title={item}
               >
@@ -597,7 +662,7 @@ const PanelShell = ({
       <button
         type="button"
         onClick={onMoreClick}
-        className="text-gray-300 dark:text-gray-600 hover:text-blue-600 dark:hover:text-sky-400 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-md p-1 transition-colors duration-150"
+        className="text-gray-300 dark:text-gray-600 hover:text-blue-600 dark:hover:text-sky-400 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-md p-1 transition-colors duration-150 cursor-pointer"
         aria-label={`Lihat detail produksi ${title.toLowerCase()}`}
       >
         <MoreHorizontal className="w-4 h-4" />
@@ -624,6 +689,9 @@ interface DashboardStats {
 
 const DashboardPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { language } = useLanguage();
+  const isAhliPertama = user?.role?.toLowerCase() === "ahli_pertama" || user?.staffType === "AHLI_PERTAMA";
 
   // Fetch real activities and real stats
   const { data: kegiatanResponse } = useQuery({
@@ -673,6 +741,14 @@ const DashboardPage = () => {
   const [calMonth, setCalMonth] = useState(now.getMonth());
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
 
+  const dashboardCalendarLegend = useMemo(() => {
+    return (Object.keys(KEGIATAN_STATUS_LABELS) as MockKegiatan["status"][]).map((status) => ({
+      status,
+      label: getKegiatanStatusLabel(status, language),
+      color: KEGIATAN_STATUS_COLORS[status],
+    }));
+  }, [language]);
+
   const dashboardCalendarEvents = useMemo(() => {
     const map: Record<string, CalendarEvent[]> = {};
     for (const k of kegiatanList) {
@@ -691,10 +767,6 @@ const DashboardPage = () => {
     return [...upcoming, ...past].slice(0, 5);
   }, [kegiatanList]);
 
-  const { user } = useAuth();
-  const { language } = useLanguage();
-  const isAhliPertama = user?.role?.toLowerCase() === "ahli_pertama" || user?.staffType === "AHLI_PERTAMA";
-
   const statCards: StatCard[] = useMemo(() => {
     const monthPrefix = `${calYear}-${String(calMonth + 1).padStart(2, "0")}`;
     const values: Record<StatCardMeta["key"], number> = {
@@ -711,54 +783,68 @@ const DashboardPage = () => {
           value: String(values.kontenSiapReview),
           icon: Pencil,
           path: "/review",
+          accentColor: "rose",
         },
         {
           label: language === "en" ? "Approved & Published" : "Publikasi Disetujui",
           value: String(values.publikasiSukses),
           icon: Megaphone,
           path: "/review",
+          accentColor: "emerald",
         },
         {
           label: language === "en" ? "Production In-Progress" : "Tugas Dalam Proses",
           value: String(values.tugasDalamProses),
           icon: ClipboardList,
           path: "/review",
+          accentColor: "amber",
         },
         {
           label: language === "en" ? "Scheduled Activities" : "Agenda Kegiatan",
           value: String(values.totalBulanIni),
           icon: CalendarDays,
           path: "/dashboard",
+          accentColor: "blue",
         },
       ];
     }
 
     return [
       {
-        label: "Total Kegiatan Bulan Ini",
+        label: language === "en" ? "Total Activities This Month" : "Total Kegiatan Bulan Ini",
         value: String(values.totalBulanIni),
         icon: CalendarDays,
         path: "/kegiatan",
+        accentColor: "blue",
       },
       {
-        label: "Tugas Dalam Proses",
+        label: language === "en" ? "Tasks In Progress" : "Tugas Dalam Proses",
         value: String(values.tugasDalamProses),
         icon: ClipboardList,
         path: "/produksi",
+        accentColor: "amber",
       },
       {
-        label: "Menunggu Telaah Ahli",
+        label: language === "en" ? "Pending Review" : "Menunggu Telaah Ahli",
         value: String(values.kontenSiapReview),
         icon: Pencil,
         path: "/produksi",
+        accentColor: "rose",
       },
       {
-        label: "Publikasi Sukses",
+        label: language === "en" ? "Published Content" : "Publikasi Sukses",
         value: String(values.publikasiSukses),
         icon: Megaphone,
         path: "/publikasi",
+        accentColor: "emerald",
       },
-      BANK_KONTEN_CARD,
+      {
+        label: language === "en" ? "Total Files in Content Bank" : "Total File di Bank Konten",
+        value: language === "en" ? "0 Files" : "0 File",
+        icon: FolderOpen,
+        path: "/bank-konten",
+        accentColor: "purple",
+      },
     ];
   }, [kegiatanList, calYear, calMonth, stats, isAhliPertama, language]);
 
@@ -778,7 +864,7 @@ const DashboardPage = () => {
               ? (language === "en"
                   ? "Strategic oversight, publication quality assurance, and cross-OPD coverage monitoring"
                   : "Pengawasan strategis, penjaminan mutu publikasi, dan pemantauan liputan lintas OPD")
-              : "Ringkasan Kegiatan & Publikasi Real-Time"}
+              : (language === "en" ? "Real-Time Activity & Publication Summary" : "Ringkasan Kegiatan & Publikasi Real-Time")}
           </p>
         </div>
 
@@ -796,7 +882,7 @@ const DashboardPage = () => {
         )}
       </div>
 
-      {/* Stat cards — interactive cursor-following spotlight glow */}
+      {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
         {statCards.map((card) => (
           <SpotlightStatCard
@@ -816,7 +902,7 @@ const DashboardPage = () => {
             month={calMonth}
             events={dashboardCalendarEvents}
             legend={dashboardCalendarLegend}
-            subtitle="Klik tanggal untuk melihat kegiatan pada hari itu"
+            subtitle={language === "en" ? "Click a date to view activities on that day" : "Klik tanggal untuk melihat kegiatan pada hari itu"}
             selectedDateKey={selectedDateKey}
             onNavigate={(y, m) => {
               setCalYear(y);
@@ -830,7 +916,9 @@ const DashboardPage = () => {
 
         {/* Right: status alur kerja produksi */}
         <div className="lg:col-span-6 space-y-4">
-          <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Status Alur Kerja Produksi</h3>
+          <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+            {language === "en" ? "Production Workflow Status" : "Status Alur Kerja Produksi"}
+          </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <PrahumPanel assignments={assignments} />
             <FotoPanel assignments={assignments} />
@@ -841,7 +929,9 @@ const DashboardPage = () => {
           {/* OPD Volume & Leaderboard (if stats available) */}
           {stats?.opdProduction && stats.opdProduction.length > 0 && (
             <div className="bg-white dark:bg-[#161b22] rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm p-4 mt-4">
-              <h4 className="text-sm font-bold text-gray-800 dark:text-gray-100 mb-3">Volume Kegiatan per OPD</h4>
+              <h4 className="text-sm font-bold text-gray-800 dark:text-gray-100 mb-3">
+                {language === "en" ? "Activity Volume per OPD" : "Volume Kegiatan per OPD"}
+              </h4>
               <div className="space-y-2.5">
                 {stats.opdProduction.map((opd) => {
                   const pct = (opd.count / maxOpdCount) * 100;
@@ -867,7 +957,7 @@ const DashboardPage = () => {
       <Dialog
         open={selectedDateKey !== null}
         onClose={() => setSelectedDateKey(null)}
-        title={selectedDateKey ? formatIndonesianDate(selectedDateKey) : "Detail Tanggal"}
+        title={selectedDateKey ? formatDateDisplay(selectedDateKey, language) : (language === "en" ? "Date Details" : "Detail Tanggal")}
       >
         <div className="mt-1">
           {selectedEvents.length > 0 ? (
@@ -892,13 +982,15 @@ const DashboardPage = () => {
               <div className="w-12 h-12 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center mb-2">
                 <CalendarDays className="w-5 h-5 text-gray-300 dark:text-gray-500" />
               </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Belum ada kegiatan terjadwal pada tanggal ini.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {language === "en" ? "No scheduled activities on this date." : "Belum ada kegiatan terjadwal pada tanggal ini."}
+              </p>
             </div>
           )}
 
           <div className="pt-4 mt-4 border-t border-gray-100 dark:border-gray-800 flex justify-end gap-2">
             <Button variant="outline" onClick={() => setSelectedDateKey(null)}>
-              Tutup
+              {language === "en" ? "Close" : "Tutup"}
             </Button>
             <Button
               variant="default"
@@ -907,7 +999,7 @@ const DashboardPage = () => {
                 navigate("/kegiatan");
               }}
             >
-              Kelola di Manajemen Kegiatan
+              {language === "en" ? "Manage in Activities" : "Kelola di Manajemen Kegiatan"}
             </Button>
           </div>
         </div>
@@ -917,3 +1009,4 @@ const DashboardPage = () => {
 };
 
 export default DashboardPage;
+

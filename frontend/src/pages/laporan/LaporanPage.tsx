@@ -57,15 +57,124 @@ const QUARTERS_EN = [
 ];
 
 // Short label helper for compact table view
-const getShortCtLabel = (ct: string) => {
+const getShortCtLabel = (ct: string, language: string) => {
   const u = ct.toUpperCase();
-  if (u.includes("INFOGRAFIS") || u.includes("FLYER")) return "Info";
+  if (u.includes("INFOGRAFIS") || u.includes("FLYER") || u.includes("INFO")) return "Info";
   if (u.includes("AUDIO")) return "Audio";
   if (u.includes("VIDEO")) return "Video";
-  if (u.includes("FOTO")) return "Foto";
+  if (u.includes("FOTO") || u.includes("PHOTO")) return language === "en" ? "Photo" : "Foto";
   if (u.includes("BUMPER")) return "Bumper";
-  if (u.includes("NASKAH")) return "Naskah";
+  if (u.includes("NASKAH") || u.includes("SCRIPT")) return language === "en" ? "Script" : "Naskah";
   return ct;
+};
+
+const LaporanStatCard = ({
+  title,
+  value,
+  subtitle,
+  icon: Icon,
+  accent = "blue",
+  className = "",
+}: {
+  title: string;
+  value: string | number;
+  subtitle?: string;
+  icon: any;
+  accent?: "blue" | "emerald" | "slate" | "amber" | "rose";
+  className?: string;
+}) => {
+  const [mousePos, setMousePos] = useState({ x: 100, y: 50 });
+  const [isHovered, setIsHovered] = useState(false);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
+
+  const getTheme = () => {
+    if (accent === "emerald") {
+      return {
+        text: "text-emerald-600 dark:text-emerald-400",
+        iconBg: "bg-emerald-100/60 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-300",
+        border: "border-emerald-100 dark:border-emerald-900/60",
+        lightGlow: "rgba(16, 185, 129, 0.15)",
+        darkStart: "rgba(16, 185, 129, 0.22)",
+        darkMid: "rgba(5, 150, 105, 0.08)",
+        darkBorderHighlight: "rgba(16, 185, 129, 0.5)",
+        darkGlowShadow: "rgba(16, 185, 129, 0.2)",
+      };
+    }
+    if (accent === "slate") {
+      return {
+        text: "text-slate-600 dark:text-gray-400",
+        iconBg: "bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300",
+        border: "border-slate-200 dark:border-gray-800",
+        lightGlow: "rgba(148, 163, 184, 0.15)",
+        darkStart: "rgba(148, 163, 184, 0.20)",
+        darkMid: "rgba(100, 116, 139, 0.06)",
+        darkBorderHighlight: "rgba(148, 163, 184, 0.45)",
+        darkGlowShadow: "rgba(148, 163, 184, 0.2)",
+      };
+    }
+    return {
+      text: "text-indigo-600 dark:text-sky-400",
+      iconBg: "bg-indigo-100/60 dark:bg-blue-900/60 text-indigo-600 dark:text-sky-300",
+      border: "border-indigo-100 dark:border-blue-900/60",
+      lightGlow: "rgba(56, 189, 248, 0.15)",
+      darkStart: "rgba(56, 189, 248, 0.22)",
+      darkMid: "rgba(14, 165, 233, 0.08)",
+      darkBorderHighlight: "rgba(56, 189, 248, 0.5)",
+      darkGlowShadow: "rgba(56, 189, 248, 0.2)",
+    };
+  };
+
+  const theme = getTheme();
+  const angle = Math.round((Math.atan2(mousePos.y - 50, mousePos.x - 100) * 180) / Math.PI + 180);
+
+  return (
+    <div
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onMouseMove={handleMouseMove}
+      className={`relative overflow-hidden rounded-2xl p-3 sm:p-4 transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg border ${theme.border} bg-white dark:bg-[#161b22] ${className}`}
+      style={{
+        boxShadow: isHovered
+          ? `0 10px 25px -5px ${theme.darkGlowShadow}, 0 4px 6px -2px rgba(0, 0, 0, 0.05)`
+          : "0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04)",
+      }}
+    >
+      {/* Light mode cursor-following spotlight gradient */}
+      <div
+        className="pointer-events-none absolute inset-0 transition-opacity duration-300 dark:hidden"
+        style={{
+          opacity: isHovered ? 1 : 0,
+          background: `radial-gradient(160px circle at ${mousePos.x}px ${mousePos.y}px, ${theme.lightGlow} 0%, rgba(56, 189, 248, 0.05) 45%, rgba(255, 255, 255, 0.7) 78%, transparent 100%)`,
+        }}
+      />
+
+      {/* Dark mode live angle gradient */}
+      <div
+        className="pointer-events-none absolute inset-0 transition-opacity duration-300 ease-out hidden dark:block rounded-2xl"
+        style={{
+          opacity: isHovered ? 1 : 0,
+          background: `linear-gradient(${angle}deg, ${theme.darkStart} 0%, ${theme.darkMid} 40%, transparent 85%)`,
+          boxShadow: `inset 0 0 0 1px ${theme.darkBorderHighlight}`,
+        }}
+      />
+      <div className="relative z-10 flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className={`text-[9px] sm:text-[11px] font-bold ${theme.text} uppercase tracking-wider truncate`}>
+            {title}
+          </p>
+          <p className="text-lg sm:text-2xl font-black text-gray-900 dark:text-gray-100 mt-0.5">{value}</p>
+          {subtitle && <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{subtitle}</p>}
+        </div>
+        <div className={`p-2 sm:p-3 rounded-xl shrink-0 transition-transform duration-200 ${theme.iconBg} ${isHovered ? "scale-105" : ""}`}>
+          <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+        </div>
+      </div>
+    </div>
+  );
 };
 
 const LaporanPage = () => {
@@ -323,7 +432,7 @@ const LaporanPage = () => {
               onClick={() => refetch()}
             >
               <RefreshCw className="w-3.5 h-3.5" />
-              Segarkan
+              {t("refresh")}
             </Button>
           </div>
         </div>
@@ -332,44 +441,30 @@ const LaporanPage = () => {
       {/* Summary Headline Stats */}
       {reportData && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4">
-          <Card className="p-3 sm:p-4 bg-gradient-to-br from-indigo-50/80 dark:from-blue-950/40 to-white dark:to-[#161b22] border border-indigo-100 dark:border-blue-900/60">
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-[9px] sm:text-[11px] font-bold text-indigo-600 dark:text-sky-400 uppercase tracking-wider truncate">Total Kegiatan</p>
-                <p className="text-lg sm:text-2xl font-black text-indigo-950 dark:text-gray-100 mt-0.5">{reportData.rows.length}</p>
-                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{reportData.periodeTitle}</p>
-              </div>
-              <div className="p-2 sm:p-3 bg-indigo-100/60 dark:bg-blue-900/60 text-indigo-600 dark:text-sky-300 rounded-xl shrink-0">
-                <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
-              </div>
-            </div>
-          </Card>
+          <LaporanStatCard
+            title={language === "en" ? "Total Activities" : "Total Kegiatan"}
+            value={reportData.rows.length}
+            subtitle={reportData.periodeTitle}
+            icon={Calendar}
+            accent="blue"
+          />
 
-          <Card className="p-3 sm:p-4 bg-gradient-to-br from-emerald-50/80 dark:from-emerald-950/40 to-white dark:to-[#161b22] border border-emerald-100 dark:border-emerald-900/60">
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-[9px] sm:text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider truncate">Total Produksi Konten</p>
-                <p className="text-lg sm:text-2xl font-black text-emerald-950 dark:text-gray-100 mt-0.5">{reportData.totalProduksiKeseluruhan}</p>
-                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">Item media diproduksi</p>
-              </div>
-              <div className="p-2 sm:p-3 bg-emerald-100/60 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-300 rounded-xl shrink-0">
-                <FileSpreadsheet className="w-4 h-4 sm:w-5 sm:h-5" />
-              </div>
-            </div>
-          </Card>
+          <LaporanStatCard
+            title={language === "en" ? "Total Content Production" : "Total Produksi Konten"}
+            value={reportData.totalProduksiKeseluruhan}
+            subtitle={language === "en" ? "Media items produced" : "Item media diproduksi"}
+            icon={FileSpreadsheet}
+            accent="emerald"
+          />
 
-          <Card className="p-3 sm:p-4 bg-gradient-to-br from-slate-50 dark:from-slate-900/40 to-white dark:to-[#161b22] border border-slate-200 dark:border-gray-800 col-span-2 sm:col-span-1">
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-[9px] sm:text-[11px] font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider truncate">Isu Strategis Aktif</p>
-                <p className="text-lg sm:text-2xl font-black text-slate-800 dark:text-gray-100 mt-0.5">{reportData.issues.length}</p>
-                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{reportData.issues.join(", ")}</p>
-              </div>
-              <div className="p-2 sm:p-3 bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300 rounded-xl shrink-0">
-                <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
-              </div>
-            </div>
-          </Card>
+          <LaporanStatCard
+            title={language === "en" ? "Active Strategic Issues" : "Isu Strategis Aktif"}
+            value={reportData.issues.length}
+            subtitle={reportData.issues.join(", ")}
+            icon={FileText}
+            accent="slate"
+            className="col-span-2 sm:col-span-1"
+          />
         </div>
       )}
 
@@ -377,20 +472,24 @@ const LaporanPage = () => {
       {isLoading ? (
         <Card className="py-12 text-center text-gray-500 flex flex-col items-center justify-center">
           <Loader2 className="w-7 h-7 animate-spin text-[#0f1f5c] dark:text-sky-400 mb-2" />
-          <p className="text-xs">Memuat data laporan kegiatan...</p>
+          <p className="text-xs">{language === "en" ? "Loading activity report data..." : "Memuat data laporan kegiatan..."}</p>
         </Card>
       ) : isError || !reportData ? (
         <Card className="py-10 text-center text-rose-500">
-          <p className="text-xs font-bold">Gagal memuat data laporan.</p>
+          <p className="text-xs font-bold">{language === "en" ? "Failed to load report data." : "Gagal memuat data laporan."}</p>
           <Button variant="outline" size="sm" className="mt-2 text-xs py-1" onClick={() => refetch()}>
-            Coba Lagi
+            {language === "en" ? "Retry" : "Coba Lagi"}
           </Button>
         </Card>
       ) : reportData.rows.length === 0 ? (
         <Card className="py-14 text-center text-gray-400 dark:text-gray-500">
           <Calendar className="w-10 h-10 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
-          <p className="text-xs font-bold text-gray-600 dark:text-gray-400">Tidak ada kegiatan/produksi pada periode ini.</p>
-          <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">Coba ubah filter bulan atau tahun di atas.</p>
+          <p className="text-xs font-bold text-gray-600 dark:text-gray-400">
+            {language === "en" ? "No activities or production recorded in this period." : "Tidak ada kegiatan/produksi pada periode ini."}
+          </p>
+          <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">
+            {language === "en" ? "Try changing the month or year filter above." : "Coba ubah filter bulan atau tahun di atas."}
+          </p>
         </Card>
       ) : viewMode === "cards" ? (
         /* GRID CARDS VIEW */
@@ -415,7 +514,7 @@ const LaporanPage = () => {
                   </div>
 
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shrink-0">
-                    {row.jumlahProduksi} Produksi
+                    {row.jumlahProduksi} {language === "en" ? "Productions" : "Produksi"}
                   </span>
                 </div>
 
@@ -441,7 +540,7 @@ const LaporanPage = () => {
                 <div className="border-t border-gray-100 dark:border-gray-800 pt-2.5 mt-2 space-y-1.5">
                   <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1">
                     <User className="w-3 h-3 text-gray-400" />
-                    Tim &amp; Penugasan ({row.assignmentsList.length}):
+                    {language === "en" ? "Team & Assignments" : "Tim & Penugasan"} ({row.assignmentsList.length}):
                   </p>
 
                   <div className="space-y-1">
@@ -463,7 +562,7 @@ const LaporanPage = () => {
 
                     {row.assignmentsList.length > 3 && (
                       <p className="text-[10px] text-indigo-600 dark:text-sky-400 font-bold pt-0.5">
-                        +{row.assignmentsList.length - 3} penugasan lainnya...
+                        +{row.assignmentsList.length - 3} {language === "en" ? "more assignments..." : "penugasan lainnya..."}
                       </p>
                     )}
                   </div>
@@ -472,7 +571,7 @@ const LaporanPage = () => {
 
               {/* Card Footer Button */}
               <div className="mt-4 pt-2.5 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-xs text-indigo-600 dark:text-sky-400 font-bold group-hover:translate-x-0.5 transition-transform">
-                <span>Lihat Detail Penugasan</span>
+                <span>{language === "en" ? "View Assignment Details" : "Lihat Detail Penugasan"}</span>
                 <ChevronRight className="w-4 h-4" />
               </div>
             </div>
@@ -484,10 +583,10 @@ const LaporanPage = () => {
           <div className="p-3.5 bg-gray-50 dark:bg-gray-900/60 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
             <div>
               <h3 className="text-xs sm:text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wide">
-                Matriks Laporan Produksi Konten ({reportData?.periodeTitle || "..."})
+                {language === "en" ? "Content Production Report Matrix" : "Matriks Laporan Produksi Konten"} ({reportData?.periodeTitle || "..."})
               </h3>
               <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
-                Pratinjau struktur tabel sesuai format ekspor resmi Excel &amp; PDF.
+                {language === "en" ? "Table structure preview matching official Excel & PDF export format." : "Pratinjau struktur tabel sesuai format ekspor resmi Excel & PDF."}
               </p>
             </div>
           </div>
@@ -497,20 +596,20 @@ const LaporanPage = () => {
               <thead>
                 <tr className="bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-gray-200 font-bold border-b border-slate-300 dark:border-gray-700">
                   <th rowSpan={3} className="px-2 py-1.5 text-center border-r border-slate-300 dark:border-gray-700 w-8">NO</th>
-                  <th rowSpan={3} className="px-2 py-1.5 text-center border-r border-slate-300 dark:border-gray-700 w-20">Tanggal</th>
+                  <th rowSpan={3} className="px-2 py-1.5 text-center border-r border-slate-300 dark:border-gray-700 w-20">{language === "en" ? "Date" : "Tanggal"}</th>
                   <th rowSpan={3} className="px-2 py-1.5 text-center border-r border-slate-300 dark:border-gray-700 w-24">No Strakom</th>
-                  <th rowSpan={3} className="px-2 py-1.5 text-left border-r border-slate-300 dark:border-gray-700 min-w-[150px]">Judul Kegiatan</th>
-                  <th rowSpan={3} className="px-2 py-1.5 text-left border-r border-slate-300 dark:border-gray-700 min-w-[150px]">Petugas Pelaksana</th>
+                  <th rowSpan={3} className="px-2 py-1.5 text-left border-r border-slate-300 dark:border-gray-700 min-w-[150px]">{language === "en" ? "Activity Title" : "Judul Kegiatan"}</th>
+                  <th rowSpan={3} className="px-2 py-1.5 text-left border-r border-slate-300 dark:border-gray-700 min-w-[150px]">{language === "en" ? "Assigned Officers" : "Petugas Pelaksana"}</th>
                   
                   <th
                     colSpan={reportData.issues.length * reportData.contentTypes.length}
                     className="px-2 py-1 text-center border-r border-slate-300 dark:border-gray-700 bg-slate-200/90 dark:bg-slate-800 uppercase tracking-wider text-[11px]"
                   >
-                    Isu Strategis
+                    {language === "en" ? "Strategic Issues" : "Isu Strategis"}
                   </th>
                   
                   <th rowSpan={3} className="px-2 py-1.5 text-center bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-gray-100 border-l border-slate-300 dark:border-gray-700 w-20 font-extrabold leading-tight">
-                    Jumlah<br />Produksi
+                    {language === "en" ? <>Production<br />Count</> : <>Jumlah<br />Produksi</>}
                   </th>
                 </tr>
 
@@ -534,7 +633,7 @@ const LaporanPage = () => {
                         className="px-1 py-1 text-center border-r border-slate-200 dark:border-gray-800 text-[10px] whitespace-nowrap min-w-[32px]"
                         title={ct}
                       >
-                        {getShortCtLabel(ct)}
+                        {getShortCtLabel(ct, language)}
                       </th>
                     ))
                   )}
@@ -581,7 +680,7 @@ const LaporanPage = () => {
               <tfoot>
                 <tr className="bg-slate-200 dark:bg-slate-900 font-bold text-slate-900 dark:text-gray-100 border-t-2 border-slate-400 dark:border-gray-700">
                   <td colSpan={4} className="px-3 py-2 text-center border-r border-slate-300 dark:border-gray-700 uppercase tracking-wider text-[10px]">
-                    Total Produksi
+                    {language === "en" ? "Total Production" : "Total Produksi"}
                   </td>
 
                   {reportData.issues.map((issue) =>
@@ -644,7 +743,7 @@ const LaporanPage = () => {
               {/* Activity Quick Info */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-indigo-50/40 dark:bg-blue-950/30 p-3.5 rounded-2xl border border-indigo-100/60 dark:border-blue-900/40 text-xs">
                 <div>
-                  <p className="text-[10px] font-bold text-indigo-600 dark:text-sky-400 uppercase">Tanggal Kegiatan</p>
+                  <p className="text-[10px] font-bold text-indigo-600 dark:text-sky-400 uppercase">{language === "en" ? "Activity Date" : "Tanggal Kegiatan"}</p>
                   <p className="font-bold text-gray-800 dark:text-gray-200 mt-0.5 flex items-center gap-1">
                     <Calendar className="w-3.5 h-3.5 text-indigo-500 dark:text-sky-400" />
                     {selectedActivity.tanggal}
@@ -652,7 +751,7 @@ const LaporanPage = () => {
                 </div>
 
                 <div>
-                  <p className="text-[10px] font-bold text-indigo-600 dark:text-sky-400 uppercase">Isu Strategis</p>
+                  <p className="text-[10px] font-bold text-indigo-600 dark:text-sky-400 uppercase">{language === "en" ? "Strategic Issues" : "Isu Strategis"}</p>
                   <div className="flex flex-wrap gap-1 mt-0.5">
                     {selectedActivity.issues.map((issue) => (
                       <span key={issue} className="font-bold text-indigo-900 dark:text-sky-300">
@@ -663,9 +762,9 @@ const LaporanPage = () => {
                 </div>
 
                 <div>
-                  <p className="text-[10px] font-bold text-indigo-600 dark:text-sky-400 uppercase">Total Konten</p>
+                  <p className="text-[10px] font-bold text-indigo-600 dark:text-sky-400 uppercase">{language === "en" ? "Total Content" : "Total Konten"}</p>
                   <p className="font-black text-indigo-950 dark:text-sky-200 mt-0.5">
-                    {selectedActivity.jumlahProduksi} Items Diproduksi
+                    {selectedActivity.jumlahProduksi} {language === "en" ? "Items Produced" : "Items Diproduksi"}
                   </p>
                 </div>
               </div>
@@ -674,12 +773,12 @@ const LaporanPage = () => {
               <div>
                 <h4 className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider flex items-center gap-1.5 mb-3">
                   <Briefcase className="w-4 h-4 text-indigo-600 dark:text-sky-400" />
-                  Daftar Penugasan Khusus per Bidang ({selectedActivity.assignmentsList.length})
+                  {language === "en" ? "Specialized Assignments by Division" : "Daftar Penugasan Khusus per Bidang"} ({selectedActivity.assignmentsList.length})
                 </h4>
 
                 {selectedActivity.assignmentsList.length === 0 ? (
                   <p className="text-xs text-gray-500 dark:text-gray-400 italic py-4 text-center bg-gray-50 dark:bg-gray-800/40 rounded-xl">
-                    Belum ada tugas/personel yang didaftarkan untuk kegiatan ini.
+                    {language === "en" ? "No assignments or personnel registered for this activity yet." : "Belum ada tugas/personel yang didaftarkan untuk kegiatan ini."}
                   </p>
                 ) : (
                   <div className="space-y-3">
@@ -698,12 +797,12 @@ const LaporanPage = () => {
                                 <span className="text-xs font-bold text-gray-900 dark:text-gray-100">{asgn.userName}</span>
                                 {asgn.staffType && (
                                   <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-indigo-100 dark:bg-blue-950 text-indigo-800 dark:text-sky-300">
-                                    Bidang: {asgn.staffType}
+                                    {language === "en" ? "Division:" : "Bidang:"} {asgn.staffType}
                                   </span>
                                 )}
                               </div>
                               <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                                Jenis Konten: <span className="font-semibold text-gray-700 dark:text-gray-300">{asgn.contentTypeName}</span>
+                                {language === "en" ? "Content Type:" : "Jenis Konten:"} <span className="font-semibold text-gray-700 dark:text-gray-300">{asgn.contentTypeName}</span>
                               </p>
                             </div>
                           </div>
@@ -723,14 +822,14 @@ const LaporanPage = () => {
 
                         {asgn.instruction && (
                           <div className="text-xs text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/60 p-2 rounded-xl mt-2 text-[11px] border border-gray-100 dark:border-gray-800">
-                            <span className="font-semibold text-gray-700 dark:text-gray-300">Instruksi:</span> {asgn.instruction}
+                            <span className="font-semibold text-gray-700 dark:text-gray-300">{language === "en" ? "Instruction:" : "Instruksi:"}</span> {asgn.instruction}
                           </div>
                         )}
 
                         {asgn.deadline && (
                           <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-2 flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            Deadline: {asgn.deadline}
+                            {language === "en" ? "Deadline:" : "Batas Waktu:"} {asgn.deadline}
                           </p>
                         )}
                       </div>
@@ -748,7 +847,7 @@ const LaporanPage = () => {
                 className="text-xs px-4 cursor-pointer"
                 onClick={() => setSelectedActivity(null)}
               >
-                Tutup
+                {t("close")}
               </Button>
             </div>
           </div>

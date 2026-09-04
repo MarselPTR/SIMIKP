@@ -253,10 +253,14 @@ const LoginPage = () => {
         </form>
 
         <div className="mt-5 p-3.5 rounded-xl bg-gray-50 dark:bg-[#0d1117] border border-gray-200 dark:border-gray-700 text-xs text-gray-600 dark:text-gray-400 space-y-2">
-          <p className="font-semibold text-gray-900 dark:text-gray-200">Akun Pengujian / Demo:</p>
+          <p className="font-semibold text-gray-900 dark:text-gray-200">
+            {language === "en" ? "Testing / Demo Accounts:" : "Akun Pengujian / Demo:"}
+          </p>
           <div className="grid grid-cols-3 gap-2 pt-1">
             <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/50">
-              <p className="font-bold text-indigo-700 dark:text-indigo-300">Ahli Pertama</p>
+              <p className="font-bold text-indigo-700 dark:text-indigo-300">
+                {language === "en" ? "First Expert" : "Ahli Pertama"}
+              </p>
               <p className="text-[10px] text-gray-500 mt-0.5">User: <code className="font-bold text-gray-800 dark:text-gray-200">ahli</code></p>
             </div>
             <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/50">
@@ -264,11 +268,15 @@ const LoginPage = () => {
               <p className="text-[10px] text-gray-500 mt-0.5">User: <code className="font-bold text-gray-800 dark:text-gray-200">admin</code></p>
             </div>
             <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50">
-              <p className="font-bold text-emerald-700 dark:text-emerald-300">Petugas</p>
+              <p className="font-bold text-emerald-700 dark:text-emerald-300">
+                {language === "en" ? "Officer" : "Petugas"}
+              </p>
               <p className="text-[10px] text-gray-500 mt-0.5">User: <code className="font-bold text-gray-800 dark:text-gray-200">andi</code></p>
             </div>
           </div>
-          <p className="text-[11px] text-gray-400 pt-1">Password demo dapat diisi apa saja.</p>
+          <p className="text-[11px] text-gray-400 pt-1">
+            {language === "en" ? "Demo password can be anything." : "Password demo dapat diisi apa saja."}
+          </p>
         </div>
       </div>
 
@@ -294,16 +302,20 @@ const LoginPage = () => {
                   <CheckCircle2 className="w-8 h-8" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                  Tautan Berhasil Dikirim!
+                  {language === "en" ? "Link Sent Successfully!" : "Tautan Berhasil Dikirim!"}
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 leading-relaxed">
-                  Instruksi dan tautan untuk membuat kata sandi baru telah kami kirimkan ke:
+                  {language === "en"
+                    ? "Instructions and a link to create a new password have been sent to:"
+                    : "Instruksi dan tautan untuk membuat kata sandi baru telah kami kirimkan ke:"}
                 </p>
                 <div className="my-3 p-2.5 bg-blue-50 dark:bg-blue-950/40 text-blue-900 dark:text-sky-300 font-semibold text-sm rounded-xl border border-blue-200 dark:border-blue-900/60 break-all">
                   {forgotEmail}
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-6">
-                  Silakan periksa kotak masuk (inbox) atau folder spam pada email Anda, lalu klik tombol tautan di dalamnya. Tautan berlaku selama 30 menit.
+                  {language === "en"
+                    ? "Please check your inbox or spam folder and click the link within. The link is valid for 30 minutes."
+                    : "Silakan periksa kotak masuk (inbox) atau folder spam pada email Anda, lalu klik tombol tautan di dalamnya. Tautan berlaku selama 30 menit."}
                 </p>
                 <button
                   type="button"
@@ -314,7 +326,7 @@ const LoginPage = () => {
                   }}
                   className="w-full py-2.5 bg-[#0f1f5c] hover:bg-[#0a1645] text-white rounded-xl text-sm font-semibold transition cursor-pointer shadow-md"
                 >
-                  Kembali ke Halaman Login
+                  {language === "en" ? "Back to Login Page" : "Kembali ke Halaman Login"}
                 </button>
               </div>
             ) : (
@@ -324,11 +336,13 @@ const LoginPage = () => {
                 </div>
 
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                  Lupa Kata Sandi Akun
+                  {language === "en" ? "Forgot Account Password" : "Lupa Kata Sandi Akun"}
                 </h3>
 
                 <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 leading-relaxed">
-                  Masukkan alamat email yang terdaftar pada akun SIMIKP Anda. Kami akan mengirimkan tautan reset kata sandi resmi ke email tersebut.
+                  {language === "en"
+                    ? "Enter the registered email address for your SIMIKP account. We will send an official password reset link."
+                    : "Masukkan alamat email yang terdaftar pada akun SIMIKP Anda. Kami akan mengirimkan tautan reset kata sandi resmi ke email tersebut."}
                 </p>
 
                 {forgotError && (
@@ -341,7 +355,7 @@ const LoginPage = () => {
                 <form onSubmit={handleForgotSubmit} className="mt-4 space-y-4">
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                      Alamat Email Terdaftar
+                      {language === "en" ? "Registered Email Address" : "Alamat Email Terdaftar"}
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
@@ -351,7 +365,7 @@ const LoginPage = () => {
                         type="email"
                         value={forgotEmail}
                         onChange={(e) => setForgotEmail(e.target.value)}
-                        placeholder="contoh: nama@batukota.go.id / gmail.com"
+                        placeholder={language === "en" ? "e.g. name@batukota.go.id / gmail.com" : "contoh: nama@batukota.go.id / gmail.com"}
                         required
                         className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-700 bg-gray-50/50 dark:bg-[#0d1117] text-gray-900 dark:text-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0f1f5c] dark:focus:ring-sky-500 transition"
                       />
@@ -359,7 +373,9 @@ const LoginPage = () => {
                   </div>
 
                   <div className="p-3 rounded-xl bg-gray-50 dark:bg-[#0d1117] border border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
-                    💡 Tautan pembuatan sandi baru akan dikirimkan otomatis ke inbox email Anda.
+                    {language === "en"
+                      ? "💡 A password reset link will be sent automatically to your email inbox."
+                      : "💡 Tautan pembuatan sandi baru akan dikirimkan otomatis ke inbox email Anda."}
                   </div>
 
                   <div className="flex items-center gap-2 pt-2">
@@ -368,7 +384,7 @@ const LoginPage = () => {
                       onClick={() => setShowForgotModal(false)}
                       className="flex-1 py-2.5 border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-semibold transition cursor-pointer"
                     >
-                      Batal
+                      {t("cancel")}
                     </button>
                     <button
                       type="submit"
@@ -378,10 +394,10 @@ const LoginPage = () => {
                       {forgotSubmitting ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          <span>Mengirim...</span>
+                          <span>{language === "en" ? "Sending..." : "Mengirim..."}</span>
                         </>
                       ) : (
-                        <span>Kirim Tautan</span>
+                        <span>{language === "en" ? "Send Link" : "Kirim Tautan"}</span>
                       )}
                     </button>
                   </div>

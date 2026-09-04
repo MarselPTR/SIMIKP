@@ -300,10 +300,12 @@ const PetugasPenugasanPage = () => {
                   <div className="p-3 bg-blue-50/60 dark:bg-blue-950/30 rounded-xl border border-blue-100 dark:border-blue-900/40 text-[11px] text-blue-800 dark:text-blue-300 space-y-1">
                     <p className="font-bold flex items-center gap-1">
                       <CheckCircle2 size={13} className="text-blue-600 dark:text-blue-400" />
-                      Penyimpanan Internal VPS Kominfo
+                      {language === "en" ? "Diskominfo Internal Server Storage" : "Penyimpanan Internal VPS Kominfo"}
                     </p>
                     <p className="text-gray-600 dark:text-gray-400">
-                      Berkas foto, video, dan desain langsung disimpan aman di harddisk server internal Pemkot Batu (bebas Google Drive).
+                      {language === "en"
+                        ? "Photo, video, and design files are saved directly and securely to Batu City internal servers."
+                        : "Berkas foto, video, dan desain langsung disimpan aman di harddisk server internal Pemkot Batu (bebas Google Drive)."}
                     </p>
                   </div>
                 </div>
@@ -314,42 +316,54 @@ const PetugasPenugasanPage = () => {
                       {isPrahum ? (
                         <>
                           <FileText size={16} className="text-blue-600" />
-                          <span>{isRevision ? "Teks Naskah Hasil Perbaikan" : "Isi Naskah Berita Online"}</span>
+                          <span>
+                            {isRevision
+                              ? (language === "en" ? "Revised PR Script Text" : "Teks Naskah Hasil Perbaikan")
+                              : (language === "en" ? "Online News Script Content" : "Isi Naskah Berita Online")}
+                          </span>
                         </>
                       ) : isEditor ? (
                         <>
                           <Layers size={16} className="text-purple-600" />
-                          <span>{isRevision ? "Unggah Desain & Berkas Revisi" : "Unggah Hasil Desain Grafis & Master File"}</span>
+                          <span>
+                            {isRevision
+                              ? (language === "en" ? "Upload Revised Design & Files" : "Unggah Desain & Berkas Revisi")
+                              : (language === "en" ? "Upload Graphic Design & Master Files" : "Unggah Hasil Desain Grafis & Master File")}
+                          </span>
                         </>
                       ) : (
                         <>
                           <ImageIcon size={16} className="text-sky-600" />
-                          <span>{isRevision ? "Unggah Berkas Foto/Video Revisi" : "Unggah Berkas Liputan (Foto & Video)"}</span>
+                          <span>
+                            {isRevision
+                              ? (language === "en" ? "Upload Revised Photos/Videos" : "Unggah Berkas Foto/Video Revisi")
+                              : (language === "en" ? "Upload Coverage Media (Photos & Videos)" : "Unggah Berkas Liputan (Foto & Video)")}
+                          </span>
                         </>
                       )}
                     </h3>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       {isPrahum
-                        ? "Ketik naskah rilis pers resmi Kota Batu di bawah ini untuk ditelaah oleh Pranata Humas Ahli Pertama."
+                        ? (language === "en" ? "Type official news press release below for review by First Expert Officer." : "Ketik naskah rilis pers resmi Kota Batu di bawah ini untuk ditelaah oleh Pranata Humas Ahli Pertama.")
                         : isEditor
-                        ? "Pilih berkas infografis/banner siap tayang beserta file master project (.psd/.ai/.zip) jika ada."
-                        : "Pilih foto dokumentasi (bisa >10 foto) atau video liputan berkualitas tinggi (hingga 4 GB)."}
+                        ? (language === "en" ? "Select publication-ready infographics/banners along with master project files (.psd/.ai/.zip) if available." : "Pilih berkas infografis/banner siap tayang beserta file master project (.psd/.ai/.zip) jika ada.")
+                        : (language === "en" ? "Select coverage photos (multiple allowed) or high-resolution video footage (up to 4 GB)." : "Pilih foto dokumentasi (bisa >10 foto) atau video liputan berkualitas tinggi (hingga 4 GB).")}
                     </p>
                   </div>
 
                   {isPrahum && (
                     <div className="space-y-3">
                       <div className="flex items-center justify-between text-xs text-gray-500">
-                        <span>Ketik isi naskah berita:</span>
+                        <span>{language === "en" ? "Type news script content:" : "Ketik isi naskah berita:"}</span>
                         <span className="font-semibold text-blue-600 dark:text-sky-400">
-                          {uploadLink.trim() ? uploadLink.trim().split(/\s+/).length : 0} Kata
+                          {uploadLink.trim() ? uploadLink.trim().split(/\s+/).length : 0} {language === "en" ? "Words" : "Kata"}
                         </span>
                       </div>
                       <textarea
                         rows={11}
                         value={uploadLink}
                         onChange={(e) => setUploadLink(e.target.value)}
-                        placeholder="KOTA BATU – Pemerintah Kota Batu secara resmi menyelenggarakan kegiatan..."
+                        placeholder={language === "en" ? "BATU CITY – The Batu City Government officially held..." : "KOTA BATU – Pemerintah Kota Batu secara resmi menyelenggarakan kegiatan..."}
                         className="w-full text-xs sm:text-sm px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0a1647] dark:focus:ring-sky-500 leading-relaxed font-sans"
                       />
                       <button
@@ -357,14 +371,14 @@ const PetugasPenugasanPage = () => {
                         disabled={isUploading}
                         onClick={async () => {
                           if (!uploadLink.trim()) {
-                            addToast("Harap tulis isi naskah berita terlebih dahulu", "warning");
+                            addToast(language === "en" ? "Please write the news script content first" : "Harap tulis isi naskah berita terlebih dahulu", "warning");
                             return;
                           }
                           await storeSubmitWork(selectedTask.id, uploadLink.trim());
                           addToast(
                             isRevision
-                              ? "Naskah hasil perbaikan berhasil dikirim ulang ke Ahli Pertama!"
-                              : "Naskah berita berhasil disetor ke Meja Kurasi Ahli Pertama!",
+                              ? (language === "en" ? "Revised script re-submitted successfully to First Expert Officer!" : "Naskah hasil perbaikan berhasil dikirim ulang ke Ahli Pertama!")
+                              : (language === "en" ? "News script submitted successfully to First Expert Officer curation desk!" : "Naskah berita berhasil disetor ke Meja Kurasi Ahli Pertama!"),
                             "success"
                           );
                         }}
@@ -375,7 +389,11 @@ const PetugasPenugasanPage = () => {
                         }`}
                       >
                         {isRevision ? <Send size={14} /> : <Upload size={14} />}
-                        <span>{isRevision ? "Kirim Ulang Naskah Perbaikan ke Ahli Pertama" : "Simpan & Setor Naskah ke Meja Kurasi Ahli Pertama"}</span>
+                        <span>
+                          {isRevision
+                            ? (language === "en" ? "Re-submit Revised Script to First Expert" : "Kirim Ulang Naskah Perbaikan ke Ahli Pertama")
+                            : (language === "en" ? "Save & Submit Script to First Expert Desk" : "Simpan & Setor Naskah ke Meja Kurasi Ahli Pertama")}
+                        </span>
                       </button>
                     </div>
                   )}
@@ -393,7 +411,7 @@ const PetugasPenugasanPage = () => {
                           }`}
                         >
                           <ImageIcon size={14} />
-                          <span>Foto Dokumentasi</span>
+                          <span>{language === "en" ? "Photo Archives" : "Foto Dokumentasi"}</span>
                         </button>
                         <button
                           type="button"
@@ -405,7 +423,7 @@ const PetugasPenugasanPage = () => {
                           }`}
                         >
                           <VideoIcon size={14} />
-                          <span>Video Liputan</span>
+                          <span>{language === "en" ? "Video Coverage" : "Video Liputan"}</span>
                         </button>
                       </div>
 
@@ -430,23 +448,23 @@ const PetugasPenugasanPage = () => {
                           >
                             <ImageIcon className="w-10 h-10 mx-auto text-gray-400 group-hover:text-blue-600 dark:group-hover:text-sky-400 transition mb-2" />
                             <p className="text-xs font-bold text-gray-800 dark:text-gray-200">
-                              Klik untuk Pilih Foto Dokumentasi (Bisa &gt;10 Foto Sekaligus)
+                              {language === "en" ? "Click to Select Photos (Multiple allowed)" : "Klik untuk Pilih Foto Dokumentasi (Bisa >10 Foto Sekaligus)"}
                             </p>
                             <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
-                              Format: JPG, PNG, WEBP, HEIC (iPhone), atau ZIP mentahan.
+                              {language === "en" ? "Format: JPG, PNG, WEBP, HEIC, or raw ZIP." : "Format: JPG, PNG, WEBP, HEIC (iPhone), atau ZIP mentahan."}
                             </p>
                           </div>
 
                           {selectedPhotoFiles.length > 0 && (
                             <div className="space-y-2">
                               <div className="flex items-center justify-between text-xs font-bold text-gray-700 dark:text-gray-300">
-                                <span>{selectedPhotoFiles.length} Foto Siap Diunggah:</span>
+                                <span>{selectedPhotoFiles.length} {language === "en" ? "Photos Ready to Upload:" : "Foto Siap Diunggah:"}</span>
                                 <button
                                   type="button"
                                   onClick={() => setSelectedPhotoFiles([])}
                                   className="text-red-500 hover:underline text-[11px] cursor-pointer"
                                 >
-                                  Hapus Semua
+                                  {language === "en" ? "Remove All" : "Hapus Semua"}
                                 </button>
                               </div>
                               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 max-h-48 overflow-y-auto p-2 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-200 dark:border-gray-800">
@@ -495,10 +513,10 @@ const PetugasPenugasanPage = () => {
                           >
                             <VideoIcon className="w-10 h-10 mx-auto text-gray-400 group-hover:text-blue-600 dark:group-hover:text-sky-400 transition mb-2" />
                             <p className="text-xs font-bold text-gray-800 dark:text-gray-200">
-                              Klik untuk Pilih Berkas Video Liputan (Maksimal 4 GB)
+                              {language === "en" ? "Click to Select Video File (Max 4 GB)" : "Klik untuk Pilih Berkas Video Liputan (Maksimal 4 GB)"}
                             </p>
                             <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
-                              Format: MP4, MOV (Kamera Sony/iPhone), MKV, AVI, atau ZIP. Didukung streaming langsung.
+                              {language === "en" ? "Format: MP4, MOV, MKV, AVI, or ZIP. Direct streaming supported." : "Format: MP4, MOV (Kamera Sony/iPhone), MKV, AVI, atau ZIP. Didukung streaming langsung."}
                             </p>
                           </div>
 
@@ -523,13 +541,13 @@ const PetugasPenugasanPage = () => {
 
                       <div className="space-y-1.5">
                         <label className="text-xs font-bold text-gray-800 dark:text-gray-200">
-                          Keterangan / Caption Dokumentasi:
+                          {language === "en" ? "Documentation Caption / Description:" : "Keterangan / Caption Dokumentasi:"}
                         </label>
                         <textarea
                           rows={3}
                           value={caption}
                           onChange={(e) => setCaption(e.target.value)}
-                          placeholder="Contoh: Dokumentasi sesi pembukaan dan wawancara Kadis Pariwisata di Graha Among Tani..."
+                          placeholder={language === "en" ? "e.g. Opening session documentation and Mayor interview..." : "Contoh: Dokumentasi sesi pembukaan dan wawancara Kadis Pariwisata di Graha Among Tani..."}
                           className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
@@ -539,7 +557,7 @@ const PetugasPenugasanPage = () => {
                           <div className="flex items-center justify-between text-xs font-bold text-blue-900 dark:text-blue-200">
                             <span className="flex items-center gap-1.5">
                               <Loader2 size={14} className="animate-spin text-blue-600" />
-                              Mengunggah ke Server Kominfo...
+                              {language === "en" ? "Uploading to Server..." : "Mengunggah ke Server Kominfo..."}
                             </span>
                             <span>{uploadProgressText || `${uploadPercent || 0}%`}</span>
                           </div>
@@ -573,8 +591,8 @@ const PetugasPenugasanPage = () => {
                             } else {
                               addToast(
                                 activeMediaTab === "foto"
-                                  ? "Harap pilih minimal 1 foto dokumentasi"
-                                  : "Harap pilih berkas video liputan",
+                                  ? (language === "en" ? "Please select at least 1 photo" : "Harap pilih minimal 1 foto dokumentasi")
+                                  : (language === "en" ? "Please select a video file" : "Harap pilih berkas video liputan"),
                                 "warning"
                               );
                               setIsUploading(false);
@@ -594,12 +612,12 @@ const PetugasPenugasanPage = () => {
                             setUploadPercent(null);
                             addToast(
                               isRevision
-                                ? "Hasil perbaikan media berhasil dikirim ulang ke Ahli Pertama!"
-                                : "Berkas liputan berhasil dikirim ke Meja Kurasi Ahli Pertama!",
+                                ? (language === "en" ? "Revised media re-submitted successfully to First Expert Officer!" : "Hasil perbaikan media berhasil dikirim ulang ke Ahli Pertama!")
+                                : (language === "en" ? "Coverage media submitted successfully to First Expert Officer curation desk!" : "Berkas liputan berhasil dikirim ke Meja Kurasi Ahli Pertama!"),
                               "success"
                             );
                           } catch (err: any) {
-                            addToast(err?.message || "Gagal mengunggah berkas", "error");
+                            addToast(err?.message || (language === "en" ? "Failed to upload files" : "Gagal mengunggah berkas"), "error");
                           } finally {
                             setIsUploading(false);
                           }
@@ -613,17 +631,17 @@ const PetugasPenugasanPage = () => {
                         {isUploading ? (
                           <>
                             <Loader2 size={14} className="animate-spin" />
-                            <span>Sedang Mengunggah Berkas...</span>
+                            <span>{language === "en" ? "Uploading Files..." : "Sedang Mengunggah Berkas..."}</span>
                           </>
                         ) : isRevision ? (
                           <>
                             <Send size={14} />
-                            <span>Kirim Ulang Berkas Revisi ke Ahli Pertama</span>
+                            <span>{language === "en" ? "Re-submit Revised Files to First Expert" : "Kirim Ulang Berkas Revisi ke Ahli Pertama"}</span>
                           </>
                         ) : (
                           <>
                             <Upload size={14} />
-                            <span>Unggah & Setor ke Meja Kurasi Ahli Pertama</span>
+                            <span>{language === "en" ? "Upload & Submit to First Expert Desk" : "Unggah & Setor ke Meja Kurasi Ahli Pertama"}</span>
                           </>
                         )}
                       </button>
@@ -634,7 +652,7 @@ const PetugasPenugasanPage = () => {
                     <div className="space-y-4">
                       <div className="space-y-1.5">
                         <label className="text-xs font-bold text-gray-800 dark:text-gray-200">
-                          1. Berkas Desain Siap Publikasi (Wajib - PNG / JPG / PDF):
+                          {language === "en" ? "1. Publication-Ready Design (Required - PNG / JPG / PDF):" : "1. Berkas Desain Siap Publikasi (Wajib - PNG / JPG / PDF):"}
                         </label>
                         <input
                           type="file"
@@ -649,15 +667,15 @@ const PetugasPenugasanPage = () => {
                         >
                           <Layers className="w-8 h-8 mx-auto text-purple-500 mb-1.5" />
                           <p className="text-xs font-bold text-gray-800 dark:text-gray-200">
-                            {selectedDesignMain ? selectedDesignMain.name : "Klik untuk Pilih Desain Utama"}
+                            {selectedDesignMain ? selectedDesignMain.name : (language === "en" ? "Click to Select Main Design" : "Klik untuk Pilih Desain Utama")}
                           </p>
-                          <p className="text-[11px] text-gray-500">Format: PNG, JPG, PDF resolusi tinggi.</p>
+                          <p className="text-[11px] text-gray-500">{language === "en" ? "Format: High-resolution PNG, JPG, PDF." : "Format: PNG, JPG, PDF resolusi tinggi."}</p>
                         </div>
                       </div>
 
                       <div className="space-y-1.5">
                         <label className="text-xs font-bold text-gray-800 dark:text-gray-200">
-                          2. Berkas Mentahan / Master Project (Opsional - PSD / AI / ZIP):
+                          {language === "en" ? "2. Raw Master Project Files (Optional - PSD / AI / ZIP):" : "2. Berkas Mentahan / Master Project (Opsional - PSD / AI / ZIP):"}
                         </label>
                         <input
                           type="file"
@@ -673,18 +691,18 @@ const PetugasPenugasanPage = () => {
                           <div className="flex items-center gap-2 truncate text-xs">
                             <Layers size={14} className="text-gray-400 shrink-0" />
                             <span className="truncate text-gray-700 dark:text-gray-300">
-                              {selectedDesignMaster ? selectedDesignMaster.name : "Pilih Master Project (.zip, .psd, .ai)"}
+                              {selectedDesignMaster ? selectedDesignMaster.name : (language === "en" ? "Select Master Project (.zip, .psd, .ai)" : "Pilih Master Project (.zip, .psd, .ai)")}
                             </span>
                           </div>
                           <span className="text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded font-semibold">
-                            Pilih File
+                            {language === "en" ? "Browse" : "Pilih File"}
                           </span>
                         </div>
                       </div>
 
                       <div className="space-y-1.5">
                         <label className="text-xs font-bold text-gray-800 dark:text-gray-200">
-                          Dimensi & Target Media Publikasi:
+                          {language === "en" ? "Dimensions & Target Media Platform:" : "Dimensi & Target Media Publikasi:"}
                         </label>
                         <select
                           value={targetPlatform}
@@ -694,19 +712,19 @@ const PetugasPenugasanPage = () => {
                           <option value="Feed Instagram (1:1)">Feed Instagram (1:1 - 1080x1080)</option>
                           <option value="Story / Reels / TikTok (9:16)">Story / Reels / TikTok (9:16 - 1080x1920)</option>
                           <option value="Banner Website / Youtube (16:9)">Banner Website / Youtube (16:9 - 1920x1080)</option>
-                          <option value="Poster / Baliho Cetak">Poster / Baliho Cetak Fisik</option>
+                          <option value="Poster / Baliho Cetak">{language === "en" ? "Printed Physical Poster / Billboard" : "Poster / Baliho Cetak Fisik"}</option>
                         </select>
                       </div>
 
                       <div className="space-y-1.5">
                         <label className="text-xs font-bold text-gray-800 dark:text-gray-200">
-                          Catatan Desain & Revisi:
+                          {language === "en" ? "Design & Revision Notes:" : "Catatan Desain & Revisi:"}
                         </label>
                         <textarea
                           rows={3}
                           value={editorNotes}
                           onChange={(e) => setEditorNotes(e.target.value)}
-                          placeholder="Contoh: Sudah menyesuaikan letak logo Pemkot dan font tanggal acara..."
+                          placeholder={language === "en" ? "e.g. Adjusted City Gov logo placement and event date font..." : "Contoh: Sudah menyesuaikan letak logo Pemkot dan font tanggal acara..."}
                           className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
                         />
                       </div>
@@ -716,7 +734,7 @@ const PetugasPenugasanPage = () => {
                           <div className="flex items-center justify-between text-xs font-bold text-purple-900 dark:text-purple-200">
                             <span className="flex items-center gap-1.5">
                               <Loader2 size={14} className="animate-spin text-purple-600" />
-                              Mengunggah Desain ke Server...
+                              {language === "en" ? "Uploading Design to Server..." : "Mengunggah Desain ke Server..."}
                             </span>
                             <span>{uploadProgressText || `${uploadPercent || 0}%`}</span>
                           </div>
@@ -745,7 +763,7 @@ const PetugasPenugasanPage = () => {
                             } else if (selectedTask.mediaData?.files && selectedTask.mediaData.files.length > 0) {
                               uploadedFiles = selectedTask.mediaData.files;
                             } else {
-                              addToast("Harap pilih berkas desain utama", "warning");
+                              addToast(language === "en" ? "Please select the main design file" : "Harap pilih berkas desain utama", "warning");
                               setIsUploading(false);
                               return;
                             }
@@ -764,12 +782,12 @@ const PetugasPenugasanPage = () => {
                             setUploadPercent(null);
                             addToast(
                               isRevision
-                                ? "Hasil revisi desain berhasil dikirim ulang ke Ahli Pertama!"
-                                : "Berkas desain berhasil dikirim ke Meja Kurasi Ahli Pertama!",
+                                ? (language === "en" ? "Revised design re-submitted successfully to First Expert Officer!" : "Hasil revisi desain berhasil dikirim ulang ke Ahli Pertama!")
+                                : (language === "en" ? "Design file submitted successfully to First Expert Officer curation desk!" : "Berkas desain berhasil dikirim ke Meja Kurasi Ahli Pertama!"),
                               "success"
                             );
                           } catch (err: any) {
-                            addToast(err?.message || "Gagal mengunggah berkas desain", "error");
+                            addToast(err?.message || (language === "en" ? "Failed to upload design files" : "Gagal mengunggah berkas desain"), "error");
                           } finally {
                             setIsUploading(false);
                           }
@@ -783,17 +801,17 @@ const PetugasPenugasanPage = () => {
                         {isUploading ? (
                           <>
                             <Loader2 size={14} className="animate-spin" />
-                            <span>Sedang Mengunggah Berkas...</span>
+                            <span>{language === "en" ? "Uploading Files..." : "Sedang Mengunggah Berkas..."}</span>
                           </>
                         ) : isRevision ? (
                           <>
                             <Send size={14} />
-                            <span>Kirim Ulang Desain Revisi ke Ahli Pertama</span>
+                            <span>{language === "en" ? "Re-submit Revised Design to First Expert" : "Kirim Ulang Desain Revisi ke Ahli Pertama"}</span>
                           </>
                         ) : (
                           <>
                             <Upload size={14} />
-                            <span>Unggah & Setor ke Meja Kurasi Ahli Pertama</span>
+                            <span>{language === "en" ? "Upload & Submit to First Expert Desk" : "Unggah & Setor ke Meja Kurasi Ahli Pertama"}</span>
                           </>
                         )}
                       </button>
@@ -805,7 +823,7 @@ const PetugasPenugasanPage = () => {
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1 text-xs">
                           <CheckCircle2 size={14} className="text-emerald-600" />
-                          {selectedTask.mediaData.files.length} Berkas Tersimpan di Server Internal
+                          {selectedTask.mediaData.files.length} {language === "en" ? "Files Stored on Internal Server" : "Berkas Tersimpan di Server Internal"}
                         </span>
                         {selectedTask.mediaData.targetPlatform && (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300">

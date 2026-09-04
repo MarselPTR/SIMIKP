@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { Search, Plus, Mail, Shield, User, Filter, ShieldCheck, Camera, Video, Edit3, Image as ImageIcon, X, Trash2, Sparkles } from "lucide-react";
 import { apiFetch } from "../../lib/api-client";
 import { useToast } from "../../contexts/ToastContext";
-
+import { useLanguage } from "../../lib/LanguageContext";
 
 interface Petugas {
   id: string;
@@ -17,15 +17,23 @@ interface Petugas {
   active: boolean;
 }
 
-// Keys must match the values TambahPetugasPage sends as `program` / users.staff_type
-// FOTO_VIDEO dipertahankan untuk data lama sebelum jabatan ini dipecah jadi Fotografer/Videografer.
-const PROGRAM_LABELS: Record<string, string> = {
+const PROGRAM_LABELS_ID: Record<string, string> = {
   AHLI_PERTAMA: "Pranata Ahli Pertama",
   PRAHUM: "Pranata Humas (Berita)",
   FOTOGRAFER: "Fotografer",
   VIDEOGRAFER: "Videografer",
   DESAINER_EDITOR: "Desainer & Editor",
   FOTO_VIDEO: "Foto & Video",
+  ADMIN: "Admin",
+};
+
+const PROGRAM_LABELS_EN: Record<string, string> = {
+  AHLI_PERTAMA: "First Expert Officer",
+  PRAHUM: "Public Relations Officer (News)",
+  FOTOGRAFER: "Photographer",
+  VIDEOGRAFER: "Videographer",
+  DESAINER_EDITOR: "Designer & Editor",
+  FOTO_VIDEO: "Photo & Video",
   ADMIN: "Admin",
 };
 
@@ -45,6 +53,7 @@ export default function DaftarAnggotaPage() {
   const [filterType, setFilterType] = useState("ALL");
   const [isLoading, setIsLoading] = useState(true);
   const { addToast } = useToast();
+  const { language } = useLanguage();
 
   const [selectedPetugas, setSelectedPetugas] = useState<Petugas | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -87,15 +96,25 @@ export default function DaftarAnggotaPage() {
         method: "DELETE",
       });
       if (res.success) {
-        addToast(res.message, "success");
+        addToast(
+          language === "en" ? "Officer successfully removed." : res.message,
+          "success"
+        );
         setAnggota((prev) => prev.filter((p) => p.id !== selectedPetugas.id));
         setIsDeleteModalOpen(false);
       }
     } catch (err: any) {
-      addToast(err.message || "Gagal menghapus petugas", "error");
+      addToast(err.message || (language === "en" ? "Failed to delete officer" : "Gagal menghapus petugas"), "error");
     } finally {
       setIsDeleting(false);
     }
+  };
+
+  const getRoleLabel = (staffType: string) => {
+    if (language === "en") {
+      return PROGRAM_LABELS_EN[staffType] || staffType;
+    }
+    return PROGRAM_LABELS_ID[staffType] || staffType;
   };
 
   // Filter options synced to whatever jabatan actually exist in the data
@@ -127,15 +146,21 @@ export default function DaftarAnggotaPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold mb-1 text-[#0f1f5c] dark:text-sky-400">Daftar Anggota Tim</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Kelola dan lihat daftar seluruh petugas lapangan SIMIKP</p>
+          <h1 className="text-2xl font-bold mb-1 text-[#0f1f5c] dark:text-sky-400">
+            {language === "en" ? "Team Members Directory" : "Daftar Anggota Tim"}
+          </h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            {language === "en"
+              ? "Manage and view the list of all SIMIKP field officers"
+              : "Kelola dan lihat daftar seluruh petugas lapangan SIMIKP"}
+          </p>
         </div>
         <Link
           to="/tambah-petugas"
           className="inline-flex items-center gap-2 bg-[#0f1f5c] hover:bg-blue-900 text-white px-5 py-2.5 rounded-lg text-sm font-medium shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
         >
           <Plus className="w-4 h-4" strokeWidth={2.5} />
-          Tambah Anggota Baru
+          {language === "en" ? "Add New Member" : "Tambah Anggota Baru"}
         </Link>
       </div>
 
@@ -145,7 +170,7 @@ export default function DaftarAnggotaPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Cari berdasarkan nama atau PIC..."
+            placeholder={language === "en" ? "Search by name or PIC..." : "Cari berdasarkan nama atau PIC..."}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-gray-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white dark:bg-[#161b22] text-gray-900 dark:text-gray-100 shadow-sm placeholder:text-gray-400 dark:placeholder:text-gray-500"
@@ -159,10 +184,10 @@ export default function DaftarAnggotaPage() {
             onChange={(e) => setFilterType(e.target.value)}
             className="appearance-none pl-10 pr-10 py-2.5 border border-gray-200 dark:border-gray-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white dark:bg-[#161b22] shadow-sm font-medium text-gray-700 dark:text-gray-200"
           >
-            <option value="ALL">Semua Jabatan</option>
-            {jabatanOptions.map((t) => (
-              <option key={t} value={t}>
-                {PROGRAM_LABELS[t] || t}
+            <option value="ALL">{language === "en" ? "All Positions" : "Semua Jabatan"}</option>
+            {jabatanOptions.map((tItem) => (
+              <option key={tItem} value={tItem}>
+                {getRoleLabel(tItem)}
               </option>
             ))}
           </select>
@@ -179,8 +204,12 @@ export default function DaftarAnggotaPage() {
           <div className="w-16 h-16 bg-blue-50 dark:bg-sky-500/10 text-[#0f1f5c] dark:text-sky-400 rounded-full flex items-center justify-center mx-auto mb-4">
             <User className="w-8 h-8" />
           </div>
-          <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1">Tidak ada anggota</h3>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">Belum ada anggota yang terdaftar atau cocok dengan pencarian.</p>
+          <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1">
+            {language === "en" ? "No members found" : "Tidak ada anggota"}
+          </h3>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">
+            {language === "en" ? "No members registered or matching your search." : "Belum ada anggota yang terdaftar atau cocok dengan pencarian."}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
@@ -197,8 +226,8 @@ export default function DaftarAnggotaPage() {
                 <div className="p-6 flex-1 flex flex-col items-center text-center relative">
                   <button 
                     onClick={() => openDeleteModal(petugas)}
-                    className="absolute top-4 right-4 text-gray-300 hover:text-red-500 transition"
-                    title="Hapus Petugas"
+                    className="absolute top-4 right-4 text-gray-300 hover:text-red-500 transition cursor-pointer"
+                    title={language === "en" ? "Delete Officer" : "Hapus Petugas"}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -219,7 +248,7 @@ export default function DaftarAnggotaPage() {
                   
                   <div className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 bg-blue-50 dark:bg-sky-950/50 text-blue-700 dark:text-sky-300 border border-blue-100 dark:border-sky-800/50 rounded-md mb-4">
                     <IconComponent className="w-3.5 h-3.5" />
-                    {PROGRAM_LABELS[petugas.staffType] || petugas.staffType || "Belum ditentukan"}
+                    {getRoleLabel(petugas.staffType) || (language === "en" ? "Unassigned" : "Belum ditentukan")}
                   </div>
                   
                   <div className="w-full space-y-2.5 text-left text-sm mt-auto border-t border-gray-100 dark:border-gray-800 pt-4">
@@ -250,14 +279,14 @@ export default function DaftarAnggotaPage() {
                   <div className="flex items-center gap-2">
                     <span className={`w-2 h-2 rounded-full ${petugas.active ? 'bg-green-500' : 'bg-gray-300'}`}></span>
                     <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                      {petugas.active ? 'Aktif' : 'Nonaktif'}
+                      {petugas.active ? (language === "en" ? "Active" : "Aktif") : (language === "en" ? "Inactive" : "Nonaktif")}
                     </span>
                   </div>
                   <button 
                     onClick={() => openDetailModal(petugas)}
                     className="text-xs font-medium text-[#0f1f5c] dark:text-sky-400 hover:underline cursor-pointer"
                   >
-                    Lihat Detail
+                    {language === "en" ? "View Details" : "Lihat Detail"}
                   </button>
                 </div>
               </div>
@@ -277,8 +306,10 @@ export default function DaftarAnggotaPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center p-5 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-slate-900/60">
-              <h3 className="font-bold text-gray-800 dark:text-gray-100">Detail Anggota</h3>
-              <button onClick={() => setIsDetailModalOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 transition">
+              <h3 className="font-bold text-gray-800 dark:text-gray-100">
+                {language === "en" ? "Member Details" : "Detail Anggota"}
+              </h3>
+              <button onClick={() => setIsDetailModalOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 transition cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -294,27 +325,29 @@ export default function DaftarAnggotaPage() {
                   )}
                 </div>
                 <h4 className="text-lg font-bold text-gray-900 dark:text-gray-100 text-center">{selectedPetugas.name}</h4>
-                <p className="text-sm font-medium text-blue-600 mt-1">{PROGRAM_LABELS[selectedPetugas.staffType] || selectedPetugas.staffType || "Belum ditentukan"}</p>
+                <p className="text-sm font-medium text-blue-600 dark:text-sky-400 mt-1">{getRoleLabel(selectedPetugas.staffType)}</p>
               </div>
 
               <div className="space-y-4">
-                <div className="grid grid-cols-3 gap-2 py-2 border-t border-gray-50">
+                <div className="grid grid-cols-3 gap-2 py-2 border-t border-gray-50 dark:border-gray-800">
                   <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">PIC</span>
                   <span className="col-span-2 text-sm text-gray-800 dark:text-gray-200 font-medium">{selectedPetugas.nik || "-"}</span>
                 </div>
-                <div className="grid grid-cols-3 gap-2 py-2 border-t border-gray-50">
+                <div className="grid grid-cols-3 gap-2 py-2 border-t border-gray-50 dark:border-gray-800">
                   <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</span>
                   <span className="col-span-2 text-sm text-gray-800 dark:text-gray-200">{selectedPetugas.email || "-"}</span>
                 </div>
-                <div className="grid grid-cols-3 gap-2 py-2 border-t border-gray-50">
+                <div className="grid grid-cols-3 gap-2 py-2 border-t border-gray-50 dark:border-gray-800">
                   <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Gender</span>
                   <span className="col-span-2 text-sm text-gray-800 dark:text-gray-200">{selectedPetugas.gender || "-"}</span>
                 </div>
-                <div className="grid grid-cols-3 gap-2 py-2 border-t border-gray-50">
+                <div className="grid grid-cols-3 gap-2 py-2 border-t border-gray-50 dark:border-gray-800">
                   <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</span>
                   <span className="col-span-2 flex items-center gap-2">
                     <span className={`w-2 h-2 rounded-full ${selectedPetugas.active ? 'bg-green-500' : 'bg-gray-300'}`}></span>
-                    <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{selectedPetugas.active ? 'Aktif' : 'Nonaktif'}</span>
+                    <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                      {selectedPetugas.active ? (language === "en" ? "Active" : "Aktif") : (language === "en" ? "Inactive" : "Nonaktif")}
+                    </span>
                   </span>
                 </div>
               </div>
@@ -322,9 +355,9 @@ export default function DaftarAnggotaPage() {
             <div className="p-5 bg-gray-50 dark:bg-slate-900/60 border-t border-gray-100 dark:border-gray-800 flex justify-end">
               <button 
                 onClick={() => setIsDetailModalOpen(false)}
-                className="px-5 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-slate-800 bg-gray-100 dark:bg-slate-800 rounded-lg transition"
+                className="px-5 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-slate-800 bg-gray-100 dark:bg-slate-800 rounded-lg transition cursor-pointer"
               >
-                Tutup
+                {language === "en" ? "Close" : "Tutup"}
               </button>
             </div>
           </div>
@@ -342,27 +375,37 @@ export default function DaftarAnggotaPage() {
             className="my-auto bg-white dark:bg-[#161b22] border border-gray-100 dark:border-gray-800 rounded-2xl w-full max-w-md shadow-2xl p-6 text-center transition-colors"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-red-50 dark:bg-red-950/40 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
               <Trash2 className="w-8 h-8" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Hapus Petugas?</h3>
-            <p className="text-gray-500 mb-6">
-              Anda yakin ingin menghapus petugas <strong>{selectedPetugas.name}</strong> secara permanen? Data yang telah dihapus tidak dapat dikembalikan.
+            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+              {language === "en" ? "Delete Officer?" : "Hapus Petugas?"}
+            </h3>
+            <p className="text-gray-500 dark:text-gray-400 mb-6 text-sm">
+              {language === "en" ? (
+                <>
+                  Are you sure you want to permanently delete officer <strong>{selectedPetugas.name}</strong>? Deleted data cannot be recovered.
+                </>
+              ) : (
+                <>
+                  Anda yakin ingin menghapus petugas <strong>{selectedPetugas.name}</strong> secara permanen? Data yang telah dihapus tidak dapat dikembalikan.
+                </>
+              )}
             </p>
             <div className="flex gap-3 justify-center">
               <button 
                 onClick={() => setIsDeleteModalOpen(false)}
-                className="px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg transition flex-1"
+                className="px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg transition flex-1 cursor-pointer"
                 disabled={isDeleting}
               >
-                Batal
+                {language === "en" ? "Cancel" : "Batal"}
               </button>
               <button 
                 onClick={handleDelete}
                 disabled={isDeleting}
-                className="px-5 py-2.5 text-sm font-medium text-white hover:bg-red-700 bg-red-600 rounded-lg transition flex-1 disabled:opacity-50"
+                className="px-5 py-2.5 text-sm font-medium text-white hover:bg-red-700 bg-red-600 rounded-lg transition flex-1 disabled:opacity-50 cursor-pointer"
               >
-                {isDeleting ? "Menghapus..." : "Ya, Hapus"}
+                {isDeleting ? (language === "en" ? "Deleting..." : "Menghapus...") : (language === "en" ? "Yes, Delete" : "Ya, Hapus")}
               </button>
             </div>
           </div>
@@ -372,3 +415,4 @@ export default function DaftarAnggotaPage() {
     </div>
   );
 }
+

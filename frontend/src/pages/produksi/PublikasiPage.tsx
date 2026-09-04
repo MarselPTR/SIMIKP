@@ -49,11 +49,16 @@ const PublikasiPage = () => {
   const getStatusLabel = (val: string) => {
     if (val === "published") return language === "en" ? "Published" : "Diterbitkan";
     if (val === "scheduled") return language === "en" ? "Scheduled" : "Dijadwalkan";
+    if (val === "draft") return language === "en" ? "Draft" : "Draf";
     return val;
   };
 
   const columns: TableColumn<MockPublikasi>[] = [
-    { key: "title", label: t("pub_col_title") },
+    {
+      key: "title",
+      label: t("pub_col_title"),
+      render: (val) => (val as string) || (language === "en" ? "Untitled Publication" : "Publikasi Tanpa Judul"),
+    },
     { key: "channel", label: t("pub_col_channel") },
     {
       key: "link",

@@ -26,11 +26,19 @@ import Dialog from "../../components/ui/Dialog";
 import Select from "../../components/ui/Select";
 import { LoadingSpinner, ErrorState } from "../../components/shared/StateComponents";
 import { useToast } from "../../contexts/ToastContext";
+import { useLanguage } from "../../lib/LanguageContext";
 import EventCalendar from "../../components/shared/EventCalendar";
 import type { CalendarEvent } from "../../components/shared/EventCalendar";
 
 const STATUS_COLORS = KEGIATAN_STATUS_COLORS;
 const STATUS_LABELS = KEGIATAN_STATUS_LABELS;
+
+const STATUS_LABELS_EN: Record<MockKegiatan["status"], string> = {
+  active: "Active",
+  review: "Needs Review",
+  done: "Done",
+  pending: "Pending",
+};
 
 const STATUS_BADGE_VARIANT: Record<MockKegiatan["status"], "success" | "warning" | "default" | "info"> = {
   active: "success",
@@ -43,6 +51,25 @@ const PRIORITAS_BADGE_VARIANT: Record<MockKegiatan["prioritas"], "warning" | "in
   Tinggi: "warning",
   Sedang: "info",
   Rendah: "default",
+};
+
+const getPrioritasLabel = (prioritas: MockKegiatan["prioritas"], lang: string) => {
+  if (lang === "en") {
+    if (prioritas === "Tinggi") return "High";
+    if (prioritas === "Sedang") return "Medium";
+    if (prioritas === "Rendah") return "Low";
+  }
+  return prioritas;
+};
+
+const getJabatanDisplayName = (jabatan: string, code: string, lang: string) => {
+  if (lang === "en") {
+    if (code === "PRAHUM") return "PR Officer (News)";
+    if (code === "FOTOGRAFER") return "Photographer";
+    if (code === "VIDEOGRAFER") return "Videographer";
+    if (code === "DESAINER_EDITOR") return "Designer & Editor";
+  }
+  return jabatan;
 };
 
 export interface OutputJabatanGroup {
@@ -134,16 +161,20 @@ const emptyForm = {
   outputDibutuhkan: [] as string[],
 };
 
-const formatTanggal = (iso: string) => {
+const formatTanggal = (iso: string, lang = "id") => {
   const [y, m, d] = iso.split("-").map(Number);
   if (!y || !m || !d) return iso;
-  return new Date(y, m - 1, d).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+  return new Date(y, m - 1, d).toLocaleDateString(lang === "en" ? "en-US" : "id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 };
 
-const formatTanggalPanjang = (iso: string) => {
+const formatTanggalPanjang = (iso: string, lang = "id") => {
   const [y, m, d] = iso.split("-").map(Number);
   if (!y || !m || !d) return iso;
-  return new Date(y, m - 1, d).toLocaleDateString("id-ID", {
+  return new Date(y, m - 1, d).toLocaleDateString(lang === "en" ? "en-US" : "id-ID", {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -154,6 +185,10 @@ const formatTanggalPanjang = (iso: string) => {
 const KegiatanPage = () => {
   const navigate = useNavigate();
   const { addToast } = useToast();
+  const { t, language } = useLanguage();
+
+  const getStatusLabel = (st: MockKegiatan["status"]) =>
+    language === "en" ? STATUS_LABELS_EN[st] : STATUS_LABELS[st];
 
   const { data: rawKegiatanData, isLoading, error, refetch } = useQuery({
     queryKey: ["kegiatan"],
@@ -251,7 +286,7 @@ const KegiatanPage = () => {
   }, [items]);
 
   const calendarLegend = (Object.keys(STATUS_LABELS) as MockKegiatan["status"][]).map((status) => ({
-    label: STATUS_LABELS[status],
+    label: getStatusLabel(status),
     color: STATUS_COLORS[status],
   }));
 
@@ -332,14 +367,14 @@ const KegiatanPage = () => {
     e.preventDefault();
     const trimmed = newOutputName.trim();
     if (!trimmed) {
-      addToast("Nama tipe output tidak boleh kosong", "error");
+      addToast(language === "en" ? "Output type name cannot be empty" : "Nama tipe output tidak boleh kosong", "error");
       return;
     }
     const alreadyExists = outputGroups.some((g) =>
       g.options.some((opt) => opt.toLowerCase() === trimmed.toLowerCase())
     );
     if (alreadyExists) {
-      addToast(`Tipe output "${trimmed}" sudah ada`, "warning");
+      addToast(language === "en" ? `Output type "${trimmed}" already exists` : `Tipe output "${trimmed}" sudah ada`, "warning");
       return;
     }
 
@@ -351,14 +386,20 @@ const KegiatanPage = () => {
     saveOutputGroups(updated);
     setNewOutputName("");
     const targetJabatan = outputGroups.find((g) => g.code === newOutputJabatanCode)?.jabatan;
-    addToast(`Tipe output "${trimmed}" berhasil ditambahkan ke ${targetJabatan}`, "success");
+    const targetJabatanDisplay = targetJabatan ? getJabatanDisplayName(targetJabatan, newOutputJabatanCode, language) : "";
+    addToast(
+      language === "en"
+        ? `Output type "${trimmed}" added to ${targetJabatanDisplay}`
+        : `Tipe output "${trimmed}" berhasil ditambahkan ke ${targetJabatanDisplay}`,
+      "success"
+    );
   };
 
   const handleSaveEditOutput = () => {
     if (!editingOutput) return;
     const trimmed = editingOutput.name.trim();
     if (!trimmed) {
-      addToast("Nama tipe output tidak boleh kosong", "error");
+      addToast(language === "en" ? "Output type name cannot be empty" : "Nama tipe output tidak boleh kosong", "error");
       return;
     }
 
@@ -367,7 +408,7 @@ const KegiatanPage = () => {
         g.options.some((opt) => opt.toLowerCase() === trimmed.toLowerCase())
       );
       if (alreadyExists) {
-        addToast(`Tipe output "${trimmed}" sudah ada`, "warning");
+        addToast(language === "en" ? `Output type "${trimmed}" already exists` : `Tipe output "${trimmed}" sudah ada`, "warning");
         return;
       }
     }
@@ -390,7 +431,7 @@ const KegiatanPage = () => {
       ),
     }));
 
-    addToast(`Tipe output "${trimmed}" berhasil diperbarui`, "success");
+    addToast(language === "en" ? `Output type "${trimmed}" updated successfully` : `Tipe output "${trimmed}" berhasil diperbarui`, "success");
     setEditingOutput(null);
   };
 
@@ -406,17 +447,20 @@ const KegiatanPage = () => {
       outputDibutuhkan: f.outputDibutuhkan.filter((opt) => opt !== outputName),
     }));
 
-    addToast(`Tipe output "${outputName}" berhasil dihapus`, "info");
+    addToast(language === "en" ? `Output type "${outputName}" deleted` : `Tipe output "${outputName}" berhasil dihapus`, "info");
     if (editingOutput?.originalName === outputName) {
       setEditingOutput(null);
     }
   };
 
   const handleResetOutputs = () => {
-    if (window.confirm("Kembalikan daftar output ke pengaturan awal Diskominfo?")) {
+    const confirmMsg = language === "en"
+      ? "Reset output list to default settings?"
+      : "Kembalikan daftar output ke pengaturan awal Diskominfo?";
+    if (window.confirm(confirmMsg)) {
       saveOutputGroups(DEFAULT_OUTPUT_BY_JABATAN);
       setEditingOutput(null);
-      addToast("Daftar output dikembalikan ke pengaturan awal", "info");
+      addToast(language === "en" ? "Output list restored to defaults" : "Daftar output dikembalikan ke pengaturan awal", "info");
     }
   };
 
@@ -462,13 +506,18 @@ const KegiatanPage = () => {
     onSuccess: () => {
       refetch();
       closeDialog();
-      addToast(editingId ? "Perubahan kegiatan disimpan." : "Kegiatan baru berhasil dibuat.", "success");
+      addToast(
+        editingId
+          ? (language === "en" ? "Activity changes saved." : "Perubahan kegiatan disimpan.")
+          : (language === "en" ? "New activity created successfully." : "Kegiatan baru berhasil dibuat."),
+        "success"
+      );
     },
     onError: (err: any) => {
       addToast(
         err?.status === 401
-          ? "Sesi berakhir. Silakan login ulang lalu coba lagi."
-          : err?.message || "Gagal menyimpan kegiatan.",
+          ? (language === "en" ? "Session expired. Please log in again." : "Sesi berakhir. Silakan login ulang lalu coba lagi.")
+          : err?.message || (language === "en" ? "Failed to save activity." : "Gagal menyimpan kegiatan."),
         "error",
       );
     },
@@ -504,7 +553,8 @@ const KegiatanPage = () => {
 
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (window.confirm("Hapus kegiatan ini? Tindakan ini tidak bisa dibatalkan.")) {
+    const confirmMsg = language === "en" ? t("kegiatan_delete_confirm") : "Hapus kegiatan ini? Tindakan ini tidak bisa dibatalkan.";
+    if (window.confirm(confirmMsg)) {
       deleteMutation.mutate(id);
     }
   };
@@ -516,11 +566,11 @@ const KegiatanPage = () => {
     <div className="space-y-5 pb-12">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-[#0f1f5c] dark:text-sky-400">Agenda Kegiatan</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Kelola jadwal kegiatan (Satu Kegiatan = Satu Data Induk)</p>
+          <h2 className="text-2xl font-bold text-[#0f1f5c] dark:text-sky-400">{t("kegiatan_title")}</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{t("kegiatan_subtitle")}</p>
         </div>
         <Button variant="default" onClick={() => openAddDialog()} className="gap-1.5 bg-[#0f1f5c] dark:bg-blue-600 hover:bg-[#162a7a] dark:hover:bg-blue-700 text-white">
-          <Plus className="w-4 h-4" /> Tambah Kegiatan
+          <Plus className="w-4 h-4" /> {t("kegiatan_add_btn")}
         </Button>
       </div>
 
@@ -529,7 +579,7 @@ const KegiatanPage = () => {
         month={calMonth}
         events={calendarEvents}
         legend={calendarLegend}
-        subtitle="Pilih tanggal untuk melihat atau menambahkan kegiatan baru"
+        subtitle={t("kegiatan_cal_subtitle")}
         selectedDateKey={viewDateKey}
         onNavigate={(y, m) => {
           setCalYear(y);
@@ -546,7 +596,7 @@ const KegiatanPage = () => {
             statusFilter === "all" ? "bg-blue-600 text-white shadow-xs" : "bg-white dark:bg-[#161b22] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-800 shadow-xs"
           }`}
         >
-          Semua ({items.length})
+          {t("all")} ({items.length})
         </button>
         {(Object.keys(STATUS_LABELS) as MockKegiatan["status"][]).map((st) => (
           <button
@@ -557,7 +607,7 @@ const KegiatanPage = () => {
               statusFilter === st ? "bg-blue-600 text-white shadow-xs" : "bg-white dark:bg-[#161b22] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-800 shadow-xs"
             }`}
           >
-            {STATUS_LABELS[st]} ({statusCounts[st] ?? 0})
+            {getStatusLabel(st)} ({statusCounts[st] ?? 0})
           </button>
         ))}
       </div>
@@ -566,7 +616,7 @@ const KegiatanPage = () => {
         <div className="relative flex-1">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <Input
-            placeholder="Cari nama kegiatan..."
+            placeholder={t("kegiatan_search_placeholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -574,10 +624,10 @@ const KegiatanPage = () => {
         </div>
         <Select
           options={[
-            { value: "all", label: "Semua Waktu" },
-            { value: "today", label: "Hari Ini" },
-            { value: "tomorrow", label: "Besok" },
-            { value: "this_week", label: "Minggu Ini" },
+            { value: "all", label: t("kegiatan_filter_all_time") },
+            { value: "today", label: t("kegiatan_filter_today") },
+            { value: "tomorrow", label: t("kegiatan_filter_tomorrow") },
+            { value: "this_week", label: t("kegiatan_filter_this_week") },
           ]}
           value={filterDate}
           onChange={(e) => setFilterDate(e.target.value)}
@@ -589,7 +639,7 @@ const KegiatanPage = () => {
         {filtered.length === 0 ? (
           <div className="col-span-full py-12 text-center text-gray-400 dark:text-gray-500 bg-white dark:bg-[#161b22] rounded-2xl border border-dashed border-gray-200 dark:border-gray-800">
             <Inbox className="w-12 h-12 mx-auto mb-2 opacity-50" />
-            <p>Tidak ada kegiatan ditemukan.</p>
+            <p>{t("kegiatan_empty")}</p>
           </div>
         ) : (
           filtered.map((item) => (
@@ -600,14 +650,14 @@ const KegiatanPage = () => {
             >
               <div>
                 <div className="flex items-start justify-between gap-1.5 flex-wrap mb-2">
-                  <Badge variant={STATUS_BADGE_VARIANT[item.status]}>{STATUS_LABELS[item.status]}</Badge>
-                  <Badge variant={PRIORITAS_BADGE_VARIANT[item.prioritas]}>{item.prioritas}</Badge>
+                  <Badge variant={STATUS_BADGE_VARIANT[item.status]}>{getStatusLabel(item.status)}</Badge>
+                  <Badge variant={PRIORITAS_BADGE_VARIANT[item.prioritas]}>{getPrioritasLabel(item.prioritas, language)}</Badge>
                 </div>
                 <h3 className="font-bold text-gray-900 dark:text-gray-100 text-sm mb-2 break-words">{item.title}</h3>
                 <div className="space-y-1 text-xs text-gray-500 dark:text-gray-400">
                   <div className="flex items-center gap-1.5">
                     <CalendarDays className="w-3.5 h-3.5 flex-shrink-0" />
-                    <span>{formatTanggal(item.deadline)}</span>
+                    <span>{formatTanggal(item.deadline, language)}</span>
                   </div>
                   {item.lokasi && (
                     <div className="flex items-center gap-1.5">
@@ -659,24 +709,24 @@ const KegiatanPage = () => {
       <Dialog 
         open={isModalOpen} 
         onClose={closeDialog} 
-        title={editingId ? "Edit Kegiatan" : "Tambah Kegiatan Baru"}
+        title={editingId ? t("kegiatan_edit_modal_title") : t("kegiatan_add_modal_title")}
         size="lg"
         actions={
           <>
             <Button variant="outline" onClick={closeDialog}>
-              Batal
+              {t("cancel")}
             </Button>
             <Button variant="default" disabled={!form.title.trim() || !form.deadline} onClick={handleSave} className="bg-[#0f1f5c] text-white">
-              {editingId ? "Simpan Perubahan" : "Simpan Kegiatan"}
+              {editingId ? t("save_changes") : t("save")}
             </Button>
           </>
         }
       >
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Nama Kegiatan</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t("kegiatan_form_title")}</label>
             <Input
-              placeholder="Contoh: Rapat Koordinasi SPBE..."
+              placeholder={t("kegiatan_form_title_ph")}
               value={form.title}
               onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
               className="mt-1"
@@ -684,7 +734,7 @@ const KegiatanPage = () => {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Tanggal Pelaksanaan</label>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t("kegiatan_form_date")}</label>
               <Input
                 type="date"
                 value={form.deadline}
@@ -693,12 +743,12 @@ const KegiatanPage = () => {
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Prioritas</label>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t("kegiatan_form_priority")}</label>
               <Select
                 options={[
-                  { value: "Tinggi", label: "Tinggi" },
-                  { value: "Sedang", label: "Sedang" },
-                  { value: "Rendah", label: "Rendah" },
+                  { value: "Tinggi", label: getPrioritasLabel("Tinggi", language) },
+                  { value: "Sedang", label: getPrioritasLabel("Sedang", language) },
+                  { value: "Rendah", label: getPrioritasLabel("Rendah", language) },
                 ]}
                 className="mt-1"
                 value={form.prioritas}
@@ -709,11 +759,11 @@ const KegiatanPage = () => {
           <div className="bg-slate-50 dark:bg-slate-900/50 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-3">
             <div className="flex items-center gap-1.5 text-xs font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wide">
               <MapPin className="w-3.5 h-3.5 text-blue-600" />
-              <span>Detail Lokasi Pelaksanaan</span>
+              <span>{t("kegiatan_form_location_detail")}</span>
             </div>
 
             <div>
-              <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Nama Gedung / Ruangan *</label>
+              <label className="text-xs font-medium text-gray-700 dark:text-gray-300">{t("kegiatan_form_building")}</label>
               <Input
                 value={form.lokasi}
                 onChange={(e) => setForm((f) => ({ ...f, lokasi: e.target.value }))}
@@ -723,7 +773,7 @@ const KegiatanPage = () => {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Kecamatan</label>
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300">{t("kegiatan_form_district")}</label>
                 <Input
                   value={form.kecamatan}
                   onChange={(e) => setForm((f) => ({ ...f, kecamatan: e.target.value }))}
@@ -732,7 +782,7 @@ const KegiatanPage = () => {
               </div>
 
               <div>
-                <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Kelurahan / Desa</label>
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300">{t("kegiatan_form_subdistrict")}</label>
                 <Input
                   value={form.desaKelurahan}
                   onChange={(e) => setForm((f) => ({ ...f, desaKelurahan: e.target.value }))}
@@ -742,7 +792,7 @@ const KegiatanPage = () => {
             </div>
 
             <div>
-              <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Alamat Lengkap (Opsional)</label>
+              <label className="text-xs font-medium text-gray-700 dark:text-gray-300">{t("kegiatan_form_address")}</label>
               <Input
                 value={form.alamat}
                 onChange={(e) => setForm((f) => ({ ...f, alamat: e.target.value }))}
@@ -751,10 +801,10 @@ const KegiatanPage = () => {
             </div>
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">OPD Penyelenggara</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t("kegiatan_form_opd")}</label>
             <input
               list="opd-options"
-              placeholder="Pilih atau ketik OPD (Contoh: Diskominfo / Dinkes)"
+              placeholder={t("kegiatan_form_opd_ph")}
               value={form.opdPenyelenggara}
               onChange={(e) => setForm((f) => ({ ...f, opdPenyelenggara: e.target.value }))}
               className="mt-1 w-full px-3.5 py-2 text-sm border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
@@ -769,7 +819,7 @@ const KegiatanPage = () => {
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Output yang Dibutuhkan (Berdasarkan Jabatan)
+                  {t("kegiatan_form_outputs_title")}
                 </label>
                 <button
                   type="button"
@@ -778,11 +828,11 @@ const KegiatanPage = () => {
                   title="Kelola, Tambah, Edit, atau Pindahkan Tipe Output"
                 >
                   <Settings2 className="w-3.5 h-3.5" />
-                  <span>Kelola Output</span>
+                  <span>{t("kegiatan_form_manage_outputs")}</span>
                 </button>
               </div>
               <span className="text-[11px] text-gray-400">
-                {form.outputDibutuhkan.length} dipilih
+                {form.outputDibutuhkan.length} {t("kegiatan_form_selected_count")}
               </span>
             </div>
 
@@ -791,6 +841,7 @@ const KegiatanPage = () => {
                 
                 const checkedCount = group.options.filter((o) => form.outputDibutuhkan.includes(o)).length;
                 const allChecked = group.options.length > 0 && checkedCount === group.options.length;
+                const displayName = getJabatanDisplayName(group.jabatan, group.code, language);
 
                 return (
                   <div
@@ -801,7 +852,7 @@ const KegiatanPage = () => {
                       {/* Header Jabatan */}
                       <div className="flex items-start justify-between gap-1.5 mb-2.5 pb-2 border-b border-gray-200/80 dark:border-gray-700/60 min-h-[36px]">
                         <span className="text-xs font-bold text-gray-800 dark:text-gray-100 leading-snug">
-                          {group.jabatan}
+                          {displayName}
                         </span>
                         {group.options.length > 0 && (
                           <button
@@ -809,7 +860,7 @@ const KegiatanPage = () => {
                             onClick={() => toggleJabatanGroup(group.options)}
                             className="text-[10px] font-semibold text-blue-600 dark:text-sky-400 hover:underline shrink-0 whitespace-nowrap pt-0.5 cursor-pointer"
                           >
-                            {allChecked ? "Batal" : "Pilih Semua"}
+                            {allChecked ? (language === "en" ? "Deselect" : "Batal") : (language === "en" ? "Select All" : "Pilih Semua")}
                           </button>
                         )}
                       </div>
@@ -818,7 +869,7 @@ const KegiatanPage = () => {
                       <div className="space-y-1.5">
                         {group.options.length === 0 ? (
                           <p className="text-[11px] text-gray-400 dark:text-gray-500 italic py-2 text-center">
-                            Belum ada output
+                            {t("kegiatan_no_output_for_role")}
                           </p>
                         ) : (
                           group.options.map((opt) => {
@@ -855,7 +906,7 @@ const KegiatanPage = () => {
             <div className="bg-gray-50 dark:bg-gray-800/60 rounded-xl p-3.5 border border-gray-100 dark:border-gray-700 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                  👥 Penugasan Khusus Terkait ({getAssignedTasks(form.title).length})
+                  👥 {t("kegiatan_form_related_assignments")} ({getAssignedTasks(form.title).length})
                 </span>
                 <button
                   type="button"
@@ -866,28 +917,28 @@ const KegiatanPage = () => {
                   className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 hover:underline"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
-                  <span>+ Tambah Penugasan</span>
+                  <span>{t("kegiatan_form_add_assignment")}</span>
                 </button>
               </div>
 
               {getAssignedTasks(form.title).length === 0 ? (
-                <p className="text-xs text-gray-400 italic">Belum ada staf yang ditugaskan untuk kegiatan ini.</p>
+                <p className="text-xs text-gray-400 italic">{t("kegiatan_form_no_assigned_staff")}</p>
               ) : (
                 <div className="space-y-1.5 max-h-32 overflow-y-auto">
-                  {getAssignedTasks(form.title).map((t) => (
+                  {getAssignedTasks(form.title).map((tItem) => (
                     <div
-                      key={t.id}
+                      key={tItem.id}
                       className="bg-white dark:bg-gray-800/80 rounded-lg p-2 text-xs flex items-center justify-between border border-gray-100 dark:border-gray-700"
                     >
                       <div className="flex items-center gap-2">
                         <span className="w-5 h-5 rounded-full bg-indigo-50 text-indigo-700 font-bold text-[9px] flex items-center justify-center">
-                          {t.picAvatar ?? t.pic.slice(0, 2).toUpperCase()}
+                          {tItem.picAvatar ?? tItem.pic.slice(0, 2).toUpperCase()}
                         </span>
-                        <span className="font-medium text-gray-800 dark:text-gray-200">{t.pic}</span>
-                        <span className="text-gray-400">({t.jenisKonten})</span>
+                        <span className="font-medium text-gray-800 dark:text-gray-200">{tItem.pic}</span>
+                        <span className="text-gray-400">({tItem.jenisKonten})</span>
                       </div>
                       <span className="text-[11px] text-gray-500 font-mono">
-                        {t.jamMulai} - {t.jamSelesai}
+                        {tItem.jamMulai} - {tItem.jamSelesai}
                       </span>
                     </div>
                   ))}
@@ -901,7 +952,7 @@ const KegiatanPage = () => {
       <Dialog
         open={viewDateKey !== null}
         onClose={() => setViewDateKey(null)}
-        title={viewDateKey ? formatTanggalPanjang(viewDateKey) : "Detail Tanggal"}
+        title={viewDateKey ? formatTanggalPanjang(viewDateKey, language) : (language === "en" ? "Date Details" : "Detail Tanggal")}
       >
         <div className="mt-1">
           {tugasPadaTanggal.length > 0 ? (
@@ -923,8 +974,8 @@ const KegiatanPage = () => {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{k.title}</p>
                     <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                      <Badge variant={STATUS_BADGE_VARIANT[k.status]}>{STATUS_LABELS[k.status]}</Badge>
-                      <Badge variant={PRIORITAS_BADGE_VARIANT[k.prioritas]}>{k.prioritas}</Badge>
+                      <Badge variant={STATUS_BADGE_VARIANT[k.status]}>{getStatusLabel(k.status)}</Badge>
+                      <Badge variant={PRIORITAS_BADGE_VARIANT[k.prioritas]}>{getPrioritasLabel(k.prioritas, language)}</Badge>
                       {k.lokasi && <span className="text-xs text-gray-400 truncate">{k.lokasi}</span>}
                     </div>
                   </div>
@@ -937,13 +988,13 @@ const KegiatanPage = () => {
               <div className="w-12 h-12 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center mb-2">
                 <Inbox className="w-5 h-5 text-gray-300" />
               </div>
-              <p className="text-sm text-gray-500">Belum ada kegiatan pada tanggal ini.</p>
+              <p className="text-sm text-gray-500">{t("dash_no_activities_today")}</p>
             </div>
           )}
 
           <div className="pt-4 mt-4 border-t border-gray-100 flex justify-end gap-2">
             <Button variant="outline" onClick={() => setViewDateKey(null)}>
-              Tutup
+              {t("close")}
             </Button>
             <Button
               variant="default"
@@ -954,7 +1005,7 @@ const KegiatanPage = () => {
                 openAddDialog(date);
               }}
             >
-              <Plus className="w-4 h-4" /> Tambah Kegiatan
+              <Plus className="w-4 h-4" /> {t("kegiatan_add_btn")}
             </Button>
           </div>
         </div>
@@ -967,7 +1018,7 @@ const KegiatanPage = () => {
           setIsManageOutputOpen(false);
           setEditingOutput(null);
         }}
-        title="Kelola Pilihan Output Kegiatan"
+        title={t("kegiatan_manage_outputs_title")}
         size="lg"
         actions={
           <div className="flex items-center justify-between w-full">
@@ -977,7 +1028,7 @@ const KegiatanPage = () => {
               className="inline-flex items-center gap-1.5 text-xs text-rose-600 dark:text-rose-400 hover:underline cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset ke Bawaan</span>
+              <span>{t("kegiatan_reset_default_btn")}</span>
             </button>
             <Button
               variant="default"
@@ -988,7 +1039,7 @@ const KegiatanPage = () => {
               }}
               className="px-5 cursor-pointer"
             >
-              Selesai
+              {t("kegiatan_finish_btn")}
             </Button>
           </div>
         }
@@ -1002,18 +1053,18 @@ const KegiatanPage = () => {
             <div className="flex items-center gap-2">
               <Plus className="w-4 h-4 text-blue-600 dark:text-sky-400" />
               <h4 className="text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider">
-                Tambah Tipe Output Baru
+                {t("kegiatan_add_new_output_title")}
               </h4>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
               <div className="sm:col-span-6">
                 <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                  Nama Tipe Output
+                  {t("kegiatan_output_name_label")}
                 </label>
                 <input
                   type="text"
-                  placeholder="Contoh: Live Streaming, Podcast, Press Release..."
+                  placeholder={t("kegiatan_output_name_ph")}
                   value={newOutputName}
                   onChange={(e) => setNewOutputName(e.target.value)}
                   className="w-full text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-3.5 py-2.5 focus:border-[#0f1f5c] dark:focus:border-sky-500 focus:outline-none"
@@ -1022,7 +1073,7 @@ const KegiatanPage = () => {
 
               <div className="sm:col-span-4">
                 <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                  Pilih Jabatan / Penanggung Jawab
+                  {t("kegiatan_select_role_label")}
                 </label>
                 <select
                   value={newOutputJabatanCode}
@@ -1031,7 +1082,7 @@ const KegiatanPage = () => {
                 >
                   {outputGroups.map((g) => (
                     <option key={g.code} value={g.code}>
-                      {g.jabatan}
+                      {getJabatanDisplayName(g.jabatan, g.code, language)}
                     </option>
                   ))}
                 </select>
@@ -1045,7 +1096,7 @@ const KegiatanPage = () => {
                   className="w-full text-xs py-2.5 cursor-pointer flex items-center justify-center gap-1"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  Tambah
+                  {t("add")}
                 </Button>
               </div>
             </div>
@@ -1061,10 +1112,11 @@ const KegiatanPage = () => {
                   </div>
                   <div>
                     <h4 className="text-xs font-bold text-amber-900 dark:text-amber-200 uppercase tracking-wider">
-                      Edit & Pindahkan Tipe Output
+                      {t("kegiatan_edit_output_title")}
                     </h4>
                     <p className="text-[11px] text-amber-700/80 dark:text-amber-400">
-                      Mengubah nama atau memindahkan output <strong className="font-bold">"{editingOutput.originalName}"</strong>
+                      {language === "en" ? "Renaming or moving output" : "Mengubah nama atau memindahkan output"}{" "}
+                      <strong className="font-bold">"{editingOutput.originalName}"</strong>
                     </p>
                   </div>
                 </div>
@@ -1081,7 +1133,7 @@ const KegiatanPage = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                    Nama Tipe Output <span className="text-red-500">*</span>
+                    {t("kegiatan_output_name_label")} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -1090,13 +1142,13 @@ const KegiatanPage = () => {
                       setEditingOutput({ ...editingOutput, name: e.target.value })
                     }
                     className="w-full text-xs sm:text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-3.5 py-2.5 focus:border-amber-500 dark:focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                    placeholder="Nama output..."
+                    placeholder={t("kegiatan_output_name_label")}
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                    Pindahkan ke Jabatan Lain <span className="text-red-500">*</span>
+                    {t("kegiatan_move_to_other_role")} <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={editingOutput.jabatanCode}
@@ -1107,7 +1159,7 @@ const KegiatanPage = () => {
                   >
                     {outputGroups.map((g) => (
                       <option key={g.code} value={g.code}>
-                        {g.jabatan}
+                        {getJabatanDisplayName(g.jabatan, g.code, language)}
                       </option>
                     ))}
                   </select>
@@ -1123,7 +1175,7 @@ const KegiatanPage = () => {
                   onClick={() => setEditingOutput(null)}
                   className="px-4 py-2 text-xs font-medium cursor-pointer"
                 >
-                  Batal
+                  {t("cancel")}
                 </Button>
                 <Button
                   type="button"
@@ -1133,7 +1185,7 @@ const KegiatanPage = () => {
                   className="px-5 py-2 text-xs font-semibold cursor-pointer flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-500 dark:hover:bg-amber-600"
                 >
                   <Check className="w-3.5 h-3.5" />
-                  Simpan Perubahan
+                  {t("save_changes")}
                 </Button>
               </div>
             </div>
@@ -1142,12 +1194,12 @@ const KegiatanPage = () => {
           {/* Daftar Output per Jabatan */}
           <div className="space-y-4">
             <h4 className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
-              Daftar Output Saat Ini ({outputGroups.reduce((acc, g) => acc + g.options.length, 0)} Pilihan)
+              {t("kegiatan_current_outputs_list")} ({outputGroups.reduce((acc, g) => acc + g.options.length, 0)} {t("kegiatan_options_count")})
             </h4>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {outputGroups.map((group) => {
-                
+                const displayName = getJabatanDisplayName(group.jabatan, group.code, language);
 
                 return (
                   <div
@@ -1158,7 +1210,7 @@ const KegiatanPage = () => {
                       {/* Header Jabatan */}
                       <div className="flex items-start justify-between gap-2 mb-3 pb-2 border-b border-gray-200 dark:border-gray-800 min-h-[36px]">
                         <span className="text-xs font-bold text-gray-900 dark:text-gray-100 leading-snug">
-                          {group.jabatan}
+                          {displayName}
                         </span>
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-200/80 dark:bg-gray-800 text-gray-700 dark:text-gray-300 shrink-0">
                           {group.options.length}
@@ -1169,7 +1221,7 @@ const KegiatanPage = () => {
                       <div className="space-y-2">
                         {group.options.length === 0 ? (
                           <p className="text-xs text-gray-400 dark:text-gray-500 italic py-3 text-center">
-                            Tidak ada pilihan output
+                            {t("kegiatan_no_output_options")}
                           </p>
                         ) : (
                           group.options.map((opt) => {
@@ -1198,7 +1250,7 @@ const KegiatanPage = () => {
                                       })
                                     }
                                     className="p-1 rounded-md text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/50 transition-colors cursor-pointer"
-                                    title={`Edit atau Pindahkan "${opt}"`}
+                                    title={`Edit / Move "${opt}"`}
                                   >
                                     <Pencil className="w-3.5 h-3.5" />
                                   </button>
@@ -1206,7 +1258,7 @@ const KegiatanPage = () => {
                                     type="button"
                                     onClick={() => handleDeleteOutput(opt)}
                                     className="p-1 rounded-md text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors cursor-pointer"
-                                    title={`Hapus "${opt}"`}
+                                    title={`Delete "${opt}"`}
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
                                   </button>

@@ -11,13 +11,22 @@ import { staffTypeMatchesContentType } from "../../lib/petugas-store";
 
 // Jenis konten yang dibutuhkan agenda == role yang bisa diambil petugas.
 // Cocok dengan checklist "Output yang Dibutuhkan" di form Kegiatan.
-const ROLE_LABELS: Record<string, string> = {
+const ROLE_LABELS_ID: Record<string, string> = {
   "Naskah Berita": "Prahum",
   Foto: "Fotografer",
   Video: "Videografer",
   Reels: "Videografer",
   Infografis: "Editor/Desainer",
   Audio: "Editor/Desainer",
+};
+
+const ROLE_LABELS_EN: Record<string, string> = {
+  "Naskah Berita": "Public Relations",
+  Foto: "Photographer",
+  Video: "Videographer",
+  Reels: "Videographer",
+  Infografis: "Editor/Designer",
+  Audio: "Editor/Designer",
 };
 
 interface Activity {
@@ -34,6 +43,8 @@ export default function PetugasAgendaTersediaPage() {
   const { language } = useLanguage();
   const queryClient = useQueryClient();
   const [claimingKey, setClaimingKey] = useState<string | null>(null);
+
+  const roleLabels = language === "en" ? ROLE_LABELS_EN : ROLE_LABELS_ID;
 
   const { data: activities = [], isLoading: loadingActivities, error: activitiesError, refetch: refetchActivities } = useQuery({
     queryKey: ["activities"],
@@ -58,11 +69,11 @@ export default function PetugasAgendaTersediaPage() {
         body: JSON.stringify(vars),
       }),
     onSuccess: (res) => {
-      addToast(res.message || "Berhasil mengambil tugas", "success");
+      addToast(res.message || (language === "en" ? "Task claimed successfully" : "Berhasil mengambil tugas"), "success");
       queryClient.invalidateQueries({ queryKey: ["assignments"] });
     },
     onError: (err: unknown) => {
-      addToast(err instanceof ApiError ? err.message : "Gagal mengambil tugas", "error");
+      addToast(err instanceof ApiError ? err.message : (language === "en" ? "Failed to claim task" : "Gagal mengambil tugas"), "error");
       queryClient.invalidateQueries({ queryKey: ["assignments"] });
     },
     onSettled: () => setClaimingKey(null),
@@ -149,7 +160,7 @@ export default function PetugasAgendaTersediaPage() {
                     >
                       <CalendarPlus className="w-3.5 h-3.5 mr-1.5" />
                       {language === "en" ? "Take as " : "Ambil sebagai "}
-                      {ROLE_LABELS[ct] || ct}
+                      {roleLabels[ct] || ct}
                     </Button>
                   );
                 })}

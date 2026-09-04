@@ -27,10 +27,10 @@ const PetugasLayout = () => {
 
       <div className="flex-1 flex flex-col min-h-screen lg:ml-64 min-w-0 bg-gray-50 dark:bg-[#0d1117] transition-all duration-300 ease-in-out">
         <div
-          className={`transition-all duration-300 ease-in-out transform origin-top z-30 overflow-hidden ${
+          className={`transition-all duration-300 ease-in-out transform origin-top z-30 ${
             isProfilePage
-              ? "h-0 max-h-0 opacity-0 pointer-events-none -translate-y-4"
-              : "h-16 max-h-16 opacity-100 translate-y-0"
+              ? "h-0 max-h-0 opacity-0 pointer-events-none -translate-y-4 overflow-hidden"
+              : "h-16 opacity-100 translate-y-0 overflow-visible"
           }`}
         >
           <Topbar onMenuClick={() => setMobileMenuOpen(true)} />

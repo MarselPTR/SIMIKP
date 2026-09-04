@@ -439,7 +439,7 @@ const ReviewPage = () => {
                           className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-[#0f1f5c] dark:text-sky-300 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800 transition cursor-pointer shadow-xs"
                         >
                           <BookOpen size={14} className="text-blue-600 dark:text-sky-400" />
-                          <span>Baca &amp; Telaah Naskah</span>
+                          <span>{language === "en" ? "Read & Review Script" : "Baca & Telaah Naskah"}</span>
                         </button>
                       ) : tItem.bidang === "DESAINER_EDITOR" ? (
                         <button
@@ -448,7 +448,7 @@ const ReviewPage = () => {
                           className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-purple-800 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50 hover:bg-purple-100 dark:hover:bg-purple-900/50 border border-purple-200 dark:border-purple-800 transition cursor-pointer shadow-xs"
                         >
                           <Layers size={14} className="text-purple-600 dark:text-purple-400" />
-                          <span>Telaah Hasil Desain</span>
+                          <span>{language === "en" ? "Review Design Output" : "Telaah Hasil Desain"}</span>
                         </button>
                       ) : (tItem.bidang === "FOTOGRAFER" || tItem.bidang === "VIDEOGRAFER" || tItem.bidang === "FOTO_VIDEO") && tItem.mediaData?.files ? (
                         <button
@@ -457,7 +457,11 @@ const ReviewPage = () => {
                           className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-blue-900 dark:text-blue-200 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/70 border border-blue-300 dark:border-blue-700 transition cursor-pointer shadow-xs"
                         >
                           <Sparkles size={14} className="text-amber-500" />
-                          <span>Meja Kurasi Foto &amp; Video ({tItem.mediaData.files.length})</span>
+                          <span>
+                            {language === "en"
+                              ? `Photo & Video Curation Desk (${tItem.mediaData.files.length})`
+                              : `Meja Kurasi Foto & Video (${tItem.mediaData.files.length})`}
+                          </span>
                         </button>
                       ) : (
                         <a
@@ -472,7 +476,7 @@ const ReviewPage = () => {
                         </a>
                       )
                     ) : (
-                      // Jika berkas belum diunggah petugas, tombol tetap tampil sebagai indikator jelas
+                      // Jika berkas belum diunggah petugas
                       <button
                         type="button"
                         onClick={() => {
@@ -481,22 +485,22 @@ const ReviewPage = () => {
                           else openCurationModal(tItem);
                         }}
                         className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/70 border border-dashed border-gray-300 dark:border-gray-700 hover:border-blue-400 hover:text-blue-700 transition cursor-pointer"
-                        title="Klik untuk melihat status penugasan"
+                        title={language === "en" ? "Click to view task status" : "Klik untuk melihat status penugasan"}
                       >
                         {tItem.bidang === "PRAHUM" ? (
                           <>
                             <BookOpen size={13} className="text-gray-400" />
-                            <span>Naskah Belum Masuk</span>
+                            <span>{language === "en" ? "Script Pending" : "Naskah Belum Masuk"}</span>
                           </>
                         ) : tItem.bidang === "DESAINER_EDITOR" ? (
                           <>
                             <Layers size={13} className="text-purple-400" />
-                            <span>Desain Belum Diunggah</span>
+                            <span>{language === "en" ? "Design Pending" : "Desain Belum Diunggah"}</span>
                           </>
                         ) : (
                           <>
                             <Sparkles size={13} className="text-amber-400" />
-                            <span>Foto/Video Belum Masuk</span>
+                            <span>{language === "en" ? "Photo/Video Pending" : "Foto/Video Belum Masuk"}</span>
                           </>
                         )}
                       </button>
@@ -535,7 +539,7 @@ const ReviewPage = () => {
                     <div className="flex items-center justify-between gap-2 text-amber-900 dark:text-amber-200 font-bold border-b border-amber-200/80 dark:border-amber-800/60 pb-1.5">
                       <span className="flex items-center gap-1.5">
                         <AlertTriangle size={14} className="text-amber-600 dark:text-amber-400" />
-                        {t("review_notes_title")} ({tItem.revisionAuthor || "Pranata Ahli Pertama"})
+                        {t("review_notes_title")} ({tItem.revisionAuthor || (language === "en" ? "First Expert Officer" : "Pranata Ahli Pertama")})
                       </span>
                       {tItem.revisionDate && (
                         <span className="text-[11px] font-normal text-amber-700 dark:text-amber-400">
@@ -655,7 +659,7 @@ const ReviewPage = () => {
               size="sm"
               onClick={handleSubmitRevision}
               disabled={isSubmittingRevision || !revisionNotesInput.trim()}
-              className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+              className="bg-amber-600 hover:bg-amber-700 text-white font-bold cursor-pointer"
             >
               <Send size={13} className="mr-1.5" />
               {isSubmittingRevision ? t("saving") : t("review_modal_send_btn")}
@@ -695,7 +699,7 @@ const ReviewPage = () => {
       <Dialog
         open={!!previewNaskahTask}
         onClose={() => setPreviewNaskahTask(null)}
-        title="Meja Telaah Naskah Berita Humas"
+        title={language === "en" ? "PR News Script Review Desk" : "Meja Telaah Naskah Berita Humas"}
         size="lg"
         actions={
           previewNaskahTask ? (
@@ -716,10 +720,10 @@ const ReviewPage = () => {
                     setPreviewNaskahTask(null);
                     handleOpenRevisionModal(tToRev);
                   }}
-                  className="text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700"
+                  className="text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700 cursor-pointer"
                 >
                   <MessageSquare size={13} className="mr-1.5 text-amber-600" />
-                  Minta Revisi Naskah
+                  {language === "en" ? "Request Script Revision" : "Minta Revisi Naskah"}
                 </Button>
                 <Button
                   variant="default"
@@ -728,10 +732,10 @@ const ReviewPage = () => {
                     await handleApprove(previewNaskahTask);
                     setPreviewNaskahTask(null);
                   }}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold cursor-pointer"
                 >
                   <CheckCircle2 size={13} className="mr-1.5" />
-                  Setujui Naskah (Siap Tayang)
+                  {language === "en" ? "Approve Script (Ready to Publish)" : "Setujui Naskah (Siap Tayang)"}
                 </Button>
               </div>
             </div>
@@ -746,30 +750,33 @@ const ReviewPage = () => {
                   {previewNaskahTask.kegiatan}
                 </span>
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-sky-300">
-                  {previewNaskahTask.workLink ? previewNaskahTask.workLink.trim().split(/\s+/).length : 0} Kata
+                  {previewNaskahTask.workLink ? previewNaskahTask.workLink.trim().split(/\s+/).length : 0} {language === "en" ? "Words" : "Kata"}
                 </span>
               </div>
               <div className="flex items-center gap-3 text-xs text-gray-500">
-                <span>Lokasi: {previewNaskahTask.lokasi}</span>
+                <span>{language === "en" ? "Location:" : "Lokasi:"} {previewNaskahTask.lokasi}</span>
                 <span>•</span>
-                <span>Batas Waktu: {previewNaskahTask.deadline}</span>
+                <span>{language === "en" ? "Deadline:" : "Batas Waktu:"} {previewNaskahTask.deadline}</span>
               </div>
             </div>
 
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
-                Naskah Berita Rilis Pers:
+                {language === "en" ? "Press Release News Script:" : "Naskah Berita Rilis Pers:"}
               </span>
               <button
                 type="button"
                 onClick={() => {
                   navigator.clipboard.writeText(previewNaskahTask.workLink || "");
-                  addToast("Teks naskah berhasil disalin ke clipboard!", "success");
+                  addToast(
+                    language === "en" ? "Script copied to clipboard!" : "Teks naskah berhasil disalin ke clipboard!",
+                    "success"
+                  );
                 }}
                 className="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-sky-400 hover:underline font-semibold cursor-pointer"
               >
                 <Copy size={13} />
-                <span>Salin Seluruh Naskah</span>
+                <span>{language === "en" ? "Copy Full Script" : "Salin Seluruh Naskah"}</span>
               </button>
             </div>
 
@@ -780,9 +787,13 @@ const ReviewPage = () => {
             ) : (
               <div className="text-center py-10 px-4 bg-slate-50 dark:bg-gray-900/60 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800">
                 <BookOpen className="w-10 h-10 text-gray-400 mx-auto mb-2" />
-                <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">Naskah Berita Belum Disetor</p>
+                <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">
+                  {language === "en" ? "News Script Not Yet Submitted" : "Naskah Berita Belum Disetor"}
+                </p>
                 <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
-                  Petugas Pranata Humas belum menuliskan naskah berita untuk kegiatan ini. Anda dapat memberikan arahan atau meminta draf rilis melalui tombol Catatan Revisi di bawah.
+                  {language === "en"
+                    ? "PR Officer has not submitted the news script for this activity. You can provide feedback or request a draft using the Revision Notes button below."
+                    : "Petugas Pranata Humas belum menuliskan naskah berita untuk kegiatan ini. Anda dapat memberikan arahan atau meminta draf rilis melalui tombol Catatan Revisi di bawah."}
                 </p>
               </div>
             )}
@@ -794,7 +805,7 @@ const ReviewPage = () => {
       <Dialog
         open={!!curationTask}
         onClose={() => setCurationTask(null)}
-        title="Meja Kurasi Redaksi Foto & Video Liputan"
+        title={language === "en" ? "Photo & Video Editorial Curation Desk" : "Meja Kurasi Redaksi Foto & Video Liputan"}
         size="lg"
         actions={
           curationTask ? (
@@ -817,10 +828,10 @@ const ReviewPage = () => {
                     handleOpenRevisionModal(tToRev);
                   }}
                   disabled={isSubmittingCuration}
-                  className="text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700"
+                  className="text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700 cursor-pointer"
                 >
                   <MessageSquare size={13} className="mr-1.5 text-amber-600" />
-                  Minta Revisi Foto/Video
+                  {language === "en" ? "Request Photo/Video Revision" : "Minta Revisi Foto/Video"}
                 </Button>
               </div>
 
@@ -829,12 +840,14 @@ const ReviewPage = () => {
                 size="sm"
                 onClick={handleApproveCuratedFiles}
                 disabled={isSubmittingCuration || selectedFileUrls.size === 0}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold cursor-pointer"
               >
                 <Sparkles size={14} className="mr-1.5 text-amber-300" />
                 {isSubmittingCuration
-                  ? "Menyimpan ke Bank Konten..."
-                  : `Setujui ${selectedFileUrls.size} Berkas ke Bank Konten Utama`}
+                  ? (language === "en" ? "Saving to Content Bank..." : "Menyimpan ke Bank Konten...")
+                  : (language === "en"
+                      ? `Approve ${selectedFileUrls.size} Assets to Content Bank`
+                      : `Setujui ${selectedFileUrls.size} Berkas ke Bank Konten Utama`)}
               </Button>
             </div>
           ) : null
@@ -855,7 +868,7 @@ const ReviewPage = () => {
               {curationTask.mediaData?.caption && (
                 <div className="p-2.5 bg-white dark:bg-gray-950/60 rounded-xl border border-gray-200/80 dark:border-gray-800 text-xs text-gray-700 dark:text-gray-300">
                   <span className="font-bold text-gray-900 dark:text-gray-100 block mb-0.5">
-                    Keterangan / Caption Petugas:
+                    {language === "en" ? "Officer Caption / Description:" : "Keterangan / Caption Petugas:"}
                   </span>
                   "{curationTask.mediaData.caption}"
                 </div>
@@ -868,10 +881,12 @@ const ReviewPage = () => {
                 <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-blue-50/60 dark:bg-blue-950/30 rounded-xl border border-blue-100 dark:border-blue-900/40">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-xs text-[#0f1f5c] dark:text-sky-300">
-                      Pilih Foto/Video untuk Bank Konten:
+                      {language === "en" ? "Select Photos/Videos for Content Bank:" : "Pilih Foto/Video untuk Bank Konten:"}
                     </span>
                     <span className="px-2 py-0.5 bg-blue-600 text-white rounded-full text-[11px] font-bold">
-                      {selectedFileUrls.size} dari {curationTask.mediaData.files.length} Dipilih
+                      {language === "en"
+                        ? `${selectedFileUrls.size} of ${curationTask.mediaData.files.length} Selected`
+                        : `${selectedFileUrls.size} dari ${curationTask.mediaData.files.length} Dipilih`}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -880,7 +895,7 @@ const ReviewPage = () => {
                       onClick={handleSelectAllFiles}
                       className="text-xs font-semibold text-blue-700 dark:text-sky-400 hover:underline cursor-pointer"
                     >
-                      Pilih Semua
+                      {language === "en" ? "Select All" : "Pilih Semua"}
                     </button>
                     <span className="text-gray-300">|</span>
                     <button
@@ -888,7 +903,7 @@ const ReviewPage = () => {
                       onClick={handleDeselectAllFiles}
                       className="text-xs font-semibold text-gray-500 hover:underline cursor-pointer"
                     >
-                      Batalkan Pilihan
+                      {language === "en" ? "Deselect All" : "Batalkan Pilihan"}
                     </button>
                   </div>
                 </div>
@@ -959,9 +974,13 @@ const ReviewPage = () => {
             ) : (
               <div className="text-center py-10 px-4 bg-slate-50 dark:bg-gray-900/60 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800">
                 <Sparkles className="w-10 h-10 text-gray-400 mx-auto mb-2" />
-                <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">Berkas Liputan Belum Diunggah</p>
+                <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">
+                  {language === "en" ? "Coverage Files Not Yet Uploaded" : "Berkas Liputan Belum Diunggah"}
+                </p>
                 <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
-                  Petugas fotografer atau videografer belum mengunggah foto maupun video ke server internal untuk penugasan ini.
+                  {language === "en"
+                    ? "Photographer or videographer has not uploaded photos or videos for this assignment."
+                    : "Petugas fotografer atau videografer belum mengunggah foto maupun video ke server internal untuk penugasan ini."}
                 </p>
               </div>
             )}
@@ -973,7 +992,7 @@ const ReviewPage = () => {
       <Dialog
         open={!!designReviewTask}
         onClose={() => setDesignReviewTask(null)}
-        title="Telaah Desain Grafis & Media Publikasi"
+        title={language === "en" ? "Graphic Design & Publication Media Review" : "Telaah Desain Grafis & Media Publikasi"}
         size="lg"
         actions={
           designReviewTask ? (
@@ -994,10 +1013,10 @@ const ReviewPage = () => {
                     setDesignReviewTask(null);
                     handleOpenRevisionModal(tToRev);
                   }}
-                  className="text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700"
+                  className="text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700 cursor-pointer"
                 >
                   <MessageSquare size={13} className="mr-1.5 text-amber-600" />
-                  Minta Revisi Desain
+                  {language === "en" ? "Request Design Revision" : "Minta Revisi Desain"}
                 </Button>
               </div>
 
@@ -1005,10 +1024,10 @@ const ReviewPage = () => {
                 variant="default"
                 size="sm"
                 onClick={() => handleApproveDesign(designReviewTask)}
-                className="bg-purple-600 hover:bg-purple-700 text-white font-bold"
+                className="bg-purple-600 hover:bg-purple-700 text-white font-bold cursor-pointer"
               >
                 <Sparkles size={14} className="mr-1.5 text-amber-300" />
-                Setujui Desain ke Bank Konten Utama
+                {language === "en" ? "Approve Design to Content Bank" : "Setujui Desain ke Bank Konten Utama"}
               </Button>
             </div>
           ) : null
@@ -1031,7 +1050,7 @@ const ReviewPage = () => {
               {designReviewTask.mediaData?.editorNotes && (
                 <div className="p-2.5 bg-white dark:bg-gray-950/60 rounded-xl border border-purple-100 dark:border-purple-900/40 text-xs text-gray-700 dark:text-gray-300">
                   <span className="font-bold text-purple-950 dark:text-purple-300 block mb-0.5">
-                    Catatan Desainer / Editor:
+                    {language === "en" ? "Designer / Editor Notes:" : "Catatan Desainer / Editor:"}
                   </span>
                   "{designReviewTask.mediaData.editorNotes}"
                 </div>
@@ -1060,7 +1079,7 @@ const ReviewPage = () => {
                           className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 transition"
                         >
                           <Download size={12} />
-                          <span>Unduh Berkas</span>
+                          <span>{language === "en" ? "Download File" : "Unduh Berkas"}</span>
                         </a>
                       </div>
 
@@ -1080,9 +1099,13 @@ const ReviewPage = () => {
             ) : (
               <div className="text-center py-10 px-4 bg-purple-50/40 dark:bg-gray-900/60 rounded-2xl border border-dashed border-purple-200 dark:border-gray-800">
                 <Layers className="w-10 h-10 text-purple-400 mx-auto mb-2" />
-                <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">Berkas Desain Belum Diunggah</p>
+                <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">
+                  {language === "en" ? "Design Files Not Yet Uploaded" : "Berkas Desain Belum Diunggah"}
+                </p>
                 <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
-                  Petugas desainer grafis belum mengunggah berkas desain akhir untuk penugasan ini.
+                  {language === "en"
+                    ? "Graphic designer has not uploaded final design files for this assignment."
+                    : "Petugas desainer grafis belum mengunggah berkas desain akhir untuk penugasan ini."}
                 </p>
               </div>
             )}
@@ -1094,3 +1117,4 @@ const ReviewPage = () => {
 };
 
 export default ReviewPage;
+

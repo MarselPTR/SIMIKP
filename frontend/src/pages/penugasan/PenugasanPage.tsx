@@ -4,6 +4,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { apiFetch } from "../../lib/api-client";
 import type { MockPenugasan } from "../../lib/mock-data";
 import { useToast } from "../../contexts/ToastContext";
+import { useLanguage } from "../../lib/LanguageContext";
 import Dialog from "../../components/ui/Dialog";
 import Button from "../../components/ui/Button";
 import { LoadingSpinner, ErrorState } from "../../components/shared/StateComponents";
@@ -31,7 +32,7 @@ import {
 } from "@remixicon/react";
 
 const FIELD_CLASS =
-  "w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-colors focus:border-[#0f1f5c] focus:outline-none focus:ring-2 focus:ring-[#0f1f5c]/15 disabled:bg-gray-50 disabled:text-gray-500";
+  "w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#161b22] px-3.5 py-2.5 text-sm text-gray-900 dark:text-gray-100 transition-colors focus:border-[#0f1f5c] dark:focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-[#0f1f5c]/15 disabled:bg-gray-50 disabled:text-gray-500";
 const LABEL_CLASS = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5";
 
 // Shared column layout so the list header and every row across every card line up.
@@ -40,21 +41,21 @@ const ROW_GRID =
 
 const STATUS_META: Record<
   MockPenugasan["status"],
-  { label: string; icon: typeof RiTimeLine; badge: string; accent: string }
+  { labelId: string; labelEn: string; icon: typeof RiTimeLine; badge: string; accent: string }
 > = {
-  "in-progress": { label: "Proses", icon: RiTimeLine, badge: "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60", accent: "border-l-amber-400" },
-  done: { label: "Selesai", icon: RiCheckboxCircleFill, badge: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60", accent: "border-l-emerald-400" },
-  pending: { label: "Menunggu", icon: RiHourglassLine, badge: "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700", accent: "border-l-slate-300 dark:border-l-slate-600" },
-  conflict: { label: "Bentrok", icon: RiCloseCircleFill, badge: "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/60", accent: "border-l-rose-400" },
+  "in-progress": { labelId: "Proses", labelEn: "In Progress", icon: RiTimeLine, badge: "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60", accent: "border-l-amber-400" },
+  done: { labelId: "Selesai", labelEn: "Completed", icon: RiCheckboxCircleFill, badge: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60", accent: "border-l-emerald-400" },
+  pending: { labelId: "Menunggu", labelEn: "Pending", icon: RiHourglassLine, badge: "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700", accent: "border-l-slate-300 dark:border-l-slate-600" },
+  conflict: { labelId: "Bentrok", labelEn: "Conflict", icon: RiCloseCircleFill, badge: "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/60", accent: "border-l-rose-400" },
 };
 
-function PenugasanStatusBadge({ status }: { status: MockPenugasan["status"] }) {
+function PenugasanStatusBadge({ status, language }: { status: MockPenugasan["status"]; language: string }) {
   const m = STATUS_META[status];
   return (
     <StatusBadge
       status="default"
       leftIcon={m.icon}
-      leftLabel={m.label}
+      leftLabel={language === "en" ? m.labelEn : m.labelId}
       className={`${m.badge} shadow-xs`}
     />
   );
@@ -62,6 +63,7 @@ function PenugasanStatusBadge({ status }: { status: MockPenugasan["status"] }) {
 
 export default function PenugasanPage() {
   const { addToast } = useToast();
+  const { language } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -147,11 +149,11 @@ export default function PenugasanPage() {
   const [selectedItem, setSelectedItem] = useState<MockPenugasan | null>(null);
 
   // Helper format date for display
-  const formatIndoDate = (dateStr: string) => {
+  const formatDisplayDate = (dateStr: string) => {
     try {
       const d = new Date(dateStr);
       if (isNaN(d.getTime())) return dateStr;
-      return d.toLocaleDateString("id-ID", {
+      return d.toLocaleDateString(language === "en" ? "en-US" : "id-ID", {
         weekday: "long",
         day: "numeric",
         month: "long",
@@ -165,11 +167,13 @@ export default function PenugasanPage() {
   const formatSubtitleDate = (dateStr: string) => {
     try {
       const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return "(Hari H)";
-      const days = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+      if (isNaN(d.getTime())) return language === "en" ? "(D-Day)" : "(Hari H)";
+      const days = language === "en"
+        ? ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+        : ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
       return `(${days[d.getDay()]}, ${d.getDate()}/${d.getMonth() + 1})`;
     } catch {
-      return "(Hari H)";
+      return language === "en" ? "(D-Day)" : "(Hari H)";
     }
   };
 
@@ -223,7 +227,7 @@ export default function PenugasanPage() {
       if (found) {
         setFormData({
           kegiatanTerkait: found.title,
-          tanggalKegiatan: formatIndoDate(found.deadline),
+          tanggalKegiatan: formatDisplayDate(found.deadline),
           waktuSubtitle: formatSubtitleDate(found.deadline),
           jenisKonten: found.outputDibutuhkan?.[0] ?? "Foto",
           pic: defaultPic,
@@ -259,7 +263,7 @@ export default function PenugasanPage() {
     }
   }, [searchQuery, setSearchParams]);
 
-  // Tab Status Counts (Solid & Real-time by item.status)
+  // Tab Status Counts
   const counts = useMemo(() => {
     return {
       all: items.length,
@@ -288,10 +292,12 @@ export default function PenugasanPage() {
     });
 
     if (conflict) {
-      return `${formData.pic} sudah memiliki penugasan pada '${conflict.kegiatanTerkait}' (${conflict.jamMulai} - ${conflict.jamSelesai}). Terjadi bentrok jadwal.`;
+      return language === "en"
+        ? `${formData.pic} already has an assignment on '${conflict.kegiatanTerkait}' (${conflict.jamMulai} - ${conflict.jamSelesai}). Schedule conflict detected.`
+        : `${formData.pic} sudah memiliki penugasan pada '${conflict.kegiatanTerkait}' (${conflict.jamMulai} - ${conflict.jamSelesai}). Terjadi bentrok jadwal.`;
     }
     return null;
-  }, [formData, items, selectedItem]);
+  }, [formData, items, selectedItem, language]);
 
   // Toggle sort
   const toggleSort = (field: string) => {
@@ -365,7 +371,7 @@ export default function PenugasanPage() {
     return [...map.values()];
   }, [filteredItems]);
 
-  // Pagination slice (by container, not by row)
+  // Pagination slice
   const paginatedGroups = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
     return groups.slice(start, start + pageSize);
@@ -385,36 +391,52 @@ export default function PenugasanPage() {
     try {
       const dbStatus = status === "done" ? "COMPLETED" : status === "in-progress" ? "IN_PROGRESS" : "ASSIGNED";
       await Promise.all(
-        selectedIds.map(id =>
+        selectedIds.map((id) =>
           apiFetch(`/assignments/${id}`, {
             method: "PUT",
-            body: JSON.stringify({ status: dbStatus })
+            body: JSON.stringify({ status: dbStatus }),
           })
         )
       );
-      addToast(`Status ${selectedIds.length} penugasan berhasil diubah.`, "success");
+      addToast(
+        language === "en"
+          ? `Status of ${selectedIds.length} assignments updated successfully.`
+          : `Status ${selectedIds.length} penugasan berhasil diubah.`,
+        "success"
+      );
       setSelectedIds([]);
       refetch();
-    } catch (e) {
-      addToast("Gagal mengubah status secara massal.", "error");
+    } catch {
+      addToast(
+        language === "en" ? "Failed to bulk update status." : "Gagal mengubah status secara massal.",
+        "error"
+      );
     }
   };
 
   const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return;
-    if (!window.confirm(`Yakin ingin menghapus ${selectedIds.length} penugasan terpilih?`)) return;
+    const confirmMsg = language === "en"
+      ? `Are you sure you want to delete ${selectedIds.length} selected assignments?`
+      : `Yakin ingin menghapus ${selectedIds.length} penugasan terpilih?`;
+    if (!window.confirm(confirmMsg)) return;
 
     try {
       await Promise.all(
-        selectedIds.map(id =>
+        selectedIds.map((id) =>
           apiFetch(`/assignments/${id}`, { method: "DELETE" })
         )
       );
-      addToast(`${selectedIds.length} penugasan berhasil dihapus.`, "success");
+      addToast(
+        language === "en"
+          ? `${selectedIds.length} assignments deleted successfully.`
+          : `${selectedIds.length} penugasan berhasil dihapus.`,
+        "success"
+      );
       setSelectedIds([]);
       refetch();
-    } catch (e) {
-      addToast("Gagal menghapus penugasan.", "error");
+    } catch {
+      addToast(language === "en" ? "Failed to delete assignments." : "Gagal menghapus penugasan.", "error");
     }
   };
 
@@ -425,7 +447,7 @@ export default function PenugasanPage() {
     const firstPic = PIC_OPTIONS.length > 0 ? PIC_OPTIONS[0] : null;
     setFormData({
       kegiatanTerkait: firstKeg ? firstKeg.title : "",
-      tanggalKegiatan: firstKeg ? formatIndoDate(firstKeg.deadline) : "Senin, 24 Agustus 2026",
+      tanggalKegiatan: firstKeg ? formatDisplayDate(firstKeg.deadline) : "Senin, 24 Agustus 2026",
       jenisKonten: firstKeg?.outputDibutuhkan?.[0] ?? JENIS_KONTEN_OPTIONS[0] ?? "Foto",
       pic: firstPic ? firstPic.name : "",
       picAvatar: firstPic ? firstPic.avatar : "PT",
@@ -448,7 +470,7 @@ export default function PenugasanPage() {
     const firstPic = PIC_OPTIONS.length > 0 ? PIC_OPTIONS[0] : null;
     setFormData({
       kegiatanTerkait: group.kegiatan,
-      tanggalKegiatan: group.tanggal ?? (keg ? formatIndoDate(keg.deadline) : ""),
+      tanggalKegiatan: group.tanggal ?? (keg ? formatDisplayDate(keg.deadline) : ""),
       waktuSubtitle: keg ? formatSubtitleDate(keg.deadline) : "",
       jenisKonten: keg?.outputDibutuhkan?.[0] ?? JENIS_KONTEN_OPTIONS[0] ?? "Foto",
       pic: firstPic ? firstPic.name : "",
@@ -496,11 +518,14 @@ export default function PenugasanPage() {
   // Save Create
   const handleSaveCreate = async () => {
     if (!formData.kegiatanTerkait.trim()) {
-      addToast("Mohon isi nama kegiatan terkait", "warning");
+      addToast(
+        language === "en" ? "Please fill in the related activity title" : "Mohon isi nama kegiatan terkait",
+        "warning"
+      );
       return;
     }
 
-    const activity = kegiatanList.find(k => k.title === formData.kegiatanTerkait);
+    const activity = kegiatanList.find((k) => k.title === formData.kegiatanTerkait);
     const picUser = petugasList?.find((p: any) => p.name === formData.pic);
 
     try {
@@ -518,11 +543,14 @@ export default function PenugasanPage() {
           activityDate: formData.tanggalKegiatan,
         }),
       });
-      addToast("Penugasan baru berhasil dibuat.", "success");
+      addToast(
+        language === "en" ? "New assignment created successfully." : "Penugasan baru berhasil dibuat.",
+        "success"
+      );
       refetch();
       setIsCreateOpen(false);
-    } catch (e) {
-      addToast("Gagal membuat penugasan", "error");
+    } catch {
+      addToast(language === "en" ? "Failed to create assignment" : "Gagal membuat penugasan", "error");
     }
   };
 
@@ -530,11 +558,14 @@ export default function PenugasanPage() {
   const handleSaveEdit = async () => {
     if (!selectedItem) return;
     if (!formData.kegiatanTerkait.trim()) {
-      addToast("Mohon isi nama kegiatan terkait", "warning");
+      addToast(
+        language === "en" ? "Please fill in the related activity title" : "Mohon isi nama kegiatan terkait",
+        "warning"
+      );
       return;
     }
 
-    const activity = kegiatanList.find(k => k.title === formData.kegiatanTerkait);
+    const activity = kegiatanList.find((k) => k.title === formData.kegiatanTerkait);
     const picUser = petugasList?.find((p: any) => p.name === formData.pic);
 
     try {
@@ -552,11 +583,14 @@ export default function PenugasanPage() {
           activityDate: formData.tanggalKegiatan,
         }),
       });
-      addToast("Perubahan penugasan berhasil disimpan.", "success");
+      addToast(
+        language === "en" ? "Assignment changes saved successfully." : "Perubahan penugasan berhasil disimpan.",
+        "success"
+      );
       refetch();
       setIsEditOpen(false);
-    } catch (e) {
-      addToast("Gagal menyimpan penugasan", "error");
+    } catch {
+      addToast(language === "en" ? "Failed to save assignment" : "Gagal menyimpan penugasan", "error");
     }
   };
 
@@ -565,11 +599,16 @@ export default function PenugasanPage() {
     if (!selectedItem) return;
     try {
       await apiFetch(`/assignments/${selectedItem.id}`, { method: "DELETE" });
-      addToast(`Penugasan "${selectedItem.kegiatanTerkait}" telah dihapus.`, "info");
+      addToast(
+        language === "en"
+          ? `Assignment "${selectedItem.kegiatanTerkait}" deleted.`
+          : `Penugasan "${selectedItem.kegiatanTerkait}" telah dihapus.`,
+        "info"
+      );
       refetch();
       setIsDeleteOpen(false);
-    } catch (e) {
-      addToast("Gagal menghapus penugasan", "error");
+    } catch {
+      addToast(language === "en" ? "Failed to delete assignment" : "Gagal menghapus penugasan", "error");
     }
   };
 
@@ -588,10 +627,12 @@ export default function PenugasanPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-[#0f1f5c] dark:text-sky-400 tracking-tight">
-            Penugasan Khusus
+            {language === "en" ? "Special Assignments" : "Penugasan Khusus"}
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Kelola dan pantau jadwal liputan penugasan staf konten dengan data yang rapi dan terorganisir.
+            {language === "en"
+              ? "Manage and monitor content staff coverage schedules with clean, organized data."
+              : "Kelola dan pantau jadwal liputan penugasan staf konten dengan data yang rapi dan terorganisir."}
           </p>
         </div>
         <button
@@ -599,7 +640,7 @@ export default function PenugasanPage() {
           className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-[#0f1f5c] dark:bg-blue-600 hover:bg-[#0a1540] dark:hover:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow-sm transition active:scale-[0.98] self-start sm:self-auto cursor-pointer"
         >
           <Plus className="w-4 h-4 stroke-[2.5]" />
-          <span>Tugas Baru</span>
+          <span>{language === "en" ? "New Assignment" : "Tugas Baru"}</span>
         </button>
       </div>
 
@@ -614,13 +655,19 @@ export default function PenugasanPage() {
               setActiveTab("all");
               setCurrentPage(1);
             }}
-            className={`pb-3.5 flex items-center gap-2 font-medium transition relative whitespace-nowrap cursor-pointer ${activeTab === "all" ? "text-[#0f1f5c] dark:text-sky-400 font-bold border-b-2 border-[#0f1f5c] dark:border-sky-400" : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-              }`}
+            className={`pb-3.5 flex items-center gap-2 font-medium transition relative whitespace-nowrap cursor-pointer ${
+              activeTab === "all"
+                ? "text-[#0f1f5c] dark:text-sky-400 font-bold border-b-2 border-[#0f1f5c] dark:border-sky-400"
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+            }`}
           >
-            <span>Semua</span>
+            <span>{language === "en" ? "All" : "Semua"}</span>
             <span
-              className={`px-2 py-0.5 rounded-full text-xs font-semibold ${activeTab === "all" ? "bg-blue-50 dark:bg-sky-500/20 text-blue-600 dark:text-sky-300" : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
-                }`}
+              className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                activeTab === "all"
+                  ? "bg-blue-50 dark:bg-sky-500/20 text-blue-600 dark:text-sky-300"
+                  : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+              }`}
             >
               {counts.all}
             </span>
@@ -633,13 +680,19 @@ export default function PenugasanPage() {
               setActiveTab("in-progress");
               setCurrentPage(1);
             }}
-            className={`pb-3.5 flex items-center gap-2 font-medium transition relative whitespace-nowrap cursor-pointer ${activeTab === "in-progress" ? "text-[#0f1f5c] dark:text-sky-400 font-bold border-b-2 border-[#0f1f5c] dark:border-sky-400" : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-              }`}
+            className={`pb-3.5 flex items-center gap-2 font-medium transition relative whitespace-nowrap cursor-pointer ${
+              activeTab === "in-progress"
+                ? "text-[#0f1f5c] dark:text-sky-400 font-bold border-b-2 border-[#0f1f5c] dark:border-sky-400"
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+            }`}
           >
-            <span>Proses</span>
+            <span>{language === "en" ? "In Progress" : "Proses"}</span>
             <span
-              className={`px-2 py-0.5 rounded-full text-xs font-semibold ${activeTab === "in-progress" ? "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300" : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
-                }`}
+              className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                activeTab === "in-progress"
+                  ? "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300"
+                  : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+              }`}
             >
               {counts.inProgress}
             </span>
@@ -652,13 +705,19 @@ export default function PenugasanPage() {
               setActiveTab("done");
               setCurrentPage(1);
             }}
-            className={`pb-3.5 flex items-center gap-2 font-medium transition relative whitespace-nowrap cursor-pointer ${activeTab === "done" ? "text-[#0f1f5c] dark:text-sky-400 font-bold border-b-2 border-[#0f1f5c] dark:border-sky-400" : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-              }`}
+            className={`pb-3.5 flex items-center gap-2 font-medium transition relative whitespace-nowrap cursor-pointer ${
+              activeTab === "done"
+                ? "text-[#0f1f5c] dark:text-sky-400 font-bold border-b-2 border-[#0f1f5c] dark:border-sky-400"
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+            }`}
           >
-            <span>Selesai</span>
+            <span>{language === "en" ? "Completed" : "Selesai"}</span>
             <span
-              className={`px-2 py-0.5 rounded-full text-xs font-semibold ${activeTab === "done" ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300" : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
-                }`}
+              className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                activeTab === "done"
+                  ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300"
+                  : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+              }`}
             >
               {counts.done}
             </span>
@@ -671,13 +730,19 @@ export default function PenugasanPage() {
               setActiveTab("pending");
               setCurrentPage(1);
             }}
-            className={`pb-3.5 flex items-center gap-2 font-medium transition relative whitespace-nowrap cursor-pointer ${activeTab === "pending" ? "text-[#0f1f5c] dark:text-sky-400 font-bold border-b-2 border-[#0f1f5c] dark:border-sky-400" : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-              }`}
+            className={`pb-3.5 flex items-center gap-2 font-medium transition relative whitespace-nowrap cursor-pointer ${
+              activeTab === "pending"
+                ? "text-[#0f1f5c] dark:text-sky-400 font-bold border-b-2 border-[#0f1f5c] dark:border-sky-400"
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+            }`}
           >
-            <span>Menunggu</span>
+            <span>{language === "en" ? "Pending" : "Menunggu"}</span>
             <span
-              className={`px-2 py-0.5 rounded-full text-xs font-semibold ${activeTab === "pending" ? "bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-200" : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
-                }`}
+              className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                activeTab === "pending"
+                  ? "bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-200"
+                  : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+              }`}
             >
               {counts.pending}
             </span>
@@ -690,13 +755,19 @@ export default function PenugasanPage() {
               setActiveTab("conflict");
               setCurrentPage(1);
             }}
-            className={`pb-3.5 flex items-center gap-2 font-medium transition relative whitespace-nowrap cursor-pointer ${activeTab === "conflict" ? "text-rose-600 dark:text-rose-400 font-bold border-b-2 border-rose-600 dark:border-rose-400" : "text-gray-500 dark:text-gray-400 hover:text-rose-600 dark:hover:text-rose-400"
-              }`}
+            className={`pb-3.5 flex items-center gap-2 font-medium transition relative whitespace-nowrap cursor-pointer ${
+              activeTab === "conflict"
+                ? "text-rose-600 dark:text-rose-400 font-bold border-b-2 border-rose-600 dark:border-rose-400"
+                : "text-gray-500 dark:text-gray-400 hover:text-rose-600 dark:hover:text-rose-400"
+            }`}
           >
-            <span>Bentrok</span>
+            <span>{language === "en" ? "Conflict" : "Bentrok"}</span>
             <span
-              className={`px-2 py-0.5 rounded-full text-xs font-semibold ${activeTab === "conflict" ? "bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300" : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
-                }`}
+              className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                activeTab === "conflict"
+                  ? "bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300"
+                  : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+              }`}
             >
               {counts.conflict}
             </span>
@@ -709,7 +780,7 @@ export default function PenugasanPage() {
             <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Cari kegiatan, staf, jenis..."
+              placeholder={language === "en" ? "Search activity, staff, type..." : "Cari kegiatan, staf, jenis..."}
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -723,28 +794,28 @@ export default function PenugasanPage() {
           {selectedIds.length > 0 && (
             <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 animate-fadeIn">
               <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">
-                {selectedIds.length} dipilih:
+                {language === "en" ? `${selectedIds.length} selected:` : `${selectedIds.length} dipilih:`}
               </span>
               <button
                 onClick={() => handleBulkMarkStatus("done")}
                 className="px-2.5 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg flex items-center gap-1 transition cursor-pointer"
               >
                 <RiCheckLine className="w-3.5 h-3.5" />
-                <span>Selesai</span>
+                <span>{language === "en" ? "Completed" : "Selesai"}</span>
               </button>
               <button
                 onClick={() => handleBulkMarkStatus("in-progress")}
                 className="px-2.5 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg flex items-center gap-1 transition cursor-pointer"
               >
                 <RiTimeLine className="w-3.5 h-3.5" />
-                <span>Proses</span>
+                <span>{language === "en" ? "In Progress" : "Proses"}</span>
               </button>
               <button
                 onClick={handleBulkDelete}
                 className="px-2.5 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg flex items-center gap-1 transition cursor-pointer"
               >
                 <RiDeleteBinLine className="w-3.5 h-3.5" />
-                <span>Hapus</span>
+                <span>{language === "en" ? "Delete" : "Hapus"}</span>
               </button>
             </div>
           )}
@@ -752,10 +823,12 @@ export default function PenugasanPage() {
 
         {/* ── 3. Sort Bar ── */}
         <div className="px-4 sm:px-5 py-2.5 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800 overflow-x-auto bg-white dark:bg-[#161b22]">
-          <span className="font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">Urutkan:</span>
+          <span className="font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">
+            {language === "en" ? "Sort by:" : "Urutkan:"}
+          </span>
           {([
-            ["kegiatanTerkait", "Kegiatan"],
-            ["jamMulai", "Waktu"],
+            ["kegiatanTerkait", language === "en" ? "Activity" : "Kegiatan"],
+            ["jamMulai", language === "en" ? "Time" : "Waktu"],
             ["status", "Status"],
           ] as const).map(([field, label]) => (
             <button
@@ -778,24 +851,26 @@ export default function PenugasanPage() {
         <div className="bg-slate-50/60 dark:bg-[#0d1117]/60 p-4 sm:p-5">
           {paginatedGroups.length === 0 ? (
             <div className="rounded-xl border border-slate-200 dark:border-gray-800 bg-white dark:bg-[#161b22] py-14 text-center">
-              <p className="font-medium text-slate-600 dark:text-slate-300">Tidak ada penugasan ditemukan</p>
+              <p className="font-medium text-slate-600 dark:text-slate-300">
+                {language === "en" ? "No assignments found" : "Tidak ada penugasan ditemukan"}
+              </p>
               <p className="mt-1 text-xs text-slate-400">
-                Coba ganti filter tab atau kata kunci pencarian.
+                {language === "en" ? "Try switching filter tabs or search query." : "Coba ganti filter tab atau kata kunci pencarian."}
               </p>
             </div>
           ) : (
             <div className="space-y-3">
-              {/* Column header — shared alignment with every row below */}
+              {/* Column header */}
               <div className="hidden sm:block overflow-x-auto px-4">
                 <div
                   className={`${ROW_GRID} py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500`}
                 >
                   <span />
-                  <span>Petugas</span>
-                  <span>Jenis Konten</span>
-                  <span>Waktu</span>
+                  <span>{language === "en" ? "Officer" : "Petugas"}</span>
+                  <span>{language === "en" ? "Content Type" : "Jenis Konten"}</span>
+                  <span>{language === "en" ? "Time" : "Waktu"}</span>
                   <span>Status</span>
-                  <span className="text-right">Aksi</span>
+                  <span className="text-right">{language === "en" ? "Actions" : "Aksi"}</span>
                 </div>
               </div>
 
@@ -842,7 +917,7 @@ export default function PenugasanPage() {
                             {group.tanggal && (
                               <span className="inline-flex items-center gap-1">
                                 <Clock className="h-3.5 w-3.5" />
-                                {formatIndoDate(group.tanggal)}
+                                {formatDisplayDate(group.tanggal)}
                               </span>
                             )}
                             {group.lokasi && (
@@ -856,14 +931,14 @@ export default function PenugasanPage() {
                       </label>
                       <div className="flex items-center gap-2.5 self-start sm:self-auto">
                         <span className="rounded-full bg-slate-200/70 dark:bg-slate-800 px-2.5 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 whitespace-nowrap">
-                          {group.rows.length} petugas
+                          {group.rows.length} {language === "en" ? "officers" : "petugas"}
                         </span>
                         <button
                           onClick={() => handleAddPetugasToGroup(group)}
                           className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#0f1f5c] dark:bg-blue-600 hover:bg-[#0a1540] dark:hover:bg-blue-700 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1f5c]/40 cursor-pointer"
                         >
                           <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
-                          Tambah Petugas
+                          {language === "en" ? "Add Officer" : "Tambah Petugas"}
                         </button>
                       </div>
                     </div>
@@ -897,30 +972,30 @@ export default function PenugasanPage() {
                                 {item.jamMulai}&ndash;{item.jamSelesai}
                               </span>
                               <span>
-                                <PenugasanStatusBadge status={item.status} />
+                                <PenugasanStatusBadge status={item.status} language={language} />
                               </span>
                               <div className="flex items-center justify-end gap-0.5 text-slate-400 dark:text-slate-500">
                                 <button
                                   onClick={() => handleOpenDetail(item)}
-                                  className="rounded-md p-1.5 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-[#0f1f5c] dark:hover:text-sky-400"
-                                  title="Detail"
-                                  aria-label="Lihat detail penugasan"
+                                  className="rounded-md p-1.5 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-[#0f1f5c] dark:hover:text-sky-400 cursor-pointer"
+                                  title={language === "en" ? "Detail" : "Detail"}
+                                  aria-label={language === "en" ? "View assignment details" : "Lihat detail penugasan"}
                                 >
                                   <RiEyeLine className="h-4 w-4" />
                                 </button>
                                 <button
                                   onClick={() => handleOpenEdit(item)}
-                                  className="rounded-md p-1.5 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-blue-600 dark:hover:text-blue-400"
-                                  title="Edit"
-                                  aria-label="Edit penugasan"
+                                  className="rounded-md p-1.5 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer"
+                                  title={language === "en" ? "Edit" : "Edit"}
+                                  aria-label={language === "en" ? "Edit assignment" : "Edit penugasan"}
                                 >
                                   <RiEditLine className="h-4 w-4" />
                                 </button>
                                 <button
                                   onClick={() => handleOpenDelete(item)}
-                                  className="rounded-md p-1.5 transition-colors hover:bg-rose-50 hover:text-rose-600"
-                                  title="Hapus"
-                                  aria-label="Hapus penugasan"
+                                  className="rounded-md p-1.5 transition-colors hover:bg-rose-50 hover:text-rose-600 cursor-pointer"
+                                  title={language === "en" ? "Delete" : "Hapus"}
+                                  aria-label={language === "en" ? "Delete assignment" : "Hapus penugasan"}
                                 >
                                   <RiDeleteBinLine className="h-4 w-4" />
                                 </button>
@@ -940,7 +1015,7 @@ export default function PenugasanPage() {
         {/* ── 4. Pagination Footer ── */}
         <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500 dark:text-gray-400 bg-white dark:bg-[#161b22]">
           <div className="flex items-center gap-2">
-            <span>Tampilkan</span>
+            <span>{language === "en" ? "Show" : "Tampilkan"}</span>
             <select
               value={pageSize}
               onChange={(e) => {
@@ -953,7 +1028,7 @@ export default function PenugasanPage() {
               <option value={10}>10</option>
               <option value={20}>20</option>
             </select>
-            <span>dari {groups.length} kegiatan</span>
+            <span>{language === "en" ? `of ${groups.length} activities` : `dari ${groups.length} kegiatan`}</span>
           </div>
 
           <div className="flex items-center gap-1">
@@ -962,7 +1037,7 @@ export default function PenugasanPage() {
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               className="px-2.5 py-1 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white disabled:opacity-40 disabled:pointer-events-none rounded hover:bg-gray-50 dark:hover:bg-slate-800 transition cursor-pointer"
             >
-              Sebelumnya
+              {language === "en" ? "Previous" : "Sebelumnya"}
             </button>
             <span className="px-3 py-1 font-semibold text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-slate-800 rounded">
               {currentPage}
@@ -972,7 +1047,7 @@ export default function PenugasanPage() {
               onClick={() => setCurrentPage((p) => p + 1)}
               className="px-2.5 py-1 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white disabled:opacity-40 disabled:pointer-events-none rounded hover:bg-gray-50 dark:hover:bg-slate-800 transition cursor-pointer"
             >
-              Selanjutnya
+              {language === "en" ? "Next" : "Selanjutnya"}
             </button>
           </div>
         </div>
@@ -983,17 +1058,17 @@ export default function PenugasanPage() {
         open={isCreateOpen || isEditOpen}
         onClose={closeForm}
         size="lg"
-        title={isCreateOpen ? "Buat Penugasan Baru" : "Edit Penugasan Khusus"}
+        title={isCreateOpen ? (language === "en" ? "Create New Assignment" : "Buat Penugasan Baru") : (language === "en" ? "Edit Assignment" : "Edit Penugasan Khusus")}
         actions={
           <>
             <Button variant="outline" onClick={closeForm}>
-              Batal
+              {language === "en" ? "Cancel" : "Batal"}
             </Button>
             <button
               onClick={isCreateOpen ? handleSaveCreate : handleSaveEdit}
               className="rounded-lg bg-[#0f1f5c] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#0a1540] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1f5c]/40 cursor-pointer"
             >
-              {isCreateOpen ? "Simpan Penugasan" : "Simpan Perubahan"}
+              {isCreateOpen ? (language === "en" ? "Save Assignment" : "Simpan Penugasan") : (language === "en" ? "Save Changes" : "Simpan Perubahan")}
             </button>
           </>
         }
@@ -1006,7 +1081,7 @@ export default function PenugasanPage() {
             >
               <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-rose-500" />
               <div className="text-rose-800">
-                <p className="font-semibold">Bentrok jadwal terdeteksi</p>
+                <p className="font-semibold">{language === "en" ? "Schedule conflict detected" : "Bentrok jadwal terdeteksi"}</p>
                 <p className="mt-0.5 text-rose-700">{formConflict}</p>
               </div>
             </div>
@@ -1016,14 +1091,14 @@ export default function PenugasanPage() {
           <div>
             <div className="mb-1.5 flex items-baseline justify-between gap-3">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Kegiatan terkait <span className="text-rose-500">*</span>
+                {language === "en" ? "Related activity" : "Kegiatan terkait"} <span className="text-rose-500">*</span>
               </label>
               <button
                 type="button"
                 onClick={() => navigate("/kegiatan")}
-                className="inline-flex items-center gap-1 text-xs font-medium text-[#0f1f5c] hover:underline"
+                className="inline-flex items-center gap-1 text-xs font-medium text-[#0f1f5c] dark:text-sky-400 hover:underline cursor-pointer"
               >
-                Kelola agenda
+                {language === "en" ? "Manage agenda" : "Kelola agenda"}
                 <ExternalLink className="h-3 w-3" />
               </button>
             </div>
@@ -1035,7 +1110,7 @@ export default function PenugasanPage() {
                   setFormData({
                     ...formData,
                     kegiatanTerkait: selectedKeg.title,
-                    tanggalKegiatan: formatIndoDate(selectedKeg.deadline),
+                    tanggalKegiatan: formatDisplayDate(selectedKeg.deadline),
                     waktuSubtitle: formatSubtitleDate(selectedKeg.deadline),
                     lokasi: selectedKeg.lokasi ?? formData.lokasi,
                     jenisKonten: selectedKeg.outputDibutuhkan?.[0] ?? formData.jenisKonten,
@@ -1054,14 +1129,14 @@ export default function PenugasanPage() {
               ))}
               {!kegiatanList.some((k) => k.title === formData.kegiatanTerkait) && (
                 <option value={formData.kegiatanTerkait}>
-                  {formData.kegiatanTerkait} (khusus)
+                  {formData.kegiatanTerkait} {language === "en" ? "(custom)" : "(khusus)"}
                 </option>
               )}
             </select>
             {formData.tanggalKegiatan && (
-              <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-gray-500">
+              <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
                 <Clock className="h-3.5 w-3.5" />
-                {formatIndoDate(formData.tanggalKegiatan)}
+                {formatDisplayDate(formData.tanggalKegiatan)}
               </p>
             )}
           </div>
@@ -1069,7 +1144,7 @@ export default function PenugasanPage() {
           {/* PIC */}
           <div>
             <label className={LABEL_CLASS}>
-              Petugas (PIC) <span className="text-rose-500">*</span>
+              {language === "en" ? "Officer (PIC)" : "Petugas (PIC)"} <span className="text-rose-500">*</span>
             </label>
             <select
               value={formData.pic}
@@ -1084,7 +1159,7 @@ export default function PenugasanPage() {
               className={FIELD_CLASS}
             >
               {PIC_OPTIONS.length === 0 ? (
-                <option value="">Belum ada petugas di database</option>
+                <option value="">{language === "en" ? "No officers in database" : "Belum ada petugas di database"}</option>
               ) : (
                 PIC_OPTIONS.map((p) => (
                   <option key={p.id || p.name} value={p.name}>
@@ -1109,7 +1184,7 @@ export default function PenugasanPage() {
           {/* Jenis konten + Waktu */}
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className={LABEL_CLASS}>Jenis konten</label>
+              <label className={LABEL_CLASS}>{language === "en" ? "Content type" : "Jenis konten"}</label>
               <select
                 value={formData.jenisKonten}
                 onChange={(e) => setFormData({ ...formData, jenisKonten: e.target.value })}
@@ -1124,7 +1199,7 @@ export default function PenugasanPage() {
             </div>
             <div>
               <label className={LABEL_CLASS}>
-                Waktu penugasan <span className="text-rose-500">*</span>
+                {language === "en" ? "Assignment time" : "Waktu penugasan"} <span className="text-rose-500">*</span>
               </label>
               <div className="flex items-center gap-2">
                 <input
@@ -1147,7 +1222,7 @@ export default function PenugasanPage() {
           {/* Lokasi + Status */}
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className={LABEL_CLASS}>Lokasi liputan</label>
+              <label className={LABEL_CLASS}>{language === "en" ? "Coverage location" : "Lokasi liputan"}</label>
               <input
                 type="text"
                 placeholder="Balaikota Among Tani"
@@ -1168,10 +1243,10 @@ export default function PenugasanPage() {
                 }
                 className={FIELD_CLASS}
               >
-                <option value="pending">Menunggu</option>
-                <option value="in-progress">Proses</option>
-                <option value="done">Selesai</option>
-                <option value="conflict">Bentrok</option>
+                <option value="pending">{language === "en" ? "Pending" : "Menunggu"}</option>
+                <option value="in-progress">{language === "en" ? "In Progress" : "Proses"}</option>
+                <option value="done">{language === "en" ? "Completed" : "Selesai"}</option>
+                <option value="conflict">{language === "en" ? "Conflict" : "Bentrok"}</option>
               </select>
             </div>
           </div>
@@ -1179,12 +1254,12 @@ export default function PenugasanPage() {
           {/* Catatan */}
           <div>
             <label className={LABEL_CLASS}>
-              Catatan / instruksi{" "}
-              <span className="font-normal text-gray-400">(opsional)</span>
+              {language === "en" ? "Notes / instructions" : "Catatan / instruksi"}{" "}
+              <span className="font-normal text-gray-400">{language === "en" ? "(optional)" : "(opsional)"}</span>
             </label>
             <textarea
               rows={3}
-              placeholder="Instruksi khusus liputan atau batas pengumpulan…"
+              placeholder={language === "en" ? "Special instructions or submission deadline..." : "Instruksi khusus liputan atau batas pengumpulan…"}
               value={formData.catatan}
               onChange={(e) => setFormData({ ...formData, catatan: e.target.value })}
               className={`${FIELD_CLASS} resize-none`}
@@ -1197,7 +1272,7 @@ export default function PenugasanPage() {
       <Dialog
         open={isDetailOpen}
         onClose={() => setIsDetailOpen(false)}
-        title="Detail Informasi Penugasan"
+        title={language === "en" ? "Assignment Details" : "Detail Informasi Penugasan"}
       >
         {selectedItem && (
           <div className="space-y-4 mt-2">
@@ -1210,11 +1285,11 @@ export default function PenugasanPage() {
                   </h3>
                   <p className="text-xs text-gray-500 mt-0.5">
                     {selectedItem.tanggalKegiatan
-                      ? formatIndoDate(selectedItem.tanggalKegiatan)
+                      ? formatDisplayDate(selectedItem.tanggalKegiatan)
                       : "—"}
                   </p>
                 </div>
-                <PenugasanStatusBadge status={selectedItem.status} />
+                <PenugasanStatusBadge status={selectedItem.status} language={language} />
               </div>
             </div>
 
@@ -1224,11 +1299,13 @@ export default function PenugasanPage() {
                 <AlertTriangle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="text-xs font-bold text-rose-900 uppercase">
-                    Status Bentrok Jadwal Terdeteksi
+                    {language === "en" ? "Schedule Conflict Detected" : "Status Bentrok Jadwal Terdeteksi"}
                   </p>
                   <p className="text-xs text-rose-700 mt-1 leading-relaxed">
                     {selectedItem.conflictMessage ??
-                      "Petugas PIC memiliki jadwal bertabrakan pada jam yang sama."}
+                      (language === "en"
+                        ? "Officer has an overlapping schedule at the same time."
+                        : "Petugas PIC memiliki jadwal bertabrakan pada jam yang sama.")}
                   </p>
                 </div>
               </div>
@@ -1239,7 +1316,7 @@ export default function PenugasanPage() {
               <div className="bg-white dark:bg-gray-800/80 p-3 rounded-xl border border-gray-100 dark:border-gray-700 flex items-start gap-2.5">
                 <User className="w-4 h-4 text-gray-400 mt-0.5" />
                 <div>
-                  <p className="text-[11px] text-gray-400 font-semibold uppercase">Petugas PIC</p>
+                  <p className="text-[11px] text-gray-400 font-semibold uppercase">{language === "en" ? "Officer PIC" : "Petugas PIC"}</p>
                   <p className="font-semibold text-gray-800 dark:text-gray-200 mt-0.5">{selectedItem.pic}</p>
                 </div>
               </div>
@@ -1247,7 +1324,7 @@ export default function PenugasanPage() {
               <div className="bg-white dark:bg-gray-800/80 p-3 rounded-xl border border-gray-100 dark:border-gray-700 flex items-start gap-2.5">
                 <FileText className="w-4 h-4 text-gray-400 mt-0.5" />
                 <div>
-                  <p className="text-[11px] text-gray-400 font-semibold uppercase">Output Konten</p>
+                  <p className="text-[11px] text-gray-400 font-semibold uppercase">{language === "en" ? "Content Output" : "Output Konten"}</p>
                   <p className="font-semibold text-gray-800 dark:text-gray-200 mt-0.5">{selectedItem.jenisKonten}</p>
                 </div>
               </div>
@@ -1255,7 +1332,7 @@ export default function PenugasanPage() {
               <div className="bg-white dark:bg-gray-800/80 p-3 rounded-xl border border-gray-100 dark:border-gray-700 flex items-start gap-2.5">
                 <Clock className="w-4 h-4 text-gray-400 mt-0.5" />
                 <div>
-                  <p className="text-[11px] text-gray-400 font-semibold uppercase">Waktu Penugasan</p>
+                  <p className="text-[11px] text-gray-400 font-semibold uppercase">{language === "en" ? "Assignment Time" : "Waktu Penugasan"}</p>
                   <p className="font-semibold text-gray-800 dark:text-gray-200 mt-0.5">
                     {selectedItem.jamMulai} - {selectedItem.jamSelesai}
                   </p>
@@ -1265,7 +1342,7 @@ export default function PenugasanPage() {
               <div className="bg-white dark:bg-gray-800/80 p-3 rounded-xl border border-gray-100 dark:border-gray-700 flex items-start gap-2.5">
                 <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
                 <div>
-                  <p className="text-[11px] text-gray-400 font-semibold uppercase">Lokasi</p>
+                  <p className="text-[11px] text-gray-400 font-semibold uppercase">{language === "en" ? "Location" : "Lokasi"}</p>
                   <p className="font-semibold text-gray-800 dark:text-gray-200 mt-0.5">
                     {selectedItem.lokasi ?? "Balaikota Among Tani"}
                   </p>
@@ -1277,7 +1354,7 @@ export default function PenugasanPage() {
             {selectedItem.catatan && (
               <div className="bg-gray-50 dark:bg-gray-800/60 p-3.5 rounded-xl border border-gray-100 dark:border-gray-700">
                 <p className="text-[11px] text-gray-400 font-semibold uppercase">
-                  Catatan / Instruksi Penugasan
+                  {language === "en" ? "Assignment Notes / Instructions" : "Catatan / Instruksi Penugasan"}
                 </p>
                 <p className="text-xs text-gray-700 dark:text-gray-300 mt-1 leading-relaxed">
                   {selectedItem.catatan}
@@ -1287,7 +1364,7 @@ export default function PenugasanPage() {
 
             <div className="pt-2 flex justify-end">
               <Button variant="outline" onClick={() => setIsDetailOpen(false)}>
-                Tutup
+                {language === "en" ? "Close" : "Tutup"}
               </Button>
             </div>
           </div>
@@ -1298,25 +1375,37 @@ export default function PenugasanPage() {
       <Dialog
         open={isDeleteOpen}
         onClose={() => setIsDeleteOpen(false)}
-        title="Konfirmasi Hapus Penugasan"
+        title={language === "en" ? "Confirm Delete Assignment" : "Konfirmasi Hapus Penugasan"}
       >
         <div className="space-y-4 mt-2">
           <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-            Apakah Anda yakin ingin menghapus penugasan{" "}
-            <span className="font-bold text-gray-900 dark:text-gray-100">
-              "{selectedItem?.kegiatanTerkait}"
-            </span>{" "}
-            untuk <span className="font-semibold text-gray-800 dark:text-gray-200">{selectedItem?.pic}</span>?
+            {language === "en" ? (
+              <>
+                Are you sure you want to delete assignment{" "}
+                <span className="font-bold text-gray-900 dark:text-gray-100">
+                  "{selectedItem?.kegiatanTerkait}"
+                </span>{" "}
+                for <span className="font-semibold text-gray-800 dark:text-gray-200">{selectedItem?.pic}</span>?
+              </>
+            ) : (
+              <>
+                Apakah Anda yakin ingin menghapus penugasan{" "}
+                <span className="font-bold text-gray-900 dark:text-gray-100">
+                  "{selectedItem?.kegiatanTerkait}"
+                </span>{" "}
+                untuk <span className="font-semibold text-gray-800 dark:text-gray-200">{selectedItem?.pic}</span>?
+              </>
+            )}
           </p>
           <div className="pt-3 flex justify-end gap-2 border-t border-gray-100">
             <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
-              Batal
+              {language === "en" ? "Cancel" : "Batal"}
             </Button>
             <button
               onClick={handleConfirmDelete}
               className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-sm transition cursor-pointer"
             >
-              Hapus Penugasan
+              {language === "en" ? "Delete Assignment" : "Hapus Penugasan"}
             </button>
           </div>
         </div>
@@ -1324,3 +1413,4 @@ export default function PenugasanPage() {
     </div>
   );
 }
+
