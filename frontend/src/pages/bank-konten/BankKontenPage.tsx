@@ -313,11 +313,26 @@ const BankKontenPage = () => {
                 onClick={() => openFolder(folder)}
                 className="group bg-white dark:bg-[#161b22] rounded-2xl border border-gray-200/80 dark:border-gray-800 hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden flex flex-col justify-between"
               >
-                {/* 1. VISUAL COVER BANNER WITH GLASSMORPHISM BADGES */}
-                <div className={`h-36 bg-gradient-to-br ${coverGradient} relative p-4 flex flex-col justify-between border-b border-gray-100/80 overflow-hidden`}>
+                {/* 1. VISUAL COVER BANNER WITH REAL THUMBNAIL & GLASSMORPHISM BADGES */}
+                <div className={`h-36 bg-gradient-to-br ${coverGradient} relative p-4 flex flex-col justify-between border-b border-gray-100/80 dark:border-gray-800 overflow-hidden`}>
+                  {/* REAL IMAGE THUMBNAIL IF PRESENT */}
+                  {folder.thumbnailUrl ? (
+                    <>
+                      <img
+                        src={folder.thumbnailUrl}
+                        alt={folder.title}
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-black/40 pointer-events-none" />
+                    </>
+                  ) : null}
+
                   {/* Top Metadata Badges */}
                   <div className="flex items-center justify-between gap-2 z-10">
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-white/80 backdrop-blur-md text-gray-700 dark:text-gray-200 border border-white/40 dark:border-gray-700 shadow-2xs">
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-white/90 dark:bg-gray-900/90 backdrop-blur-md text-gray-800 dark:text-gray-100 border border-white/40 dark:border-gray-700 shadow-2xs">
                       {folder.strakomNumber || "ARSIP"}
                     </span>
 
@@ -328,32 +343,34 @@ const BankKontenPage = () => {
                     )}
                   </div>
 
-                  {/* Center Folder Glow Icon */}
-                  <div className="self-center transform group-hover:scale-110 transition-transform duration-300">
-                    <div className="w-12 h-12 rounded-2xl bg-white/90 shadow-md backdrop-blur-md flex items-center justify-center text-indigo-700">
-                      <Folder className="w-6 h-6 fill-indigo-600/20" />
+                  {/* Center Folder Glow Icon ONLY IF NO THUMBNAIL */}
+                  {!folder.thumbnailUrl && (
+                    <div className="self-center transform group-hover:scale-110 transition-transform duration-300 z-10">
+                      <div className="w-12 h-12 rounded-2xl bg-white/90 dark:bg-gray-800/90 shadow-md backdrop-blur-md flex items-center justify-center text-indigo-700 dark:text-indigo-400">
+                        <Folder className="w-6 h-6 fill-indigo-600/20" />
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Bottom Type Pills */}
                   <div className="flex items-center justify-between text-[11px] text-gray-500 z-10">
                     <div className="flex items-center gap-1.5">
                       {summary.jumlahFoto > 0 && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/80 backdrop-blur-md text-emerald-800 font-semibold border border-white/40">
-                          <ImageIcon className="w-3 h-3 text-emerald-600" />
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/90 dark:bg-gray-900/90 backdrop-blur-md text-emerald-800 dark:text-emerald-300 font-semibold border border-white/40 dark:border-gray-700 shadow-2xs">
+                          <ImageIcon className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                           {summary.jumlahFoto}
                         </span>
                       )}
                       {summary.jumlahVideo > 0 && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/80 backdrop-blur-md text-blue-800 font-semibold border border-white/40">
-                          <Video className="w-3 h-3 text-blue-600" />
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/90 dark:bg-gray-900/90 backdrop-blur-md text-blue-800 dark:text-blue-300 font-semibold border border-white/40 dark:border-gray-700 shadow-2xs">
+                          <Video className="w-3 h-3 text-blue-600 dark:text-blue-400" />
                           {summary.jumlahVideo}
                         </span>
                       )}
                     </div>
 
-                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-600 dark:text-gray-300 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md px-2 py-0.5 rounded-md">
-                      <Calendar className="w-3 h-3 text-gray-400" />
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-800 dark:text-gray-200 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md px-2 py-0.5 rounded-md border border-white/40 dark:border-gray-700 shadow-2xs">
+                      <Calendar className="w-3 h-3 text-gray-500 dark:text-gray-400" />
                       {formatTanggal(folder.tanggal)}
                     </span>
                   </div>
@@ -406,26 +423,42 @@ const BankKontenPage = () => {
         {selectedFolder && (
           <div className="space-y-5">
             {/* Modal Header Metadata Banner */}
-            <div className="bg-gradient-to-r from-indigo-50 to-slate-50 p-4 rounded-xl border border-indigo-100/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-indigo-100 text-indigo-800">
-                    {selectedFolder.strakomNumber || "ARSIP"}
-                  </span>
-                  {selectedFolder.kategori && (
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${getCategoryBadgeColor(selectedFolder.kategori)}`}>
-                      {selectedFolder.kategori}
+            <div className="bg-gradient-to-r from-indigo-50 to-slate-50 dark:bg-slate-900/80 p-4 rounded-xl border border-indigo-100/80 dark:border-gray-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                {selectedFolder.thumbnailUrl ? (
+                  <img
+                    src={selectedFolder.thumbnailUrl}
+                    alt={selectedFolder.title}
+                    className="w-12 h-12 rounded-xl object-cover border border-indigo-200 dark:border-indigo-800 shadow-xs shrink-0"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.display = "none";
+                    }}
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                    <Folder className="w-6 h-6" />
+                  </div>
+                )}
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-indigo-100 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/50">
+                      {selectedFolder.strakomNumber || "ARSIP"}
                     </span>
-                  )}
-                  <span className="text-xs text-gray-500 flex items-center gap-1">
-                    <Calendar className="w-3.5 h-3.5" />
-                    {formatTanggal(selectedFolder.tanggal)}
-                  </span>
+                    {selectedFolder.kategori && (
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${getCategoryBadgeColor(selectedFolder.kategori)}`}>
+                        {selectedFolder.kategori}
+                      </span>
+                    )}
+                    <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5" />
+                      {formatTanggal(selectedFolder.tanggal)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                    <User className="w-3.5 h-3.5 text-gray-400" />
+                    Petugas Dokumentasi: <span className="font-semibold text-gray-800 dark:text-gray-200">{selectedFolder.petugas}</span>
+                  </p>
                 </div>
-                <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1">
-                  <User className="w-3.5 h-3.5 text-gray-400" />
-                  Petugas Dokumentasi: <span className="font-semibold text-gray-800 dark:text-gray-200">{selectedFolder.petugas}</span>
-                </p>
               </div>
 
               <Button
@@ -509,6 +542,9 @@ const BankKontenPage = () => {
                               src={file.thumbnailUrl}
                               alt={file.name}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).style.display = "none";
+                              }}
                             />
                             <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
                           </>

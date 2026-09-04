@@ -351,14 +351,34 @@ export class ProductionsController {
         } else if (asg.workLink.startsWith("http") || asg.workLink.startsWith("/")) {
           const alreadyExists = folder.files.some((existing) => existing.workLink === asg.workLink);
           if (!alreadyExists) {
+            const isVideo =
+              (asg.contentType || "").toLowerCase().includes("video") ||
+              asg.workLink.toLowerCase().endsWith(".mp4") ||
+              asg.workLink.toLowerCase().endsWith(".mov");
+            const thumb = isVideo ? undefined : asg.workLink;
+
             folder.files.push({
               id: asg.assignmentId,
               name: `[${asg.contentType || "Dokumentasi"}] ${asg.activityTitle}`,
-              jenisKonten: (asg.contentType || "").toLowerCase().includes("video") ? "video" : "foto",
+              jenisKonten: isVideo ? "video" : "foto",
               size: "2.5 MB",
-              thumbnailUrl: (asg.contentType || "").toLowerCase().includes("video") ? undefined : asg.workLink,
+              thumbnailUrl: thumb,
               workLink: asg.workLink,
             });
+
+            if (!folder.thumbnailUrl && thumb) {
+              folder.thumbnailUrl = thumb;
+            }
+          }
+        }
+      }
+
+      // Pastikan setiap folder memiliki thumbnailUrl jika memiliki berkas foto
+      for (const folder of folderMap.values()) {
+        if (!folder.thumbnailUrl && folder.files.length > 0) {
+          const firstPhoto = folder.files.find((f) => f.thumbnailUrl || f.jenisKonten === "foto");
+          if (firstPhoto) {
+            folder.thumbnailUrl = firstPhoto.thumbnailUrl || firstPhoto.workLink;
           }
         }
       }
