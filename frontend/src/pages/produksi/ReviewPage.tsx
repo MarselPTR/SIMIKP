@@ -11,10 +11,17 @@ import {
   MapPin,
   Upload,
   History,
+  BookOpen,
+  Copy,
+  Download,
+  Sparkles,
+  Layers,
+  Check,
 } from "lucide-react";
 import { usePetugasTasksStore } from "../../lib/petugas-store";
 import type { PetugasTaskItem } from "../../lib/petugas-store";
 import { WORKFLOWS } from "../../lib/mock-data";
+import { apiFetch } from "../../lib/api-client";
 import Dialog from "../../components/ui/Dialog";
 import Button from "../../components/ui/Button";
 import { useToast } from "../../contexts/ToastContext";
@@ -43,8 +50,109 @@ const ReviewPage = () => {
   const [revisionNotesInput, setRevisionNotesInput] = useState("");
   const [isSubmittingRevision, setIsSubmittingRevision] = useState(false);
 
-  // Modal state untuk pratinjau naskah Prahum (bukan tautan berkas)
+  // Modal state untuk pratinjau naskah Prahum
   const [previewNaskahTask, setPreviewNaskahTask] = useState<PetugasTaskItem | null>(null);
+
+  // Modal State for Kurasi Foto & Video (Ahli Pertama)
+  const [curationTask, setCurationTask] = useState<PetugasTaskItem | null>(null);
+  const [selectedFileUrls, setSelectedFileUrls] = useState<Set<string>>(new Set());
+  const [isSubmittingCuration, setIsSubmittingCuration] = useState(false);
+
+  // Modal State for Desainer & Editor Review
+  const [designReviewTask, setDesignReviewTask] = useState<PetugasTaskItem | null>(null);
+
+  const openCurationModal = (task: PetugasTaskItem) => {
+    setCurationTask(task);
+    const allUrls = (task.mediaData?.files || []).map((f) => f.url);
+    setSelectedFileUrls(new Set(allUrls));
+  };
+
+  const toggleFileSelection = (url: string) => {
+    setSelectedFileUrls((prev) => {
+      const next = new Set(prev);
+      if (next.has(url)) {
+        next.delete(url);
+      } else {
+        next.add(url);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAllFiles = () => {
+    if (!curationTask?.mediaData?.files) return;
+    const allUrls = curationTask.mediaData.files.map((f) => f.url);
+    setSelectedFileUrls(new Set(allUrls));
+  };
+
+  const handleDeselectAllFiles = () => {
+    setSelectedFileUrls(new Set());
+  };
+
+  const handleApproveCuratedFiles = async () => {
+    if (!curationTask || !curationTask.mediaData?.files) return;
+    if (selectedFileUrls.size === 0) {
+      addToast(
+        language === "en"
+          ? "Please select at least 1 photo/video for Bank Konten"
+          : "Harap pilih minimal 1 foto/video untuk dimasukkan ke Bank Konten Utama",
+        "warning"
+      );
+      return;
+    }
+
+    try {
+      setIsSubmittingCuration(true);
+      const curatedFiles = curationTask.mediaData.files.filter((f) => selectedFileUrls.has(f.url));
+
+      await apiFetch("/productions/curate-approval", {
+        method: "POST",
+        body: JSON.stringify({
+          assignmentId: curationTask.id,
+          curatedFiles,
+          status: "SIAP_TAYANG",
+        }),
+      });
+
+      await approveContent(curationTask.id);
+      addToast(
+        language === "en"
+          ? `${curatedFiles.length} curated assets approved and added to Bank Konten!`
+          : `${curatedFiles.length} berkas pilihan berhasil disetujui dan resmi masuk ke Bank Konten Utama!`,
+        "success"
+      );
+      setCurationTask(null);
+    } catch (err: any) {
+      addToast(err?.message || "Gagal memproses persetujuan kurasi", "error");
+    } finally {
+      setIsSubmittingCuration(false);
+    }
+  };
+
+  const handleApproveDesign = async (task: PetugasTaskItem) => {
+    try {
+      if (task.mediaData?.files && task.mediaData.files.length > 0) {
+        await apiFetch("/productions/curate-approval", {
+          method: "POST",
+          body: JSON.stringify({
+            assignmentId: task.id,
+            curatedFiles: task.mediaData.files,
+            status: "SIAP_TAYANG",
+          }),
+        });
+      }
+      await approveContent(task.id);
+      addToast(
+        language === "en"
+          ? "Design approved and added to Bank Konten!"
+          : "Karya desain berhasil disetujui dan masuk ke Bank Konten Utama!",
+        "success"
+      );
+      setDesignReviewTask(null);
+    } catch (err: any) {
+      addToast(err?.message || "Gagal menyetujui desain", "error");
+    }
+  };
 
   const getCategoryLabel = (cat: string) => {
     if (cat === "ALL") return t("all");
@@ -320,17 +428,36 @@ const ReviewPage = () => {
                     </div>
                   </div>
 
-                  {/* Review Action Buttons */}
+                  {/* Review Action Buttons based on Role & Data */}
                   <div className="flex flex-wrap items-center gap-2 self-start lg:self-auto shrink-0">
-                    {tItem.workLink && (
+                    {/* Review Action Buttons based on Role & Data */}
+                    {tItem.workLink ? (
                       tItem.bidang === "PRAHUM" ? (
                         <button
                           type="button"
                           onClick={() => setPreviewNaskahTask(tItem)}
-                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 transition cursor-pointer"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-[#0f1f5c] dark:text-sky-300 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800 transition cursor-pointer shadow-xs"
                         >
-                          <Eye size={14} />
-                          <span>{language === "en" ? "Read Article" : "Baca Naskah"}</span>
+                          <BookOpen size={14} className="text-blue-600 dark:text-sky-400" />
+                          <span>Baca &amp; Telaah Naskah</span>
+                        </button>
+                      ) : tItem.bidang === "DESAINER_EDITOR" ? (
+                        <button
+                          type="button"
+                          onClick={() => setDesignReviewTask(tItem)}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-purple-800 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50 hover:bg-purple-100 dark:hover:bg-purple-900/50 border border-purple-200 dark:border-purple-800 transition cursor-pointer shadow-xs"
+                        >
+                          <Layers size={14} className="text-purple-600 dark:text-purple-400" />
+                          <span>Telaah Hasil Desain</span>
+                        </button>
+                      ) : (tItem.bidang === "FOTOGRAFER" || tItem.bidang === "VIDEOGRAFER" || tItem.bidang === "FOTO_VIDEO") && tItem.mediaData?.files ? (
+                        <button
+                          type="button"
+                          onClick={() => openCurationModal(tItem)}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-blue-900 dark:text-blue-200 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/70 border border-blue-300 dark:border-blue-700 transition cursor-pointer shadow-xs"
+                        >
+                          <Sparkles size={14} className="text-amber-500" />
+                          <span>Meja Kurasi Foto &amp; Video ({tItem.mediaData.files.length})</span>
                         </button>
                       ) : (
                         <a
@@ -344,6 +471,35 @@ const ReviewPage = () => {
                           <ExternalLink size={12} className="opacity-70" />
                         </a>
                       )
+                    ) : (
+                      // Jika berkas belum diunggah petugas, tombol tetap tampil sebagai indikator jelas
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (tItem.bidang === "PRAHUM") setPreviewNaskahTask(tItem);
+                          else if (tItem.bidang === "DESAINER_EDITOR") setDesignReviewTask(tItem);
+                          else openCurationModal(tItem);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/70 border border-dashed border-gray-300 dark:border-gray-700 hover:border-blue-400 hover:text-blue-700 transition cursor-pointer"
+                        title="Klik untuk melihat status penugasan"
+                      >
+                        {tItem.bidang === "PRAHUM" ? (
+                          <>
+                            <BookOpen size={13} className="text-gray-400" />
+                            <span>Naskah Belum Masuk</span>
+                          </>
+                        ) : tItem.bidang === "DESAINER_EDITOR" ? (
+                          <>
+                            <Layers size={13} className="text-purple-400" />
+                            <span>Desain Belum Diunggah</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles size={13} className="text-amber-400" />
+                            <span>Foto/Video Belum Masuk</span>
+                          </>
+                        )}
+                      </button>
                     )}
 
                     <button
@@ -535,21 +691,403 @@ const ReviewPage = () => {
         </div>
       </Dialog>
 
-      {/* Naskah Preview Dialog (Prahum) */}
+      {/* 1. Naskah Preview & Review Dialog (PRAHUM) */}
       <Dialog
         open={!!previewNaskahTask}
         onClose={() => setPreviewNaskahTask(null)}
-        title={language === "en" ? "Article Text" : "Isi Naskah Berita"}
+        title="Meja Telaah Naskah Berita Humas"
         size="lg"
+        actions={
+          previewNaskahTask ? (
+            <div className="flex items-center justify-between w-full gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPreviewNaskahTask(null)}
+              >
+                {t("close")}
+              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const tToRev = previewNaskahTask;
+                    setPreviewNaskahTask(null);
+                    handleOpenRevisionModal(tToRev);
+                  }}
+                  className="text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700"
+                >
+                  <MessageSquare size={13} className="mr-1.5 text-amber-600" />
+                  Minta Revisi Naskah
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={async () => {
+                    await handleApprove(previewNaskahTask);
+                    setPreviewNaskahTask(null);
+                  }}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                >
+                  <CheckCircle2 size={13} className="mr-1.5" />
+                  Setujui Naskah (Siap Tayang)
+                </Button>
+              </div>
+            </div>
+          ) : null
+        }
       >
-        <div className="space-y-3 text-xs sm:text-sm">
-          <p className="font-bold text-gray-900 dark:text-gray-100">
-            {language === "en" ? "Activity" : "Kegiatan"}: <span className="font-normal text-gray-700 dark:text-gray-300">{previewNaskahTask?.kegiatan}</span>
-          </p>
-          <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed bg-gray-50 dark:bg-gray-900/60 rounded-xl p-4 border border-gray-100 dark:border-gray-800 max-h-[60vh] overflow-y-auto">
-            {previewNaskahTask?.workLink}
-          </p>
-        </div>
+        {previewNaskahTask && (
+          <div className="space-y-4 text-xs sm:text-sm">
+            <div className="p-3 bg-slate-50 dark:bg-gray-900/80 rounded-xl border border-gray-200 dark:border-gray-800 space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-gray-900 dark:text-gray-100 text-sm">
+                  {previewNaskahTask.kegiatan}
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-sky-300">
+                  {previewNaskahTask.workLink ? previewNaskahTask.workLink.trim().split(/\s+/).length : 0} Kata
+                </span>
+              </div>
+              <div className="flex items-center gap-3 text-xs text-gray-500">
+                <span>Lokasi: {previewNaskahTask.lokasi}</span>
+                <span>•</span>
+                <span>Batas Waktu: {previewNaskahTask.deadline}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                Naskah Berita Rilis Pers:
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(previewNaskahTask.workLink || "");
+                  addToast("Teks naskah berhasil disalin ke clipboard!", "success");
+                }}
+                className="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-sky-400 hover:underline font-semibold cursor-pointer"
+              >
+                <Copy size={13} />
+                <span>Salin Seluruh Naskah</span>
+              </button>
+            </div>
+
+            {previewNaskahTask.workLink ? (
+              <div className="bg-white dark:bg-gray-950/50 rounded-2xl p-5 border border-gray-200 dark:border-gray-800 max-h-[55vh] overflow-y-auto leading-relaxed text-gray-800 dark:text-gray-200 font-serif text-sm sm:text-base whitespace-pre-wrap shadow-inner">
+                {previewNaskahTask.workLink}
+              </div>
+            ) : (
+              <div className="text-center py-10 px-4 bg-slate-50 dark:bg-gray-900/60 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800">
+                <BookOpen className="w-10 h-10 text-gray-400 mx-auto mb-2" />
+                <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">Naskah Berita Belum Disetor</p>
+                <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+                  Petugas Pranata Humas belum menuliskan naskah berita untuk kegiatan ini. Anda dapat memberikan arahan atau meminta draf rilis melalui tombol Catatan Revisi di bawah.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </Dialog>
+
+      {/* 2. Meja Kurasi Foto & Video (FOTO_VIDEO) */}
+      <Dialog
+        open={!!curationTask}
+        onClose={() => setCurationTask(null)}
+        title="Meja Kurasi Redaksi Foto & Video Liputan"
+        size="lg"
+        actions={
+          curationTask ? (
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between w-full gap-3">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurationTask(null)}
+                  disabled={isSubmittingCuration}
+                >
+                  {t("close")}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const tToRev = curationTask;
+                    setCurationTask(null);
+                    handleOpenRevisionModal(tToRev);
+                  }}
+                  disabled={isSubmittingCuration}
+                  className="text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700"
+                >
+                  <MessageSquare size={13} className="mr-1.5 text-amber-600" />
+                  Minta Revisi Foto/Video
+                </Button>
+              </div>
+
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleApproveCuratedFiles}
+                disabled={isSubmittingCuration || selectedFileUrls.size === 0}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+              >
+                <Sparkles size={14} className="mr-1.5 text-amber-300" />
+                {isSubmittingCuration
+                  ? "Menyimpan ke Bank Konten..."
+                  : `Setujui ${selectedFileUrls.size} Berkas ke Bank Konten Utama`}
+              </Button>
+            </div>
+          ) : null
+        }
+      >
+        {curationTask && (
+          <div className="space-y-4 text-xs sm:text-sm">
+            {/* Header info & Caption */}
+            <div className="p-3.5 bg-slate-50 dark:bg-gray-900/80 rounded-2xl border border-gray-200 dark:border-gray-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="font-bold text-gray-900 dark:text-gray-100 text-sm">
+                  {curationTask.kegiatan}
+                </h4>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-950/60 text-[#0f1f5c] dark:text-sky-300">
+                  {curationTask.bidang}
+                </span>
+              </div>
+              {curationTask.mediaData?.caption && (
+                <div className="p-2.5 bg-white dark:bg-gray-950/60 rounded-xl border border-gray-200/80 dark:border-gray-800 text-xs text-gray-700 dark:text-gray-300">
+                  <span className="font-bold text-gray-900 dark:text-gray-100 block mb-0.5">
+                    Keterangan / Caption Petugas:
+                  </span>
+                  "{curationTask.mediaData.caption}"
+                </div>
+              )}
+            </div>
+
+            {curationTask.mediaData?.files && curationTask.mediaData.files.length > 0 ? (
+              <>
+                {/* Selection Toolbar */}
+                <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-blue-50/60 dark:bg-blue-950/30 rounded-xl border border-blue-100 dark:border-blue-900/40">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-xs text-[#0f1f5c] dark:text-sky-300">
+                      Pilih Foto/Video untuk Bank Konten:
+                    </span>
+                    <span className="px-2 py-0.5 bg-blue-600 text-white rounded-full text-[11px] font-bold">
+                      {selectedFileUrls.size} dari {curationTask.mediaData.files.length} Dipilih
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSelectAllFiles}
+                      className="text-xs font-semibold text-blue-700 dark:text-sky-400 hover:underline cursor-pointer"
+                    >
+                      Pilih Semua
+                    </button>
+                    <span className="text-gray-300">|</span>
+                    <button
+                      type="button"
+                      onClick={handleDeselectAllFiles}
+                      className="text-xs font-semibold text-gray-500 hover:underline cursor-pointer"
+                    >
+                      Batalkan Pilihan
+                    </button>
+                  </div>
+                </div>
+
+                {/* Curated Grid Gallery */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-[55vh] overflow-y-auto p-1">
+                  {curationTask.mediaData.files.map((file, fIdx) => {
+                    const isSelected = selectedFileUrls.has(file.url);
+                    const isVideo = file.mimeType.startsWith("video");
+
+                    return (
+                      <div
+                        key={fIdx}
+                        onClick={() => toggleFileSelection(file.url)}
+                        className={`relative rounded-2xl overflow-hidden border-2 transition cursor-pointer flex flex-col justify-between bg-white dark:bg-gray-900 group ${
+                          isSelected
+                            ? "border-emerald-500 shadow-md ring-2 ring-emerald-500/30"
+                            : "border-gray-200 dark:border-gray-700 hover:border-gray-400 opacity-70 hover:opacity-100"
+                        }`}
+                      >
+                        {/* Checkbox badge overlay */}
+                        <div className="absolute top-2 left-2 z-10">
+                          <div
+                            className={`w-6 h-6 rounded-lg flex items-center justify-center transition shadow-sm ${
+                              isSelected
+                                ? "bg-emerald-600 text-white"
+                                : "bg-black/50 text-transparent border border-white/50"
+                            }`}
+                          >
+                            <Check size={14} className={isSelected ? "opacity-100 stroke-[3]" : "opacity-0"} />
+                          </div>
+                        </div>
+
+                        {/* Preview Content */}
+                        {isVideo ? (
+                          <div className="aspect-video bg-black flex items-center justify-center relative">
+                            <video
+                              src={file.url}
+                              controls
+                              className="w-full h-full object-contain"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </div>
+                        ) : (
+                          <div className="aspect-square bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                            <img
+                              src={file.url}
+                              alt={file.originalName}
+                              className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                            />
+                          </div>
+                        )}
+
+                        {/* Bottom File Info Bar */}
+                        <div className="p-2 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-[11px]">
+                          <span className="truncate max-w-[120px] font-medium text-gray-800 dark:text-gray-200">
+                            {file.originalName}
+                          </span>
+                          <span className="text-gray-500 shrink-0">
+                            {(file.fileSize / (1024 * 1024)).toFixed(1)} MB
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-10 px-4 bg-slate-50 dark:bg-gray-900/60 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800">
+                <Sparkles className="w-10 h-10 text-gray-400 mx-auto mb-2" />
+                <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">Berkas Liputan Belum Diunggah</p>
+                <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+                  Petugas fotografer atau videografer belum mengunggah foto maupun video ke server internal untuk penugasan ini.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </Dialog>
+
+      {/* 3. Meja Telaah Desain & Media Publikasi (DESAINER_EDITOR) */}
+      <Dialog
+        open={!!designReviewTask}
+        onClose={() => setDesignReviewTask(null)}
+        title="Telaah Desain Grafis & Media Publikasi"
+        size="lg"
+        actions={
+          designReviewTask ? (
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between w-full gap-3">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDesignReviewTask(null)}
+                >
+                  {t("close")}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const tToRev = designReviewTask;
+                    setDesignReviewTask(null);
+                    handleOpenRevisionModal(tToRev);
+                  }}
+                  className="text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700"
+                >
+                  <MessageSquare size={13} className="mr-1.5 text-amber-600" />
+                  Minta Revisi Desain
+                </Button>
+              </div>
+
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => handleApproveDesign(designReviewTask)}
+                className="bg-purple-600 hover:bg-purple-700 text-white font-bold"
+              >
+                <Sparkles size={14} className="mr-1.5 text-amber-300" />
+                Setujui Desain ke Bank Konten Utama
+              </Button>
+            </div>
+          ) : null
+        }
+      >
+        {designReviewTask && (
+          <div className="space-y-4 text-xs sm:text-sm">
+            {/* Header info */}
+            <div className="p-3.5 bg-purple-50/60 dark:bg-purple-950/30 rounded-2xl border border-purple-100 dark:border-purple-900/40 space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="font-bold text-gray-900 dark:text-gray-100 text-sm">
+                  {designReviewTask.kegiatan}
+                </h4>
+                {designReviewTask.mediaData?.targetPlatform && (
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-purple-600 text-white">
+                    {designReviewTask.mediaData.targetPlatform}
+                  </span>
+                )}
+              </div>
+              {designReviewTask.mediaData?.editorNotes && (
+                <div className="p-2.5 bg-white dark:bg-gray-950/60 rounded-xl border border-purple-100 dark:border-purple-900/40 text-xs text-gray-700 dark:text-gray-300">
+                  <span className="font-bold text-purple-950 dark:text-purple-300 block mb-0.5">
+                    Catatan Desainer / Editor:
+                  </span>
+                  "{designReviewTask.mediaData.editorNotes}"
+                </div>
+              )}
+            </div>
+
+            {/* Design Files List & Preview */}
+            {designReviewTask.mediaData?.files && designReviewTask.mediaData.files.length > 0 ? (
+              <div className="space-y-3">
+                {designReviewTask.mediaData.files.map((file, idx) => {
+                  const isImage = file.mimeType.startsWith("image");
+
+                  return (
+                    <div key={idx} className="p-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Layers size={16} className="text-purple-600" />
+                          <span className="font-bold text-gray-900 dark:text-gray-100">{file.originalName}</span>
+                          <span className="text-xs text-gray-500">({(file.fileSize / (1024 * 1024)).toFixed(1)} MB)</span>
+                        </div>
+                        <a
+                          href={file.url}
+                          download={file.originalName}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 transition"
+                        >
+                          <Download size={12} />
+                          <span>Unduh Berkas</span>
+                        </a>
+                      </div>
+
+                      {isImage && (
+                        <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-50 flex items-center justify-center max-h-[45vh]">
+                          <img
+                            src={file.url}
+                            alt={file.originalName}
+                            className="max-h-[45vh] w-auto object-contain"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-10 px-4 bg-purple-50/40 dark:bg-gray-900/60 rounded-2xl border border-dashed border-purple-200 dark:border-gray-800">
+                <Layers className="w-10 h-10 text-purple-400 mx-auto mb-2" />
+                <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">Berkas Desain Belum Diunggah</p>
+                <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+                  Petugas desainer grafis belum mengunggah berkas desain akhir untuk penugasan ini.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </Dialog>
     </div>
   );

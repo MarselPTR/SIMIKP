@@ -174,57 +174,199 @@ export class ProductionsController {
     }
   }
 
-  // 0.5 Get Bank Konten (Group by Activity)
+  // 0.5 Get Bank Konten (Group by Activity) - Mengambil data riil hasil kurasi Ahli Pertama
   static async getBankKonten(request: FastifyRequest, reply: FastifyReply) {
     try {
-      // Get all completed production versions linked to activities
-      const rawData = await db
+      // 1. Ambil berkas fisik terkurasi dari tabel production_files & archive_assets
+      const curatedFiles = await db
         .select({
+          fileId: productionFiles.id,
+          originalFilename: productionFiles.originalFilename,
+          storedFilename: productionFiles.storedFilename,
+          storagePath: productionFiles.storagePath,
+          mimeType: productionFiles.mimeType,
+          fileSize: productionFiles.fileSize,
           activityId: activities.id,
           activityTitle: activities.title,
           activityDate: activities.activityDate,
           petugasName: users.name,
           contentType: contentTypes.name,
-          workLink: productionVersions.workLink,
-          prodItemId: productionItems.id,
         })
-        .from(productionVersions)
+        .from(productionFiles)
+        .innerJoin(productionVersions, eq(productionFiles.productionVersionId, productionVersions.id))
         .innerJoin(productionItems, eq(productionVersions.productionItemId, productionItems.id))
         .innerJoin(assignments, eq(productionItems.assignmentId, assignments.id))
         .innerJoin(activities, eq(assignments.activityId, activities.id))
-        .innerJoin(users, eq(assignments.userId, users.id))
-        .innerJoin(contentTypes, eq(assignments.contentTypeId, contentTypes.id))
-        .where(eq(productionVersions.isCurrent, true));
+        .leftJoin(users, eq(productionFiles.uploadedBy, users.id))
+        .leftJoin(contentTypes, eq(assignments.contentTypeId, contentTypes.id));
 
-      // Group by Activity (Folder logic)
-      const folderMap = new Map();
+      // 2. Ambil penugasan berstatus COMPLETED / SIAP_TAYANG untuk menangkap submission berkas yang sudah disetujui
+      const completedAssignments = await db
+        .select({
+          assignmentId: assignments.id,
+          activityId: activities.id,
+          activityTitle: activities.title,
+          activityDate: activities.activityDate,
+          petugasName: users.name,
+          contentType: contentTypes.name,
+          workLink: assignments.workLink,
+          status: assignments.status,
+        })
+        .from(assignments)
+        .innerJoin(activities, eq(assignments.activityId, activities.id))
+        .leftJoin(users, eq(assignments.userId, users.id))
+        .leftJoin(contentTypes, eq(assignments.contentTypeId, contentTypes.id))
+        .where(
+          or(
+            eq(assignments.status, "COMPLETED"),
+            eq(assignments.status, "SIAP_TAYANG"),
+            eq(assignments.status, "SELESAI")
+          )
+        );
 
-      for (const row of rawData) {
+      const folderMap = new Map<string, {
+        id: string;
+        title: string;
+        tanggal: string;
+        petugas: Set<string>;
+        kategori: string;
+        strakomNumber: string;
+        thumbnailUrl?: string;
+        files: Array<{
+          id: string;
+          name: string;
+          jenisKonten: "foto" | "video";
+          size: string;
+          thumbnailUrl?: string;
+          workLink: string;
+        }>;
+      }>();
+
+      const formatSize = (bytes: number | bigint | null) => {
+        if (!bytes) return "1.2 MB";
+        const num = Number(bytes);
+        if (num >= 1024 * 1024 * 1024) return `${(num / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+        if (num >= 1024 * 1024) return `${(num / (1024 * 1024)).toFixed(1)} MB`;
+        return `${Math.round(num / 1024)} KB`;
+      };
+
+      const getKategori = (title: string) => {
+        const lower = (title || "").toLowerCase();
+        if (lower.includes("rapat") || lower.includes("sidang") || lower.includes("evaluasi") || lower.includes("koordinasi")) return "PEMERINTAHAN";
+        if (lower.includes("ekonomi") || lower.includes("pasar") || lower.includes("umkm") || lower.includes("wisata")) return "EKONOMI";
+        if (lower.includes("lingkungan") || lower.includes("taman") || lower.includes("sampah")) return "LINGKUNGAN";
+        return "SOSIAL";
+      };
+
+      // A. Masukkan berkas dari tabel production_files (hasil kurasi Ahli Pertama)
+      for (const row of curatedFiles) {
         if (!folderMap.has(row.activityId)) {
           folderMap.set(row.activityId, {
             id: row.activityId,
             title: row.activityTitle,
-            tanggal: row.activityDate ? new Date(row.activityDate).toLocaleDateString('id-ID') : "-",
+            tanggal: row.activityDate ? new Date(row.activityDate).toISOString().split("T")[0] : "2026-09-01",
             petugas: new Set(),
-            files: []
+            kategori: getKategori(row.activityTitle),
+            strakomNumber: `STRAKOM/${new Date(row.activityDate || new Date()).getFullYear()}`,
+            files: [],
           });
         }
-        
-        const folder = folderMap.get(row.activityId);
-        folder.petugas.add(row.petugasName);
-        
+
+        const folder = folderMap.get(row.activityId)!;
+        if (row.petugasName) folder.petugas.add(row.petugasName);
+
+        const isVideo =
+          (row.mimeType && row.mimeType.startsWith("video")) ||
+          row.originalFilename.toLowerCase().endsWith(".mp4") ||
+          row.originalFilename.toLowerCase().endsWith(".mov");
+
+        const workLink = row.storagePath;
+        const thumbnailUrl = isVideo ? undefined : workLink;
+
         folder.files.push({
-          id: row.prodItemId,
-          name: `[${row.contentType}] ${row.petugasName.split(' ')[0]}`,
-          jenisKonten: row.contentType.toLowerCase().includes('video') ? 'video' : 'foto', // simplified
-          workLink: row.workLink
+          id: row.fileId,
+          name: row.originalFilename,
+          jenisKonten: isVideo ? "video" : "foto",
+          size: formatSize(row.fileSize),
+          thumbnailUrl,
+          workLink,
         });
+
+        if (!folder.thumbnailUrl && thumbnailUrl) {
+          folder.thumbnailUrl = thumbnailUrl;
+        }
       }
 
-      // Convert Set to String and Map to Array
-      const formatted = Array.from(folderMap.values()).map(f => ({
+      // B. Masukkan berkas dari penugasan selesai jika belum ada di tabel production_files
+      for (const asg of completedAssignments) {
+        if (!asg.workLink) continue;
+
+        if (!folderMap.has(asg.activityId)) {
+          folderMap.set(asg.activityId, {
+            id: asg.activityId,
+            title: asg.activityTitle,
+            tanggal: asg.activityDate ? new Date(asg.activityDate).toISOString().split("T")[0] : "2026-09-01",
+            petugas: new Set(),
+            kategori: getKategori(asg.activityTitle),
+            strakomNumber: `STRAKOM/${new Date(asg.activityDate || new Date()).getFullYear()}`,
+            files: [],
+          });
+        }
+
+        const folder = folderMap.get(asg.activityId)!;
+        if (asg.petugasName) folder.petugas.add(asg.petugasName);
+
+        if (asg.workLink.startsWith('{"type":"MEDIA_SUBMISSION"')) {
+          try {
+            const parsed = JSON.parse(asg.workLink);
+            if (Array.isArray(parsed.files)) {
+              for (const f of parsed.files) {
+                const alreadyExists = folder.files.some(
+                  (existing) => existing.workLink === f.url || existing.name === f.originalName
+                );
+                if (!alreadyExists) {
+                  const isVideo =
+                    (f.mimeType && f.mimeType.startsWith("video")) ||
+                    f.originalName?.toLowerCase().endsWith(".mp4") ||
+                    f.originalName?.toLowerCase().endsWith(".mov");
+
+                  const thumbnailUrl = isVideo ? undefined : f.url;
+
+                  folder.files.push({
+                    id: crypto.randomUUID(),
+                    name: f.originalName || f.filename || "Berkas Dokumentasi",
+                    jenisKonten: isVideo ? "video" : "foto",
+                    size: formatSize(f.fileSize),
+                    thumbnailUrl,
+                    workLink: f.url,
+                  });
+
+                  if (!folder.thumbnailUrl && thumbnailUrl) {
+                    folder.thumbnailUrl = thumbnailUrl;
+                  }
+                }
+              }
+            }
+          } catch {}
+        } else if (asg.workLink.startsWith("http") || asg.workLink.startsWith("/")) {
+          const alreadyExists = folder.files.some((existing) => existing.workLink === asg.workLink);
+          if (!alreadyExists) {
+            folder.files.push({
+              id: asg.assignmentId,
+              name: `[${asg.contentType || "Dokumentasi"}] ${asg.activityTitle}`,
+              jenisKonten: (asg.contentType || "").toLowerCase().includes("video") ? "video" : "foto",
+              size: "2.5 MB",
+              thumbnailUrl: (asg.contentType || "").toLowerCase().includes("video") ? undefined : asg.workLink,
+              workLink: asg.workLink,
+            });
+          }
+        }
+      }
+
+      // Convert folderMap to Array
+      const formatted = Array.from(folderMap.values()).map((f) => ({
         ...f,
-        petugas: Array.from(f.petugas).join(", ")
+        petugas: Array.from(f.petugas).join(", ") || "Tim Dokumentasi",
       }));
 
       return reply.send({ success: true, data: formatted });
@@ -376,16 +518,24 @@ export class ProductionsController {
         });
       });
 
-      // Cari tim Reviewer dan Admin untuk dikirimi email hasil liputan baru
+      // Cari tim Reviewer, Ahli Pertama, Admin, dan Manager untuk dikirimi email hasil liputan baru
       const reviewerUsers = await db
         .select({
           name: users.name,
           email: users.email,
         })
         .from(users)
-        .innerJoin(userRoles, eq(users.id, userRoles.userId))
-        .innerJoin(roles, eq(userRoles.roleId, roles.id))
-        .where(or(eq(roles.name, "REVIEWER"), eq(roles.name, "ADMIN"), eq(roles.name, "MANAGER")));
+        .leftJoin(userRoles, eq(users.id, userRoles.userId))
+        .leftJoin(roles, eq(userRoles.roleId, roles.id))
+        .where(
+          or(
+            eq(roles.name, "REVIEWER"),
+            eq(roles.name, "AHLI_PERTAMA"),
+            eq(roles.name, "ADMIN"),
+            eq(roles.name, "MANAGER"),
+            eq(users.staffType, "AHLI_PERTAMA")
+          )
+        );
 
       for (const rev of reviewerUsers) {
         if (rev.email) {
@@ -407,6 +557,124 @@ export class ProductionsController {
       }
       request.log.error(error);
       return reply.status(500).send({ success: false, error: "Gagal mengirim pekerjaan" });
+    }
+  }
+
+  static async curateAndApprove(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const body = request.body as {
+        assignmentId: string;
+        curatedFiles: Array<{
+          url: string;
+          filename?: string;
+          originalName?: string;
+          fileSize?: number;
+          mimeType?: string;
+        }>;
+        status?: string;
+        notes?: string;
+      };
+
+      const { assignmentId, curatedFiles = [], status = "SIAP_TAYANG" } = body;
+      if (!assignmentId) {
+        return reply.status(400).send({ success: false, error: "assignmentId wajib diisi" });
+      }
+
+      // Ambil detail assignment
+      const asg = await db
+        .select({
+          id: assignments.id,
+          activityId: assignments.activityId,
+          userId: assignments.userId,
+          contentTypeId: assignments.contentTypeId,
+        })
+        .from(assignments)
+        .where(eq(assignments.id, assignmentId))
+        .limit(1);
+
+      if (!asg.length) {
+        return reply.status(404).send({ success: false, error: "Penugasan tidak ditemukan" });
+      }
+
+      // Update status assignment
+      await db
+        .update(assignments)
+        .set({ status })
+        .where(eq(assignments.id, assignmentId));
+
+      // Cari atau buat production item & version untuk menampung file di bank konten
+      let pItem = await db
+        .select({ id: productionItems.id })
+        .from(productionItems)
+        .where(eq(productionItems.assignmentId, assignmentId))
+        .limit(1);
+
+      let pItemId = pItem[0]?.id;
+      if (!pItemId) {
+        pItemId = crypto.randomUUID();
+        await db.insert(productionItems).values({
+          id: pItemId,
+          assignmentId: assignmentId,
+          title: `Produksi Aset Liputan`,
+          status,
+        });
+      }
+
+      let pVer = await db
+        .select({ id: productionVersions.id })
+        .from(productionVersions)
+        .where(eq(productionVersions.productionItemId, pItemId))
+        .limit(1);
+
+      let pVerId = pVer[0]?.id;
+      if (!pVerId) {
+        pVerId = crypto.randomUUID();
+        await db.insert(productionVersions).values({
+          id: pVerId,
+          productionItemId: pItemId,
+          versionNumber: 1,
+          isCurrent: true,
+        });
+      }
+
+      // Masukkan setiap berkas terkurasi ke productionFiles & archiveAssets
+      for (const file of curatedFiles) {
+        const fileId = crypto.randomUUID();
+        const archiveId = crypto.randomUUID();
+        const origName = file.originalName || file.filename || "file_kurasi";
+        const ext = origName.includes(".") ? origName.split(".").pop()?.toLowerCase() : "bin";
+
+        await db.insert(productionFiles).values({
+          id: fileId,
+          productionVersionId: pVerId,
+          originalFilename: origName,
+          storedFilename: file.filename || origName,
+          storagePath: file.url,
+          mimeType: file.mimeType || "application/octet-stream",
+          fileExtension: ext || "bin",
+          fileSize: file.fileSize || 0,
+          uploadedBy: asg[0].userId,
+        });
+
+        await db.insert(archiveAssets).values({
+          id: archiveId,
+          productionFileId: fileId,
+          title: origName,
+          description: `Aset terkurasi resmi Bank Konten Pemkot Batu`,
+          isPublic: true,
+        });
+      }
+
+      return reply.send({
+        success: true,
+        message: `${curatedFiles.length} berkas berhasil dikurasi dan disetujui masuk Bank Konten Utama!`,
+      });
+    } catch (error: any) {
+      request.log.error(error);
+      return reply.status(500).send({
+        success: false,
+        error: "Gagal memproses kurasi persetujuan aset: " + (error?.message || "Kesalahan server"),
+      });
     }
   }
 }

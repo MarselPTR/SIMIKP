@@ -3,4 +3,6 @@ dist/
 .env
 .env.local
 .DS_Store
-storage/
+/storage/
+backend/storage/
+!backend/src/modules/storage/

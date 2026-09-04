@@ -50,10 +50,24 @@ export const useAuth = (): AuthContextValue => {
           localStorage.removeItem("simikp_user");
         },
         switchUser: () => {},
-        updateUser: (data) => {
+        updateUser: async (data) => {
           if (parsedUser) {
             const next = { ...parsedUser, ...data };
             localStorage.setItem("simikp_user", JSON.stringify(next));
+            try {
+              await apiFetch("/users/profile", {
+                method: "PUT",
+                body: JSON.stringify({
+                  id: parsedUser.id,
+                  username: parsedUser.username,
+                  name: data.name,
+                  phone: data.phone,
+                  bio: data.bio,
+                  avatar: data.avatar,
+                  staffType: data.staffType,
+                }),
+              });
+            } catch {}
           }
         },
       };
@@ -222,13 +236,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const updateUser = (updatedData: Partial<AuthUser>) => {
+  const updateUser = async (updatedData: Partial<AuthUser>) => {
+    let nextUser: AuthUser | null = null;
     setUser((prev) => {
       if (!prev) return null;
-      const next = { ...prev, ...updatedData };
-      localStorage.setItem("simikp_user", JSON.stringify(next));
-      return next;
+      nextUser = { ...prev, ...updatedData };
+      localStorage.setItem("simikp_user", JSON.stringify(nextUser));
+      return nextUser;
     });
+
+    try {
+      await apiFetch("/users/profile", {
+        method: "PUT",
+        body: JSON.stringify({
+          id: user?.id,
+          username: user?.username,
+          name: updatedData.name,
+          phone: updatedData.phone,
+          bio: updatedData.bio,
+          avatar: updatedData.avatar,
+          staffType: updatedData.staffType,
+        }),
+      });
+    } catch (err) {
+      console.warn("[AuthContext] Gagal sync profil ke backend:", err);
+    }
   };
 
   return (

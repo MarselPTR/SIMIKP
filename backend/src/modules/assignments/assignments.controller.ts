@@ -9,6 +9,9 @@ import {
   sendAssignmentNotificationEmail,
   sendAssignmentScheduleChangeEmail,
   sendAssignmentCancelledEmail,
+  sendReviewRevisionEmail,
+  sendRevisionSubmissionAlertEmail,
+  sendWorkSubmissionAlertEmail,
 } from "../../services/mail.service";
 
 const createAssignmentSchema = z.object({
@@ -68,6 +71,9 @@ const updateAssignmentSchema = z.object({
   location: z.string().optional(),
   activityDate: z.string().optional(),
   workLink: z.string().optional(),
+  revisionNotes: z.string().optional(),
+  revisionAuthor: z.string().optional(),
+  isRevisionSubmission: z.boolean().optional(),
 });
 
 export class AssignmentsController {
@@ -88,6 +94,9 @@ export class AssignmentsController {
           status: assignments.status,
           instruction: assignments.instruction,
           workLink: assignments.workLink,
+          revisionNotes: assignments.revisionNotes,
+          revisionAuthor: assignments.revisionAuthor,
+          revisionDate: assignments.revisionDate,
         })
         .from(assignments)
         .leftJoin(activities, eq(assignments.activityId, activities.id))
@@ -347,6 +356,39 @@ export class AssignmentsController {
         });
       });
 
+      // Kirim email konfirmasi pengambilan tugas mandiri (Self-Claim) ke petugas
+      const claimDetail = await db
+        .select({
+          name: users.name,
+          email: users.email,
+          activityTitle: activities.title,
+          activityDate: activities.activityDate,
+          locationName: locations.name,
+          contentType: contentTypes.name,
+        })
+        .from(assignments)
+        .innerJoin(users, eq(assignments.userId, users.id))
+        .innerJoin(activities, eq(assignments.activityId, activities.id))
+        .leftJoin(locations, eq(activities.locationId, locations.id))
+        .innerJoin(contentTypes, eq(assignments.contentTypeId, contentTypes.id))
+        .where(eq(assignments.id, newId))
+        .limit(1);
+
+      if (claimDetail.length > 0 && claimDetail[0].email) {
+        const appUrl = process.env.APP_URL || "http://localhost:5173";
+        sendAssignmentNotificationEmail({
+          to: claimDetail[0].email,
+          officerName: claimDetail[0].name || "Petugas",
+          activityTitle: claimDetail[0].activityTitle,
+          activityDate: claimDetail[0].activityDate ? claimDetail[0].activityDate.toString() : "",
+          locationName: claimDetail[0].locationName || undefined,
+          contentType: claimDetail[0].contentType,
+          instruction: "Tugas ini berhasil Anda ambil secara mandiri melalui menu Agenda Tersedia.",
+          assignmentId: newId,
+          targetUrl: `${appUrl}/petugas/penugasan`,
+        }).catch((err) => console.error("[AssignmentsController] Gagal kirim email klaim:", err));
+      }
+
       await logAudit(request, "CLAIM_ASSIGNMENT", "assignments", newId);
 
       return reply.send({ success: true, message: "Berhasil mengambil tugas", id: newId });
@@ -369,6 +411,21 @@ export class AssignmentsController {
     try {
       const { id } = request.params;
       const body = updateAssignmentSchema.parse(request.body);
+
+      // Cek status penugasan sebelum update untuk mendeteksi penyerahan hasil revisi
+      const existing = await db
+        .select({
+          status: assignments.status,
+          userId: assignments.userId,
+          activityId: assignments.activityId,
+          contentTypeId: assignments.contentTypeId,
+          workLink: assignments.workLink,
+        })
+        .from(assignments)
+        .where(eq(assignments.id, id))
+        .limit(1);
+
+      const isSubmittingRevision = (body.isRevisionSubmission === true || (existing.length > 0 && existing[0].status === "REVISI")) && body.workLink !== undefined;
 
       const updateData: Record<string, any> = {};
 
@@ -396,14 +453,54 @@ export class AssignmentsController {
       if (body.instruction !== undefined) updateData.instruction = body.instruction;
       if (body.workLink !== undefined) updateData.workLink = body.workLink;
 
+      if (body.revisionNotes !== undefined) {
+        updateData.revisionNotes = body.revisionNotes;
+        updateData.revisionAuthor = body.revisionAuthor || "Pranata Humas Ahli Pertama";
+        updateData.revisionDate = new Date().toLocaleDateString("id-ID", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }) + " WIB";
+      }
+
       if (Object.keys(updateData).length > 0) {
         await db.update(assignments)
           .set(updateData)
           .where(eq(assignments.id, id));
         await logAudit(request, "UPDATE_ASSIGNMENT", "assignments", id);
 
-        // Kirim notifikasi email jika ada pembaruan jadwal atau instruksi
-        const isScheduleChanged = body.startTime !== undefined || body.endTime !== undefined || body.deadline !== undefined || body.instruction !== undefined || body.activityId !== undefined;
+        // 1. Kirim notifikasi email jika status diubah menjadi REVISI oleh Ahli Pertama / Reviewer
+        if (body.status && body.status.toUpperCase().includes("REVISI")) {
+          const revDetail = await db
+            .select({
+              officerName: users.name,
+              officerEmail: users.email,
+              activityTitle: activities.title,
+              contentType: contentTypes.name,
+            })
+            .from(assignments)
+            .leftJoin(users, eq(assignments.userId, users.id))
+            .leftJoin(activities, eq(assignments.activityId, activities.id))
+            .leftJoin(contentTypes, eq(assignments.contentTypeId, contentTypes.id))
+            .where(eq(assignments.id, id))
+            .limit(1);
+
+          if (revDetail.length > 0 && revDetail[0].officerEmail) {
+            sendReviewRevisionEmail({
+              to: revDetail[0].officerEmail,
+              authorName: revDetail[0].officerName || "Petugas",
+              activityTitle: revDetail[0].activityTitle || "Liputan Kegiatan",
+              contentType: revDetail[0].contentType || "Konten Media",
+              reviewerName: body.revisionAuthor || "Pranata Humas Ahli Pertama",
+              feedback: body.revisionNotes || body.instruction || "Terdapat catatan perbaikan materi naskah/liputan.",
+            }).catch((err) => console.error("[AssignmentsController] Gagal kirim email revisi:", err));
+          }
+        }
+
+        // 2. Kirim notifikasi email jika ada pembaruan jadwal pelaksanaan
+        const isScheduleChanged = body.startTime !== undefined || body.endTime !== undefined || body.deadline !== undefined || (body.instruction !== undefined && !body.status?.toUpperCase().includes("REVISI")) || body.activityId !== undefined;
         if (isScheduleChanged) {
           const detail = await db
             .select({
@@ -434,6 +531,99 @@ export class AssignmentsController {
               locationName: detail[0].locationName || undefined,
               notes: body.instruction || "Jadwal dan detail penugasan telah diperbarui.",
             }).catch(err => console.error("[AssignmentsController] Gagal kirim email perubahan jadwal:", err));
+          }
+        }
+
+        // 3. Kirim notifikasi email ke Ahli Pertama & Reviewer jika petugas mengirimkan hasil revisi/perbaikan
+        if (isSubmittingRevision) {
+          const revSubmitDetail = await db
+            .select({
+              officerName: users.name,
+              activityTitle: activities.title,
+              contentType: contentTypes.name,
+            })
+            .from(assignments)
+            .leftJoin(users, eq(assignments.userId, users.id))
+            .leftJoin(activities, eq(assignments.activityId, activities.id))
+            .leftJoin(contentTypes, eq(assignments.contentTypeId, contentTypes.id))
+            .where(eq(assignments.id, id))
+            .limit(1);
+
+          const targetAhliReviewers = await db
+            .select({
+              name: users.name,
+              email: users.email,
+            })
+            .from(users)
+            .leftJoin(userRoles, eq(users.id, userRoles.userId))
+            .leftJoin(roles, eq(userRoles.roleId, roles.id))
+            .where(
+              or(
+                eq(roles.name, "AHLI_PERTAMA"),
+                eq(users.staffType, "AHLI_PERTAMA"),
+                eq(roles.name, "REVIEWER")
+              )
+            );
+
+          for (const reviewer of targetAhliReviewers) {
+            if (reviewer.email) {
+              sendRevisionSubmissionAlertEmail({
+                to: reviewer.email,
+                reviewerName: reviewer.name || "Pranata Humas Ahli Pertama",
+                officerName: revSubmitDetail[0]?.officerName || "Petugas Lapangan",
+                activityTitle: revSubmitDetail[0]?.activityTitle || "Liputan Kegiatan",
+                contentType: revSubmitDetail[0]?.contentType || "Konten Media",
+                workLink: body.workLink,
+                previousNotes: body.revisionNotes || undefined,
+              }).catch((err) => console.error("[AssignmentsController] Gagal kirim email verifikasi revisi ke Ahli Pertama:", err));
+            }
+          }
+        }
+
+        // 4. Kirim notifikasi email "Draf Masuk" ke Ahli Pertama & Reviewer jika petugas pertama kali menyetor hasil liputan
+        const isInitialSubmission = !isSubmittingRevision && body.workLink !== undefined && body.workLink.trim() !== "" && (!existing[0]?.workLink || existing[0]?.workLink.trim() === "");
+        if (isInitialSubmission) {
+          const initSubmitDetail = await db
+            .select({
+              officerName: users.name,
+              activityTitle: activities.title,
+              contentType: contentTypes.name,
+            })
+            .from(assignments)
+            .leftJoin(users, eq(assignments.userId, users.id))
+            .leftJoin(activities, eq(assignments.activityId, activities.id))
+            .leftJoin(contentTypes, eq(assignments.contentTypeId, contentTypes.id))
+            .where(eq(assignments.id, id))
+            .limit(1);
+
+          const targetAhliReviewers = await db
+            .select({
+              name: users.name,
+              email: users.email,
+            })
+            .from(users)
+            .leftJoin(userRoles, eq(users.id, userRoles.userId))
+            .leftJoin(roles, eq(userRoles.roleId, roles.id))
+            .where(
+              or(
+                eq(roles.name, "AHLI_PERTAMA"),
+                eq(users.staffType, "AHLI_PERTAMA"),
+                eq(roles.name, "REVIEWER"),
+                eq(roles.name, "ADMIN")
+              )
+            );
+
+          for (const reviewer of targetAhliReviewers) {
+            if (reviewer.email) {
+              sendWorkSubmissionAlertEmail({
+                to: reviewer.email,
+                reviewerName: reviewer.name || "Pranata Humas Ahli Pertama",
+                officerName: initSubmitDetail[0]?.officerName || "Petugas Lapangan",
+                activityTitle: initSubmitDetail[0]?.activityTitle || "Liputan Kegiatan",
+                contentType: initSubmitDetail[0]?.contentType || "Konten Media",
+                workLink: body.workLink,
+              }).catch((err) => console.error("[AssignmentsController] Gagal kirim email draf masuk ke Ahli Pertama/Reviewer:", err));
+            }
           }
         }
       }

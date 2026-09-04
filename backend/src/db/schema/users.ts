@@ -1,4 +1,4 @@
-import { mysqlTable, char, varchar, boolean, datetime, primaryKey } from "drizzle-orm/mysql-core";
+import { mysqlTable, char, varchar, boolean, datetime, text, primaryKey } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 
 export const users = mysqlTable("users", {
@@ -8,13 +8,15 @@ export const users = mysqlTable("users", {
   name: varchar("name", { length: 255 }).notNull(),
   staffType: varchar("staff_type", { length: 50 }),
   email: varchar("email", { length: 255 }),
+  phone: varchar("phone", { length: 30 }),
+  bio: text("bio"),
   nik: varchar("nik", { length: 20 }),
   gender: varchar("gender", { length: 15 }),
   birthPlace: varchar("birth_place", { length: 100 }),
   birthDate: datetime("birth_date"),
   religion: varchar("religion", { length: 50 }),
   education: varchar("education", { length: 100 }),
-  pasFotoUrl: varchar("pas_foto_url", { length: 500 }),
+  pasFotoUrl: text("pas_foto_url"),
   active: boolean("active").default(true),
   createdAt: datetime("created_at").default(new Date()),
 });

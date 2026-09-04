@@ -39,5 +39,8 @@ export const assignments = mysqlTable("assignments", {
   instruction: text("instruction"),
   // Untuk role Prahum ini menyimpan teks naskah beritanya langsung, bukan tautan berkas.
   workLink: text("work_link"),
+  revisionNotes: text("revision_notes"),
+  revisionAuthor: varchar("revision_author", { length: 255 }),
+  revisionDate: varchar("revision_date", { length: 100 }),
   createdBy: char("created_by", { length: 36 }).notNull().references(() => users.id),
 });

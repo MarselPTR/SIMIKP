@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import {
   FileText,
@@ -13,9 +13,14 @@ import {
   AlertTriangle,
   Send,
   History,
+  Image as ImageIcon,
+  Video as VideoIcon,
+  Layers,
+  X,
+  Loader2,
 } from "lucide-react";
 import { useAuth } from "../../lib/AuthContext";
-import { usePetugasTasksStore } from "../../lib/petugas-store";
+import { usePetugasTasksStore, type MediaFileInfo, type MediaWorkPayload } from "../../lib/petugas-store";
 import { WORKFLOWS } from "../../lib/mock-data";
 import { useToast } from "../../contexts/ToastContext";
 import { useLanguage } from "../../lib/LanguageContext";
@@ -44,6 +49,26 @@ const PetugasPenugasanPage = () => {
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
 
+  // Media upload state
+  const [activeMediaTab, setActiveMediaTab] = useState<"foto" | "video">("foto");
+  const [selectedPhotoFiles, setSelectedPhotoFiles] = useState<File[]>([]);
+  const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
+  const [selectedDesignMain, setSelectedDesignMain] = useState<File | null>(null);
+  const [selectedDesignMaster, setSelectedDesignMaster] = useState<File | null>(null);
+
+  const [caption, setCaption] = useState("");
+  const [targetPlatform, setTargetPlatform] = useState("Feed Instagram (1:1)");
+  const [editorNotes, setEditorNotes] = useState("");
+
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadPercent, setUploadPercent] = useState<number | null>(null);
+  const [uploadProgressText, setUploadProgressText] = useState("");
+
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const designMainInputRef = useRef<HTMLInputElement>(null);
+  const designMasterInputRef = useRef<HTMLInputElement>(null);
+
   const selectedTask = userTasks.find((t) => t.id === selectedId) ?? null;
 
   const getCategoryLabel = (cat: string) => {
@@ -56,8 +81,68 @@ const PetugasPenugasanPage = () => {
   useEffect(() => {
     if (selectedTask) {
       setUploadLink(selectedTask.workLink || "");
+      if (selectedTask.mediaData) {
+        setCaption(selectedTask.mediaData.caption || "");
+        setTargetPlatform(selectedTask.mediaData.targetPlatform || "Feed Instagram (1:1)");
+        setEditorNotes(selectedTask.mediaData.editorNotes || "");
+        if (selectedTask.mediaData.subType === "video") {
+          setActiveMediaTab("video");
+        } else {
+          setActiveMediaTab("foto");
+        }
+      } else {
+        setCaption(selectedTask.caption || "");
+        setTargetPlatform(selectedTask.targetPlatform || "Feed Instagram (1:1)");
+        setEditorNotes(selectedTask.editorNotes || "");
+      }
+      setSelectedPhotoFiles([]);
+      setSelectedVideoFile(null);
+      setSelectedDesignMain(null);
+      setSelectedDesignMaster(null);
+      setUploadPercent(null);
+      setUploadProgressText("");
     }
   }, [selectedTask]);
+
+  const uploadFilesWithProgress = (files: File[]): Promise<MediaFileInfo[]> => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const formData = new FormData();
+      files.forEach((f) => formData.append("files", f));
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const pct = Math.round((e.loaded / e.total) * 100);
+          setUploadPercent(pct);
+          const loadedMB = (e.loaded / (1024 * 1024)).toFixed(1);
+          const totalMB = (e.total / (1024 * 1024)).toFixed(1);
+          setUploadProgressText(`${pct}% (${loadedMB} MB / ${totalMB} MB)`);
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const res = JSON.parse(xhr.responseText);
+            resolve(res.files || []);
+          } catch (err) {
+            reject(new Error("Format respon server tidak valid"));
+          }
+        } else {
+          try {
+            const errRes = JSON.parse(xhr.responseText);
+            reject(new Error(errRes.error || "Gagal mengunggah berkas"));
+          } catch {
+            reject(new Error(`Gagal mengunggah berkas (HTTP ${xhr.status})`));
+          }
+        }
+      };
+
+      xhr.onerror = () => reject(new Error("Terjadi kesalahan koneksi jaringan saat mengunggah"));
+      xhr.open("POST", "/api/v1/storage/upload");
+      xhr.send(formData);
+    });
+  };
 
   const filteredTasks = useMemo(() => {
     return userTasks.filter((t) => {
@@ -122,8 +207,9 @@ const PetugasPenugasanPage = () => {
           const totalSteps = taskWorkflow.length;
           const rawStatus = selectedTask.status.toUpperCase();
           const isRevision = rawStatus === "REVISI";
-          // Prahum tidak unggah tautan berkas — cukup kirim isi naskah beritanya langsung.
           const isPrahum = selectedTask.bidang === "PRAHUM";
+          const isEditor = selectedTask.bidang === "DESAINER_EDITOR";
+          const isFotoVideo = selectedTask.bidang === "FOTOGRAFER" || selectedTask.bidang === "VIDEOGRAFER" || selectedTask.bidang === "FOTO_VIDEO";
           const isCompleted = rawStatus === "SELESAI" || selectedTask.status === "COMPLETED";
           const progressPercent = isCompleted ? 100 : Math.round(((stepIndex + 1) / totalSteps) * 100);
 
@@ -157,46 +243,40 @@ const PetugasPenugasanPage = () => {
                 </div>
               </div>
 
-              {/* Revision Alert Callout if task is in REVISI or has notes */}
-              {(isRevision || selectedTask.revisionNotes || (selectedTask.revisionHistory && selectedTask.revisionHistory.length > 0)) && (
-                <div className="bg-amber-50/95 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/80 rounded-2xl p-5 space-y-3 shadow-xs">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200/80 dark:border-amber-800/60 pb-2.5">
-                    <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200 font-bold text-sm">
-                      <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                      <span>
-                        {language === "en" ? "Revision Notes from Ahli Pertama" : "Catatan Perbaikan dari Ahli Pertama"} ({selectedTask.revisionAuthor || "Pranata Ahli Pertama"})
-                      </span>
+              {isRevision && selectedTask.revisionNotes && (
+                <div className="bg-amber-50/90 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/80 rounded-2xl p-5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-amber-800 dark:text-amber-400 font-bold text-sm">
+                      <AlertTriangle size={18} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                      <span>{language === "en" ? "Correction Notes from Ahli Pertama" : "Catatan Perbaikan dari Ahli Pertama"}</span>
                     </div>
                     {selectedTask.revisionDate && (
-                      <span className="text-xs font-semibold text-amber-800 dark:text-amber-400 bg-amber-100/80 dark:bg-amber-900/40 px-2.5 py-0.5 rounded-md self-start sm:self-auto">
+                      <span className="text-[11px] text-amber-700/80 dark:text-amber-400/80 font-medium">
                         {selectedTask.revisionDate}
                       </span>
                     )}
                   </div>
-                  {selectedTask.revisionNotes && (
-                    <p className="text-xs sm:text-sm text-amber-950 dark:text-amber-200 font-medium leading-relaxed pl-1 sm:pl-6">
+                  <div className="bg-white/80 dark:bg-amber-950/50 rounded-xl p-3.5 border border-amber-200/60 dark:border-amber-800/40">
+                    <p className="text-xs sm:text-sm text-gray-800 dark:text-gray-200 leading-relaxed font-medium">
                       "{selectedTask.revisionNotes}"
+                    </p>
+                  </div>
+                  {selectedTask.revisionAuthor && (
+                    <p className="text-[11px] text-amber-800 dark:text-amber-300">
+                      {language === "en" ? "Evaluated by:" : "Penilai:"} <span className="font-semibold">{selectedTask.revisionAuthor}</span>
                     </p>
                   )}
 
-                  {/* Historical Revision Trail Log */}
-                  {selectedTask.revisionHistory && selectedTask.revisionHistory.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-amber-200/70 dark:border-amber-800/60 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <p className="text-[11px] font-bold text-amber-900 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
-                          <History size={13} className="text-amber-600" />
-                          <span>{language === "en" ? "Revision History Log" : "Riwayat Catatan Revisi"} ({selectedTask.revisionHistory.length} {language === "en" ? "entries" : "catatan"})</span>
-                        </p>
-                      </div>
-                      <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                        {selectedTask.revisionHistory.map((rev, rIdx) => (
-                          <div key={rev.id || rIdx} className="bg-white/80 dark:bg-gray-900/60 rounded-xl p-3 border border-amber-200/60 dark:border-amber-800/40 text-xs space-y-1">
-                            <div className="flex items-center justify-between gap-2 text-[11px] text-gray-500 dark:text-gray-400">
-                              <span className="font-bold text-amber-900 dark:text-amber-300">
-                                #{rIdx + 1} • {rev.author}
-                              </span>
-                              <span>{rev.date}</span>
-                            </div>
+                  {selectedTask.revisionHistory && selectedTask.revisionHistory.length > 1 && (
+                    <div className="pt-2 border-t border-amber-200/60 dark:border-amber-800/40 space-y-2">
+                      <span className="text-[11px] font-bold text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
+                        <History size={13} />
+                        {language === "en" ? "Previous Revision History" : "Riwayat Catatan Sebelumnya"}
+                      </span>
+                      <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
+                        {selectedTask.revisionHistory.slice(0, -1).reverse().map((rev) => (
+                          <div key={rev.id} className="text-[11px] bg-white/50 dark:bg-gray-900/40 rounded-lg p-2 border border-amber-100 dark:border-amber-900/30">
+                            <span className="text-gray-500 dark:text-gray-400">{rev.date}: </span>
                             <p className="text-gray-800 dark:text-gray-200 font-medium">"{rev.notes}"</p>
                           </div>
                         ))}
@@ -206,150 +286,568 @@ const PetugasPenugasanPage = () => {
                 </div>
               )}
 
-              {/* Workspace Details */}
-              <div className="space-y-4">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{selectedTask.kegiatan}</h2>
-                  <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500 dark:text-gray-400 mt-2">
-                    <span className="flex items-center gap-1">
-                      <MapPin size={14} className="text-[#0a1647] dark:text-sky-400" /> {selectedTask.lokasi}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock size={14} className="text-[#0a1647] dark:text-sky-400" /> {t("deadline")}: {selectedTask.deadline}
-                    </span>
-                    <span className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2.5 py-0.5 rounded-md font-semibold">
-                      {selectedTask.jenisPekerjaan}
-                    </span>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-4 border-t border-gray-100 dark:border-gray-800">
+                <div className="lg:col-span-4 bg-slate-50/80 dark:bg-gray-900/60 rounded-2xl border border-slate-200 dark:border-gray-800 p-5 space-y-3">
+                  <div className="flex items-center gap-2 text-[#0a1647] dark:text-sky-400 font-bold text-xs uppercase tracking-wider border-b border-slate-200/80 dark:border-gray-800 pb-2">
+                    <FileText size={16} />
+                    <span>{language === "en" ? "Task Instructions" : "Lembar Instruksi Penugasan"}</span>
+                  </div>
+                  <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
+                    {selectedTask.instruksi || (language === "en"
+                      ? "Execute coverage documentation comprehensively matching Batu City Government standards. Ensure photos/videos or news articles are stored in high resolution."
+                      : "Laksanakan liputan dokumentasi kegiatan secara komprehensif sesuai standar Diskominfo Kota Batu. Pastikan materi tersimpan dalam resolusi tinggi.")}
+                  </p>
+                  <div className="p-3 bg-blue-50/60 dark:bg-blue-950/30 rounded-xl border border-blue-100 dark:border-blue-900/40 text-[11px] text-blue-800 dark:text-blue-300 space-y-1">
+                    <p className="font-bold flex items-center gap-1">
+                      <CheckCircle2 size={13} className="text-blue-600 dark:text-blue-400" />
+                      Penyimpanan Internal VPS Kominfo
+                    </p>
+                    <p className="text-gray-600 dark:text-gray-400">
+                      Berkas foto, video, dan desain langsung disimpan aman di harddisk server internal Pemkot Batu (bebas Google Drive).
+                    </p>
                   </div>
                 </div>
 
-                {/* Upload & Progress Section */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 border-t border-gray-100 dark:border-gray-800">
-                  <div className="bg-slate-50/80 dark:bg-gray-900/60 rounded-2xl border border-slate-200 dark:border-gray-800 p-5 space-y-3">
-                    <div className="flex items-center gap-2 text-[#0a1647] dark:text-sky-400 font-bold text-xs uppercase tracking-wider border-b border-slate-200/80 dark:border-gray-800 pb-2">
-                      <FileText size={16} />
-                      <span>{language === "en" ? "Task Instructions" : "Lembar Instruksi Penugasan"}</span>
-                    </div>
-                    <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
-                      {language === "en"
-                        ? "Execute coverage documentation comprehensively matching Batu City Government standards. Ensure photos/videos or news articles are stored in high resolution."
-                        : "Laksanakan liputan dokumentasi kegiatan secara komprehensif sesuai standar Diskominfo Kota Batu. Pastikan materi tersimpan dalam resolusi tinggi."}
+                <div className="lg:col-span-8 bg-white dark:bg-gray-900/60 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 space-y-5 shadow-xs">
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                      {isPrahum ? (
+                        <>
+                          <FileText size={16} className="text-blue-600" />
+                          <span>{isRevision ? "Teks Naskah Hasil Perbaikan" : "Isi Naskah Berita Online"}</span>
+                        </>
+                      ) : isEditor ? (
+                        <>
+                          <Layers size={16} className="text-purple-600" />
+                          <span>{isRevision ? "Unggah Desain & Berkas Revisi" : "Unggah Hasil Desain Grafis & Master File"}</span>
+                        </>
+                      ) : (
+                        <>
+                          <ImageIcon size={16} className="text-sky-600" />
+                          <span>{isRevision ? "Unggah Berkas Foto/Video Revisi" : "Unggah Berkas Liputan (Foto & Video)"}</span>
+                        </>
+                      )}
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {isPrahum
+                        ? "Ketik naskah rilis pers resmi Kota Batu di bawah ini untuk ditelaah oleh Pranata Humas Ahli Pertama."
+                        : isEditor
+                        ? "Pilih berkas infografis/banner siap tayang beserta file master project (.psd/.ai/.zip) jika ada."
+                        : "Pilih foto dokumentasi (bisa >10 foto) atau video liputan berkualitas tinggi (hingga 4 GB)."}
                     </p>
                   </div>
 
-                  <div className="bg-white dark:bg-gray-900/60 rounded-2xl border border-gray-200 dark:border-gray-800 p-5 space-y-4 shadow-xs">
-                    <div>
-                      <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">
-                        {isPrahum
-                          ? (isRevision
-                              ? (language === "en" ? "Revised Article Text" : "Teks Naskah Hasil Perbaikan")
-                              : (language === "en" ? "News Article Text" : "Isi Naskah Berita"))
-                          : isRevision
-                          ? (language === "en" ? "Upload Revised Deliverables Link" : "Tautan Berkas Hasil Perbaikan")
-                          : (language === "en" ? "Deliverable Cloud Link (Google Drive / Canva)" : "Tautan Berkas (Google Drive / Cloud)")}
-                      </h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {isPrahum
-                          ? (isRevision
-                              ? (language === "en" ? "Update the article text after completing revision notes from Ahli Pertama." : "Perbarui isi naskah setelah melakukan perbaikan sesuai catatan Ahli Pertama.")
-                              : (language === "en" ? "Write the full article text here for review." : "Tulis isi naskah berita secara lengkap di sini untuk direview pimpinan."))
-                          : isRevision
-                          ? (language === "en" ? "Update your deliverable link after completing revision notes from Ahli Pertama." : "Perbarui tautan berkas setelah melakukan perbaikan sesuai catatan Ahli Pertama.")
-                          : (language === "en" ? "Enter your Google Drive or Canva link for quality review." : "Masukkan tautan Google Drive atau Canva untuk review pimpinan.")}
-                      </p>
-                    </div>
-
-                    {isPrahum ? (
+                  {isPrahum && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <span>Ketik isi naskah berita:</span>
+                        <span className="font-semibold text-blue-600 dark:text-sky-400">
+                          {uploadLink.trim() ? uploadLink.trim().split(/\s+/).length : 0} Kata
+                        </span>
+                      </div>
                       <textarea
-                        rows={10}
+                        rows={11}
                         value={uploadLink}
                         onChange={(e) => setUploadLink(e.target.value)}
-                        placeholder={language === "en" ? "Write the news article here..." : "Tulis naskah berita di sini..."}
-                        className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0a1647] dark:focus:ring-sky-500 leading-relaxed"
+                        placeholder="KOTA BATU – Pemerintah Kota Batu secara resmi menyelenggarakan kegiatan..."
+                        className="w-full text-xs sm:text-sm px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0a1647] dark:focus:ring-sky-500 leading-relaxed font-sans"
                       />
-                    ) : (
-                      <input
-                        type="url"
-                        value={uploadLink}
-                        onChange={(e) => setUploadLink(e.target.value)}
-                        placeholder="https://drive.google.com/drive/folders/..."
-                        className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0a1647] dark:focus:ring-sky-500"
-                      />
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (!uploadLink.trim()) {
+                      <button
+                        type="button"
+                        disabled={isUploading}
+                        onClick={async () => {
+                          if (!uploadLink.trim()) {
+                            addToast("Harap tulis isi naskah berita terlebih dahulu", "warning");
+                            return;
+                          }
+                          await storeSubmitWork(selectedTask.id, uploadLink.trim());
                           addToast(
-                            isPrahum
-                              ? (language === "en" ? "Please write the article text" : "Harap tulis isi naskahnya")
-                              : (language === "en" ? "Please enter file link" : "Harap masukkan tautan berkas"),
-                            "warning"
-                          );
-                          return;
-                        }
-                        await storeSubmitWork(selectedTask.id, uploadLink.trim());
-                        if (isRevision) {
-                          addToast(
-                            language === "en"
-                              ? "Revised deliverables re-submitted to Ahli Pertama!"
-                              : "Hasil perbaikan berhasil dikirim ulang ke Ahli Pertama untuk telaah lanjutan!",
+                            isRevision
+                              ? "Naskah hasil perbaikan berhasil dikirim ulang ke Ahli Pertama!"
+                              : "Naskah berita berhasil disetor ke Meja Kurasi Ahli Pertama!",
                             "success"
                           );
-                        } else {
-                          addToast(language === "en" ? "Work submitted successfully!" : "Luaran berhasil disimpan!", "success");
-                        }
-                      }}
-                      className={`w-full py-2.5 rounded-xl text-xs font-bold text-white shadow-xs transition cursor-pointer flex items-center justify-center gap-2 ${
-                        isRevision
-                          ? "bg-amber-600 hover:bg-amber-700 dark:bg-amber-600 dark:hover:bg-amber-700 shadow-md"
-                          : "bg-[#0a1647] dark:bg-blue-600 hover:bg-[#122368] dark:hover:bg-blue-700"
-                      }`}
-                    >
-                      {isRevision ? (
-                        <>
-                          <Send size={14} />
-                          <span>{language === "en" ? "Re-submit Revised Deliverables to Ahli Pertama" : "Kirim Ulang Hasil Revisi ke Ahli Pertama"}</span>
-                        </>
-                      ) : (
-                        <>
-                          <Upload size={14} />
-                          <span>{isPrahum ? (language === "en" ? "Save & Submit Article" : "Simpan & Kirim Naskah") : (language === "en" ? "Save & Submit Deliverables" : "Simpan & Kirim Luaran")}</span>
-                        </>
-                      )}
-                    </button>
+                        }}
+                        className={`w-full py-2.5 rounded-xl text-xs font-bold text-white shadow-xs transition cursor-pointer flex items-center justify-center gap-2 ${
+                          isRevision
+                            ? "bg-amber-600 hover:bg-amber-700"
+                            : "bg-[#0a1647] dark:bg-blue-600 hover:bg-[#122368] dark:hover:bg-blue-700"
+                        }`}
+                      >
+                        {isRevision ? <Send size={14} /> : <Upload size={14} />}
+                        <span>{isRevision ? "Kirim Ulang Naskah Perbaikan ke Ahli Pertama" : "Simpan & Setor Naskah ke Meja Kurasi Ahli Pertama"}</span>
+                      </button>
+                    </div>
+                  )}
 
-                    {selectedTask.workLink && (
-                      isPrahum ? (
-                        <div className="pt-3 border-t border-gray-100 dark:border-gray-800 space-y-1.5 text-xs">
-                          <span className="font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
-                            <CheckCircle2 size={13} className="text-emerald-600 dark:text-emerald-400" />
-                            {language === "en" ? "Article Saved" : "Naskah Tersimpan"}
-                          </span>
-                          <p className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap max-h-32 overflow-y-auto bg-gray-50 dark:bg-gray-900/60 rounded-lg p-2.5 border border-gray-100 dark:border-gray-800">
-                            {selectedTask.workLink}
-                          </p>
+                  {isFotoVideo && (
+                    <div className="space-y-4">
+                      <div className="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-xl max-w-sm">
+                        <button
+                          type="button"
+                          onClick={() => setActiveMediaTab("foto")}
+                          className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition ${
+                            activeMediaTab === "foto"
+                              ? "bg-white dark:bg-[#161b22] text-[#0a1647] dark:text-sky-400 shadow-xs"
+                              : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
+                          }`}
+                        >
+                          <ImageIcon size={14} />
+                          <span>Foto Dokumentasi</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setActiveMediaTab("video")}
+                          className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition ${
+                            activeMediaTab === "video"
+                              ? "bg-white dark:bg-[#161b22] text-[#0a1647] dark:text-sky-400 shadow-xs"
+                              : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
+                          }`}
+                        >
+                          <VideoIcon size={14} />
+                          <span>Video Liputan</span>
+                        </button>
+                      </div>
+
+                      {activeMediaTab === "foto" && (
+                        <div className="space-y-3">
+                          <input
+                            type="file"
+                            ref={photoInputRef}
+                            accept="image/*,.zip,.heic,.heif,.raw"
+                            multiple
+                            className="hidden"
+                            onChange={(e) => {
+                              const files = Array.from(e.target.files || []);
+                              if (files.length > 0) {
+                                setSelectedPhotoFiles((prev) => [...prev, ...files]);
+                              }
+                            }}
+                          />
+                          <div
+                            onClick={() => photoInputRef.current?.click()}
+                            className="border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-blue-500 dark:hover:border-sky-500 rounded-2xl p-6 text-center cursor-pointer transition bg-gray-50/50 dark:bg-gray-900/40 group"
+                          >
+                            <ImageIcon className="w-10 h-10 mx-auto text-gray-400 group-hover:text-blue-600 dark:group-hover:text-sky-400 transition mb-2" />
+                            <p className="text-xs font-bold text-gray-800 dark:text-gray-200">
+                              Klik untuk Pilih Foto Dokumentasi (Bisa &gt;10 Foto Sekaligus)
+                            </p>
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+                              Format: JPG, PNG, WEBP, HEIC (iPhone), atau ZIP mentahan.
+                            </p>
+                          </div>
+
+                          {selectedPhotoFiles.length > 0 && (
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between text-xs font-bold text-gray-700 dark:text-gray-300">
+                                <span>{selectedPhotoFiles.length} Foto Siap Diunggah:</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedPhotoFiles([])}
+                                  className="text-red-500 hover:underline text-[11px] cursor-pointer"
+                                >
+                                  Hapus Semua
+                                </button>
+                              </div>
+                              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 max-h-48 overflow-y-auto p-2 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-200 dark:border-gray-800">
+                                {selectedPhotoFiles.map((file, idx) => {
+                                  const previewUrl = URL.createObjectURL(file);
+                                  return (
+                                    <div key={idx} className="relative group rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-white aspect-square flex items-center justify-center">
+                                      <img src={previewUrl} alt={file.name} className="w-full h-full object-cover" />
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setSelectedPhotoFiles((prev) => prev.filter((_, i) => i !== idx));
+                                        }}
+                                        className="absolute top-1 right-1 p-1 rounded-full bg-black/60 hover:bg-red-600 text-white transition cursor-pointer"
+                                      >
+                                        <X size={10} />
+                                      </button>
+                                      <span className="absolute bottom-0 inset-x-0 bg-black/70 text-[9px] text-white truncate px-1 py-0.5 text-center">
+                                        {(file.size / (1024 * 1024)).toFixed(1)} MB
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      ) : (
-                        <div className="pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between gap-2 text-xs">
-                          <span className="font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
-                            <CheckCircle2 size={13} className="text-emerald-600 dark:text-emerald-400" />
-                            {language === "en" ? "Link Saved" : "Tautan Aktif Tersimpan"}
+                      )}
+
+                      {activeMediaTab === "video" && (
+                        <div className="space-y-3">
+                          <input
+                            type="file"
+                            ref={videoInputRef}
+                            accept="video/*,.zip,.mov,.mp4,.mkv,.avi"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0] || null;
+                              setSelectedVideoFile(file);
+                            }}
+                          />
+                          <div
+                            onClick={() => videoInputRef.current?.click()}
+                            className="border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-blue-500 dark:hover:border-sky-500 rounded-2xl p-6 text-center cursor-pointer transition bg-gray-50/50 dark:bg-gray-900/40 group"
+                          >
+                            <VideoIcon className="w-10 h-10 mx-auto text-gray-400 group-hover:text-blue-600 dark:group-hover:text-sky-400 transition mb-2" />
+                            <p className="text-xs font-bold text-gray-800 dark:text-gray-200">
+                              Klik untuk Pilih Berkas Video Liputan (Maksimal 4 GB)
+                            </p>
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+                              Format: MP4, MOV (Kamera Sony/iPhone), MKV, AVI, atau ZIP. Didukung streaming langsung.
+                            </p>
+                          </div>
+
+                          {selectedVideoFile && (
+                            <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950/30 rounded-xl border border-blue-200 dark:border-blue-800/60 text-xs">
+                              <div className="flex items-center gap-2 truncate">
+                                <VideoIcon size={16} className="text-blue-600 shrink-0" />
+                                <span className="font-bold text-gray-800 dark:text-gray-200 truncate">{selectedVideoFile.name}</span>
+                                <span className="text-gray-500">({(selectedVideoFile.size / (1024 * 1024)).toFixed(1)} MB)</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedVideoFile(null)}
+                                className="text-red-500 hover:text-red-700 p-1 cursor-pointer"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-gray-800 dark:text-gray-200">
+                          Keterangan / Caption Dokumentasi:
+                        </label>
+                        <textarea
+                          rows={3}
+                          value={caption}
+                          onChange={(e) => setCaption(e.target.value)}
+                          placeholder="Contoh: Dokumentasi sesi pembukaan dan wawancara Kadis Pariwisata di Graha Among Tani..."
+                          className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      {isUploading && (
+                        <div className="space-y-2 p-3.5 bg-blue-50 dark:bg-blue-950/40 rounded-xl border border-blue-200 dark:border-blue-800">
+                          <div className="flex items-center justify-between text-xs font-bold text-blue-900 dark:text-blue-200">
+                            <span className="flex items-center gap-1.5">
+                              <Loader2 size={14} className="animate-spin text-blue-600" />
+                              Mengunggah ke Server Kominfo...
+                            </span>
+                            <span>{uploadProgressText || `${uploadPercent || 0}%`}</span>
+                          </div>
+                          <div className="w-full bg-blue-200 dark:bg-blue-900/60 rounded-full h-2.5 overflow-hidden">
+                            <div
+                              className="bg-gradient-to-r from-blue-600 to-sky-500 h-2.5 rounded-full transition-all duration-300"
+                              style={{ width: `${uploadPercent || 5}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      <button
+                        type="button"
+                        disabled={isUploading}
+                        onClick={async () => {
+                          try {
+                            setIsUploading(true);
+                            let filesToUpload: File[] = [];
+                            if (activeMediaTab === "foto") {
+                              filesToUpload = selectedPhotoFiles;
+                            } else if (selectedVideoFile) {
+                              filesToUpload = [selectedVideoFile];
+                            }
+
+                            let uploadedFiles: MediaFileInfo[] = [];
+                            if (filesToUpload.length > 0) {
+                              uploadedFiles = await uploadFilesWithProgress(filesToUpload);
+                            } else if (selectedTask.mediaData?.files && selectedTask.mediaData.files.length > 0) {
+                              uploadedFiles = selectedTask.mediaData.files;
+                            } else {
+                              addToast(
+                                activeMediaTab === "foto"
+                                  ? "Harap pilih minimal 1 foto dokumentasi"
+                                  : "Harap pilih berkas video liputan",
+                                "warning"
+                              );
+                              setIsUploading(false);
+                              return;
+                            }
+
+                            const payload: MediaWorkPayload = {
+                              type: "MEDIA_SUBMISSION",
+                              subType: activeMediaTab,
+                              files: uploadedFiles,
+                              caption: caption.trim() || undefined,
+                            };
+
+                            await storeSubmitWork(selectedTask.id, payload);
+                            setSelectedPhotoFiles([]);
+                            setSelectedVideoFile(null);
+                            setUploadPercent(null);
+                            addToast(
+                              isRevision
+                                ? "Hasil perbaikan media berhasil dikirim ulang ke Ahli Pertama!"
+                                : "Berkas liputan berhasil dikirim ke Meja Kurasi Ahli Pertama!",
+                              "success"
+                            );
+                          } catch (err: any) {
+                            addToast(err?.message || "Gagal mengunggah berkas", "error");
+                          } finally {
+                            setIsUploading(false);
+                          }
+                        }}
+                        className={`w-full py-2.5 rounded-xl text-xs font-bold text-white shadow-xs transition cursor-pointer flex items-center justify-center gap-2 ${
+                          isRevision
+                            ? "bg-amber-600 hover:bg-amber-700"
+                            : "bg-[#0a1647] dark:bg-blue-600 hover:bg-[#122368] dark:hover:bg-blue-700"
+                        } ${isUploading ? "opacity-75 cursor-not-allowed" : ""}`}
+                      >
+                        {isUploading ? (
+                          <>
+                            <Loader2 size={14} className="animate-spin" />
+                            <span>Sedang Mengunggah Berkas...</span>
+                          </>
+                        ) : isRevision ? (
+                          <>
+                            <Send size={14} />
+                            <span>Kirim Ulang Berkas Revisi ke Ahli Pertama</span>
+                          </>
+                        ) : (
+                          <>
+                            <Upload size={14} />
+                            <span>Unggah & Setor ke Meja Kurasi Ahli Pertama</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+
+                  {isEditor && (
+                    <div className="space-y-4">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-gray-800 dark:text-gray-200">
+                          1. Berkas Desain Siap Publikasi (Wajib - PNG / JPG / PDF):
+                        </label>
+                        <input
+                          type="file"
+                          ref={designMainInputRef}
+                          accept="image/*,.pdf"
+                          className="hidden"
+                          onChange={(e) => setSelectedDesignMain(e.target.files?.[0] || null)}
+                        />
+                        <div
+                          onClick={() => designMainInputRef.current?.click()}
+                          className="border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-purple-500 rounded-xl p-4 text-center cursor-pointer transition bg-gray-50/50 dark:bg-gray-900/40"
+                        >
+                          <Layers className="w-8 h-8 mx-auto text-purple-500 mb-1.5" />
+                          <p className="text-xs font-bold text-gray-800 dark:text-gray-200">
+                            {selectedDesignMain ? selectedDesignMain.name : "Klik untuk Pilih Desain Utama"}
+                          </p>
+                          <p className="text-[11px] text-gray-500">Format: PNG, JPG, PDF resolusi tinggi.</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-gray-800 dark:text-gray-200">
+                          2. Berkas Mentahan / Master Project (Opsional - PSD / AI / ZIP):
+                        </label>
+                        <input
+                          type="file"
+                          ref={designMasterInputRef}
+                          accept=".zip,.psd,.ai,.eps,.rar"
+                          className="hidden"
+                          onChange={(e) => setSelectedDesignMaster(e.target.files?.[0] || null)}
+                        />
+                        <div
+                          onClick={() => designMasterInputRef.current?.click()}
+                          className="border border-gray-300 dark:border-gray-700 hover:border-purple-500 rounded-xl p-3 flex items-center justify-between cursor-pointer bg-white dark:bg-gray-900"
+                        >
+                          <div className="flex items-center gap-2 truncate text-xs">
+                            <Layers size={14} className="text-gray-400 shrink-0" />
+                            <span className="truncate text-gray-700 dark:text-gray-300">
+                              {selectedDesignMaster ? selectedDesignMaster.name : "Pilih Master Project (.zip, .psd, .ai)"}
+                            </span>
+                          </div>
+                          <span className="text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded font-semibold">
+                            Pilih File
                           </span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-gray-800 dark:text-gray-200">
+                          Dimensi & Target Media Publikasi:
+                        </label>
+                        <select
+                          value={targetPlatform}
+                          onChange={(e) => setTargetPlatform(e.target.value)}
+                          className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        >
+                          <option value="Feed Instagram (1:1)">Feed Instagram (1:1 - 1080x1080)</option>
+                          <option value="Story / Reels / TikTok (9:16)">Story / Reels / TikTok (9:16 - 1080x1920)</option>
+                          <option value="Banner Website / Youtube (16:9)">Banner Website / Youtube (16:9 - 1920x1080)</option>
+                          <option value="Poster / Baliho Cetak">Poster / Baliho Cetak Fisik</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-gray-800 dark:text-gray-200">
+                          Catatan Desain & Revisi:
+                        </label>
+                        <textarea
+                          rows={3}
+                          value={editorNotes}
+                          onChange={(e) => setEditorNotes(e.target.value)}
+                          placeholder="Contoh: Sudah menyesuaikan letak logo Pemkot dan font tanggal acara..."
+                          className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        />
+                      </div>
+
+                      {isUploading && (
+                        <div className="space-y-2 p-3.5 bg-purple-50 dark:bg-purple-950/40 rounded-xl border border-purple-200 dark:border-purple-800">
+                          <div className="flex items-center justify-between text-xs font-bold text-purple-900 dark:text-purple-200">
+                            <span className="flex items-center gap-1.5">
+                              <Loader2 size={14} className="animate-spin text-purple-600" />
+                              Mengunggah Desain ke Server...
+                            </span>
+                            <span>{uploadProgressText || `${uploadPercent || 0}%`}</span>
+                          </div>
+                          <div className="w-full bg-purple-200 dark:bg-purple-900/60 rounded-full h-2.5 overflow-hidden">
+                            <div
+                              className="bg-gradient-to-r from-purple-600 to-indigo-500 h-2.5 rounded-full transition-all duration-300"
+                              style={{ width: `${uploadPercent || 5}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      <button
+                        type="button"
+                        disabled={isUploading}
+                        onClick={async () => {
+                          try {
+                            setIsUploading(true);
+                            const filesToUpload: File[] = [];
+                            if (selectedDesignMain) filesToUpload.push(selectedDesignMain);
+                            if (selectedDesignMaster) filesToUpload.push(selectedDesignMaster);
+
+                            let uploadedFiles: MediaFileInfo[] = [];
+                            if (filesToUpload.length > 0) {
+                              uploadedFiles = await uploadFilesWithProgress(filesToUpload);
+                            } else if (selectedTask.mediaData?.files && selectedTask.mediaData.files.length > 0) {
+                              uploadedFiles = selectedTask.mediaData.files;
+                            } else {
+                              addToast("Harap pilih berkas desain utama", "warning");
+                              setIsUploading(false);
+                              return;
+                            }
+
+                            const payload: MediaWorkPayload = {
+                              type: "MEDIA_SUBMISSION",
+                              subType: "desain",
+                              files: uploadedFiles,
+                              targetPlatform,
+                              editorNotes: editorNotes.trim() || undefined,
+                            };
+
+                            await storeSubmitWork(selectedTask.id, payload);
+                            setSelectedDesignMain(null);
+                            setSelectedDesignMaster(null);
+                            setUploadPercent(null);
+                            addToast(
+                              isRevision
+                                ? "Hasil revisi desain berhasil dikirim ulang ke Ahli Pertama!"
+                                : "Berkas desain berhasil dikirim ke Meja Kurasi Ahli Pertama!",
+                              "success"
+                            );
+                          } catch (err: any) {
+                            addToast(err?.message || "Gagal mengunggah berkas desain", "error");
+                          } finally {
+                            setIsUploading(false);
+                          }
+                        }}
+                        className={`w-full py-2.5 rounded-xl text-xs font-bold text-white shadow-xs transition cursor-pointer flex items-center justify-center gap-2 ${
+                          isRevision
+                            ? "bg-amber-600 hover:bg-amber-700"
+                            : "bg-[#0a1647] dark:bg-blue-600 hover:bg-[#122368] dark:hover:bg-blue-700"
+                        } ${isUploading ? "opacity-75 cursor-not-allowed" : ""}`}
+                      >
+                        {isUploading ? (
+                          <>
+                            <Loader2 size={14} className="animate-spin" />
+                            <span>Sedang Mengunggah Berkas...</span>
+                          </>
+                        ) : isRevision ? (
+                          <>
+                            <Send size={14} />
+                            <span>Kirim Ulang Desain Revisi ke Ahli Pertama</span>
+                          </>
+                        ) : (
+                          <>
+                            <Upload size={14} />
+                            <span>Unggah & Setor ke Meja Kurasi Ahli Pertama</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+
+                  {selectedTask.mediaData && selectedTask.mediaData.files && selectedTask.mediaData.files.length > 0 && (
+                    <div className="pt-4 border-t border-gray-100 dark:border-gray-800 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1 text-xs">
+                          <CheckCircle2 size={14} className="text-emerald-600" />
+                          {selectedTask.mediaData.files.length} Berkas Tersimpan di Server Internal
+                        </span>
+                        {selectedTask.mediaData.targetPlatform && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300">
+                            {selectedTask.mediaData.targetPlatform}
+                          </span>
+                        )}
+                      </div>
+
+                      {selectedTask.mediaData.caption && (
+                        <p className="text-xs text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/60 rounded-xl p-2.5 border border-gray-100 dark:border-gray-800 italic">
+                          "{selectedTask.mediaData.caption}"
+                        </p>
+                      )}
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {selectedTask.mediaData.files.map((file, idx) => (
                           <a
-                            href={selectedTask.workLink}
+                            key={idx}
+                            href={file.url}
                             target="_blank"
                             rel="noreferrer"
-                            className="font-medium text-[#0a1647] dark:text-sky-400 hover:underline flex items-center gap-1 truncate max-w-[200px]"
+                            className="p-2 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 transition group flex flex-col justify-between"
                           >
-                            <span className="truncate">{language === "en" ? "Open in New Tab" : "Buka di Tab Baru"}</span>
-                            <ExternalLink size={12} className="shrink-0" />
+                            <div className="flex items-center gap-1.5 truncate text-[11px] font-medium text-gray-800 dark:text-gray-200">
+                              {file.mimeType.startsWith("image") ? (
+                                <ImageIcon size={12} className="text-sky-500 shrink-0" />
+                              ) : file.mimeType.startsWith("video") ? (
+                                <VideoIcon size={12} className="text-blue-500 shrink-0" />
+                              ) : (
+                                <Layers size={12} className="text-purple-500 shrink-0" />
+                              )}
+                              <span className="truncate">{file.originalName}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-[10px] text-gray-500 mt-2">
+                              <span>{(file.fileSize / (1024 * 1024)).toFixed(1)} MB</span>
+                              <ExternalLink size={10} className="group-hover:text-blue-600" />
+                            </div>
                           </a>
-                        </div>
-                      )
-                    )}
-                  </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

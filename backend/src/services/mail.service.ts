@@ -261,9 +261,20 @@ export async function sendAssignmentNotificationEmail(data: AssignmentEmailData)
     ? `${data.startTime.slice(0, 5)} - ${data.endTime.slice(0, 5)} WIB`
     : data.startTime ? `${data.startTime.slice(0, 5)} WIB` : "Menyesuaikan";
 
+  const isSelfClaim = data.instruction && data.instruction.includes("Agenda Tersedia");
+  const isPrahum = data.contentType && (data.contentType.toLowerCase().includes("naskah") || data.contentType.toLowerCase().includes("prahum"));
+
+  const introText = isSelfClaim
+    ? `Halo <strong>${data.officerName}</strong>, berikut adalah rincian penugasan yang berhasil Anda ambil secara mandiri melalui menu <strong>Agenda Tersedia</strong>:`
+    : `Halo <strong>${data.officerName}</strong>, Anda telah ditugaskan oleh Admin / Pimpinan untuk melaksanakan liputan dan produksi konten pada agenda kegiatan berikut:`;
+
+  const closingText = isPrahum
+    ? `Harap hadir tepat waktu dan menyimak jalannya agenda. Anda dapat langsung mengetik dan mengirimkan naskah rilis berita melalui menu <strong>Penugasan Saya</strong> di aplikasi SIMIKP setelah kegiatan selesai.`
+    : `Harap hadir tepat waktu dan mempersiapkan peralatan liputan yang diperlukan. Anda dapat mengunggah hasil liputan ke Bank Konten / menyematkan tautan drive melalui aplikasi SIMIKP setelah kegiatan selesai.`;
+
   const contentHtml = `
     <p style="margin: 0 0 16px 0; font-size: 14px; color: #334155; line-height: 1.6;">
-      Halo <strong>${data.officerName}</strong>, Anda telah ditugaskan oleh Admin / Pimpinan untuk melaksanakan liputan dan produksi konten pada agenda kegiatan berikut:
+      ${introText}
     </p>
 
     <!-- Kartu Rincian Agenda -->
@@ -307,7 +318,7 @@ export async function sendAssignmentNotificationEmail(data: AssignmentEmailData)
     </table>
 
     <p style="margin: 0; font-size: 13px; color: #64748b; line-height: 1.5;">
-      Harap hadir tepat waktu dan mempersiapkan peralatan liputan yang diperlukan. Anda dapat mengunggah hasil liputan ke Bank Konten melalui aplikasi SIMIKP setelah kegiatan selesai.
+      ${closingText}
     </p>
   `;
 
@@ -315,14 +326,14 @@ export async function sendAssignmentNotificationEmail(data: AssignmentEmailData)
   const ctaUrl = data.targetUrl || `${appUrl}${defaultPath}`;
 
   const html = renderBaseLayout({
-    badgeTitle: "Penugasan Liputan",
+    badgeTitle: isSelfClaim ? "Klaim Tugas Mandiri" : "Penugasan Liputan",
     badgeColor: "#1d4ed8",
     badgeBg: "#dbeafe",
     badgeBorder: "#bfdbfe",
-    title: "Penugasan Liputan Baru",
+    title: isSelfClaim ? "Konfirmasi Pengambilan Tugas" : "Penugasan Liputan Baru",
     subtitle: `Agenda: ${data.activityTitle}`,
     contentHtml,
-    ctaText: "Buka Detail Penugasan",
+    ctaText: "Buka Penugasan Saya",
     ctaUrl,
   });
 
@@ -439,12 +450,18 @@ export async function sendReviewRevisionEmail(data: ReviewRevisionEmailData): Pr
   const appUrl = process.env.APP_URL || "http://localhost:5173";
   const revisionUrl = data.revisionUrl || `${appUrl}/petugas/penugasan`;
 
+  const isPrahum = data.contentType && (data.contentType.toLowerCase().includes("naskah") || data.contentType.toLowerCase().includes("prahum"));
+  const workDesc = isPrahum ? "Hasil naskah rilis berita Anda" : "Hasil karya liputan Anda";
+  const actionDesc = isPrahum 
+    ? "Silakan buka menu Penugasan Saya, perbaiki naskah sesuai catatan di atas, lalu kirimkan kembali pembaruan naskah melalui tombol di bawah ini." 
+    : "Silakan perbaiki berkas liputan Anda dan kirimkan kembali pembaruan melalui tombol di bawah ini agar dapat segera diproses untuk penayangan.";
+
   const contentHtml = `
     <p style="margin: 0 0 16px 0; font-size: 14px; color: #334155; line-height: 1.6;">
       Halo <strong>${data.authorName}</strong>,
     </p>
     <p style="margin: 0 0 16px 0; font-size: 14px; color: #334155; line-height: 1.6;">
-      Hasil karya liputan Anda untuk agenda <strong>${data.activityTitle}</strong> (${data.contentType}) telah ditinjau oleh Tim Reviewer / Redaktur.
+      ${workDesc} untuk agenda <strong>${data.activityTitle}</strong> (${data.contentType}) telah ditinjau oleh <strong>${data.reviewerName}</strong> dan memerlukan perbaikan.
     </p>
 
     <!-- Kartu Catatan Revisi -->
@@ -452,7 +469,7 @@ export async function sendReviewRevisionEmail(data: ReviewRevisionEmailData): Pr
       <tr>
         <td style="padding: 16px 20px;">
           <p style="margin: 0 0 6px 0; font-size: 12px; font-weight: 700; color: #9f1239; text-transform: uppercase; letter-spacing: 0.5px;">
-            Catatan Perbaikan dari ${data.reviewerName}:
+            Catatan Revisi dari ${data.reviewerName}:
           </p>
           <p style="margin: 0; font-size: 13px; color: #881337; font-style: italic; line-height: 1.6;">
             &ldquo;${data.feedback || "Mohon periksa kembali kesesuaian materi liputan sebelum dipublikasikan."}&rdquo;
@@ -462,19 +479,19 @@ export async function sendReviewRevisionEmail(data: ReviewRevisionEmailData): Pr
     </table>
 
     <p style="margin: 0; font-size: 13px; color: #64748b; line-height: 1.5;">
-      Silakan perbaiki hasil kerja Anda dan unggah kembali versi pembaruan melalui tombol di bawah ini agar dapat segera diproses untuk publikasi.
+      ${actionDesc}
     </p>
   `;
 
   const html = renderBaseLayout({
-    badgeTitle: "Perbaikan Diperlukan",
+    badgeTitle: "Perlu Revisi",
     badgeColor: "#be123c",
     badgeBg: "#ffe4e6",
     badgeBorder: "#fecdd3",
-    title: "Catatan Revisi Hasil Liputan",
+    title: isPrahum ? "Catatan Revisi Naskah Berita" : "Catatan Revisi Hasil Liputan",
     subtitle: `Agenda: ${data.activityTitle}`,
     contentHtml,
-    ctaText: "Perbaiki Karya Sekarang",
+    ctaText: isPrahum ? "Perbaiki Naskah Sekarang" : "Perbaiki Karya Sekarang",
     ctaUrl: revisionUrl,
   });
 
@@ -804,9 +821,14 @@ export async function sendWorkSubmissionAlertEmail(data: WorkSubmissionAlertEmai
             </tr>
             ${data.workLink ? `
             <tr>
-              <td style="padding: 6px 0; font-size: 13px; color: #64748b; vertical-align: top;">Tautan Hasil Kerja:</td>
-              <td style="padding: 6px 0; font-size: 13px; vertical-align: top;">
-                <a href="${data.workLink}" target="_blank" style="color: #2563eb; text-decoration: underline; word-break: break-all;">Buka Berkas Liputan &rarr;</a>
+              <td style="padding: 10px 0 0 0; font-size: 13px; color: #64748b; vertical-align: top; border-top: 1px dashed #cbd5e1;">
+                ${(data.workLink.startsWith('http://') || data.workLink.startsWith('https://')) ? 'Tautan Hasil Kerja:' : 'Pratinjau Naskah Rilis:'}
+              </td>
+              <td style="padding: 10px 0 0 0; font-size: 13px; vertical-align: top; border-top: 1px dashed #cbd5e1;">
+                ${(data.workLink.startsWith('http://') || data.workLink.startsWith('https://'))
+                  ? `<a href="${data.workLink}" target="_blank" style="display: inline-block; padding: 6px 14px; background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; color: #2563eb; text-decoration: none; font-weight: 600; font-size: 12px;">Buka Berkas Liputan &rarr;</a>`
+                  : `<div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-left: 3px solid #2563eb; border-radius: 6px; padding: 12px; font-size: 12px; line-height: 1.6; color: #1e293b; max-height: 160px; overflow-y: auto; white-space: pre-wrap;">${data.workLink.length > 300 ? data.workLink.slice(0, 300) + '...' : data.workLink}</div>`
+                }
               </td>
             </tr>
             ` : ''}
@@ -816,7 +838,7 @@ export async function sendWorkSubmissionAlertEmail(data: WorkSubmissionAlertEmai
     </table>
 
     <p style="margin: 0; font-size: 13px; color: #64748b; line-height: 1.5;">
-      Mohon tinjau karya tersebut di modul Review untuk memberikan persetujuan tayang (*Approve*) atau catatan revisi (*Feedback*).
+      Mohon tinjau karya tersebut di modul Review untuk membaca naskah penuh atau memberikan persetujuan tayang (*Approve*) serta catatan revisi.
     </p>
   `;
 
@@ -828,11 +850,15 @@ export async function sendWorkSubmissionAlertEmail(data: WorkSubmissionAlertEmai
     title: "Hasil Liputan Baru Masuk",
     subtitle: `Agenda: ${data.activityTitle}`,
     contentHtml,
-    ctaText: "Buka Halaman Review",
+    ctaText: "Tinjau Karya di SIMIKP",
     ctaUrl: reviewUrl,
   });
 
-  const plainText = `[SIMIKP] Hasil Liputan Baru Masuk\n\nHalo ${data.reviewerName},\n\nPetugas ${data.officerName} telah mengunggah draf karya liputan untuk agenda "${data.activityTitle}" (${data.contentType}).\n\nSilakan tinjau karya tersebut di tautan berikut:\n${reviewUrl}\n\nDinas Komunikasi dan Informatika Pemerintah Kota Batu`;
+  const previewText = data.workLink
+    ? (data.workLink.startsWith('http') ? `Tautan: ${data.workLink}` : `Kutipan Naskah:\n"${data.workLink.slice(0, 200)}..."`)
+    : '';
+
+  const plainText = `[SIMIKP] Hasil Liputan Baru Masuk\n\nHalo ${data.reviewerName},\n\nPetugas ${data.officerName} telah mengunggah draf karya liputan untuk agenda "${data.activityTitle}" (${data.contentType}).\n\n${previewText}\n\nSilakan tinjau karya tersebut di tautan berikut:\n${reviewUrl}\n\nDinas Komunikasi dan Informatika Pemerintah Kota Batu`;
 
   try {
     const fromAddress = process.env.SMTP_FROM || `SIMIKP Pemkot Batu <${process.env.SMTP_USER}>`;
@@ -851,3 +877,118 @@ export async function sendWorkSubmissionAlertEmail(data: WorkSubmissionAlertEmai
     return false;
   }
 }
+
+// ── 5. Notifikasi ke Ahli Pertama / Reviewer: Hasil Revisi Telah Dikirim Ulang ──
+export interface RevisionSubmissionAlertEmailData {
+  to: string;
+  reviewerName: string;
+  officerName: string;
+  activityTitle: string;
+  contentType: string;
+  workLink?: string;
+  previousNotes?: string;
+  reviewUrl?: string;
+}
+
+export async function sendRevisionSubmissionAlertEmail(data: RevisionSubmissionAlertEmailData): Promise<boolean> {
+  const transporter = getMailTransporter();
+  if (!transporter) return false;
+
+  const appUrl = process.env.APP_URL || "http://localhost:5173";
+  const reviewUrl = data.reviewUrl || `${appUrl}/review`;
+
+  const isPrahum = data.contentType && (data.contentType.toLowerCase().includes("naskah") || data.contentType.toLowerCase().includes("prahum"));
+  const isUrl = data.workLink && (data.workLink.startsWith("http://") || data.workLink.startsWith("https://"));
+
+  const contentHtml = `
+    <p style="margin: 0 0 16px 0; font-size: 14px; color: #334155; line-height: 1.6;">
+      Halo <strong>${data.reviewerName}</strong>,
+    </p>
+    <p style="margin: 0 0 16px 0; font-size: 14px; color: #334155; line-height: 1.6;">
+      Petugas lapangan <strong>${data.officerName}</strong> telah menindaklanjuti catatan perbaikan dan <strong>mengirimkan ulang hasil revisi ${isPrahum ? 'naskah berita' : 'karya liputan'}</strong> untuk agenda berikut:
+    </p>
+
+    <!-- Kartu Rincian Revisi Masuk -->
+    <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 20px;">
+      <tr>
+        <td style="padding: 18px 20px;">
+          <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
+            <tr>
+              <td style="padding: 6px 0; font-size: 13px; color: #64748b; width: 38%; vertical-align: top;">Nama Agenda:</td>
+              <td style="padding: 6px 0; font-size: 13px; font-weight: 700; color: #0f1f5c; vertical-align: top;">${data.activityTitle}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; font-size: 13px; color: #64748b; vertical-align: top;">Petugas Peliput:</td>
+              <td style="padding: 6px 0; font-size: 13px; font-weight: 600; color: #1e293b; vertical-align: top;">${data.officerName}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; font-size: 13px; color: #64748b; vertical-align: top;">Jenis Konten:</td>
+              <td style="padding: 6px 0; font-size: 13px; font-weight: 700; color: #0284c7; vertical-align: top;">${data.contentType}</td>
+            </tr>
+            ${data.previousNotes ? `
+            <tr>
+              <td style="padding: 6px 0; font-size: 13px; color: #64748b; vertical-align: top;">Catatan Sebelumnya:</td>
+              <td style="padding: 6px 0; font-size: 13px; color: #881337; font-style: italic; vertical-align: top;">&ldquo;${data.previousNotes}&rdquo;</td>
+            </tr>
+            ` : ''}
+            ${data.workLink ? `
+            <tr>
+              <td style="padding: 10px 0 0 0; font-size: 13px; color: #64748b; vertical-align: top; border-top: 1px dashed #cbd5e1;">
+                ${isUrl ? 'Tautan Hasil Revisi:' : 'Pratinjau Hasil Perbaikan Naskah:'}
+              </td>
+              <td style="padding: 10px 0 0 0; font-size: 13px; vertical-align: top; border-top: 1px dashed #cbd5e1;">
+                ${isUrl
+                  ? `<a href="${data.workLink}" target="_blank" style="display: inline-block; padding: 6px 14px; background-color: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px; color: #0284c7; text-decoration: none; font-weight: 600; font-size: 12px;">Buka Berkas Revisi &rarr;</a>`
+                  : `<div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-left: 3px solid #0284c7; border-radius: 6px; padding: 12px; font-size: 12px; line-height: 1.6; color: #1e293b; max-height: 160px; overflow-y: auto; white-space: pre-wrap;">${data.workLink.length > 300 ? data.workLink.slice(0, 300) + '...' : data.workLink}</div>`
+                }
+              </td>
+            </tr>
+            ` : ''}
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px;">
+      <p style="margin: 0; font-size: 12px; color: #166534; line-height: 1.5;">
+        <strong>Tindakan Selanjutnya:</strong> Mohon buka modul Review & Approval untuk memverifikasi kesesuaian hasil perbaikan dan memberikan persetujuan tayang (Approve).
+      </p>
+    </div>
+  `;
+
+  const html = renderBaseLayout({
+    badgeTitle: "Verifikasi Revisi",
+    badgeColor: "#0284c7",
+    badgeBg: "#e0f2fe",
+    badgeBorder: "#bae6fd",
+    title: "Hasil Revisi Siap Diverifikasi",
+    subtitle: `Agenda: ${data.activityTitle}`,
+    contentHtml,
+    ctaText: "Verifikasi & Tinjau Karya",
+    ctaUrl: reviewUrl,
+  });
+
+  const previewText = data.workLink
+    ? (isUrl ? `Tautan: ${data.workLink}` : `Kutipan Naskah:\n"${data.workLink.slice(0, 200)}..."`)
+    : '';
+
+  const plainText = `[SIMIKP] Verifikasi Revisi: Hasil Perbaikan Masuk\n\nHalo ${data.reviewerName},\n\nPetugas ${data.officerName} telah mengirimkan ulang hasil revisi untuk agenda "${data.activityTitle}" (${data.contentType}).\n\n${previewText}\n\nSilakan verifikasi karya tersebut di tautan berikut:\n${reviewUrl}\n\nDinas Komunikasi dan Informatika Pemerintah Kota Batu`;
+
+  try {
+    const fromAddress = process.env.SMTP_FROM || `SIMIKP Pemkot Batu <${process.env.SMTP_USER}>`;
+    await transporter.sendMail({
+      from: fromAddress,
+      to: data.to,
+      subject: `[SIMIKP] Verifikasi Revisi: ${data.officerName} - ${data.activityTitle}`,
+      text: plainText,
+      html,
+      attachments: getEmailAttachments(),
+    });
+    console.log(`[MailService] ✓ Email verifikasi revisi berhasil dikirim ke Ahli Pertama: ${data.to}`);
+    return true;
+  } catch (error) {
+    console.error(`[MailService] ✗ Gagal mengirim email verifikasi revisi ke ${data.to}:`, error);
+    return false;
+  }
+}
+

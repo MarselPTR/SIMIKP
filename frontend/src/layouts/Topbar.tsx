@@ -277,9 +277,10 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
             <div className="py-1">
               <button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
                   setShowProfile(false);
-                  logout();
+                  await logout();
+                  navigate("/login", { replace: true, state: {} });
                 }}
                 className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition cursor-pointer font-medium"
               >

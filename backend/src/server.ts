@@ -23,7 +23,7 @@ server.register(cookie, {
 
 server.register(multipart, {
   limits: {
-    fileSize: (parseInt(process.env.MAX_FILE_SIZE_MB || "250") * 1024 * 1024),
+    fileSize: (parseInt(process.env.MAX_FILE_SIZE_MB || "4096") * 1024 * 1024),
   }
 });
 
@@ -59,6 +59,7 @@ import productionsRoutes from "./modules/productions/productions.routes";
 import { reviewsRoutes } from "./modules/reviews/reviews.routes";
 import { publicationsRoutes } from "./modules/publications/publications.routes";
 import { systemRoutes } from "./modules/system/system.routes";
+import { storageRoutes } from "./modules/storage/storage.routes";
 
 // Register routes
 server.register(authRoutes, { prefix: "/api/v1/auth" });
@@ -72,6 +73,7 @@ server.register(productionsRoutes, { prefix: "/api/v1/productions" });
 server.register(reviewsRoutes, { prefix: "/api/v1/reviews" });
 server.register(publicationsRoutes, { prefix: "/api/v1/publications" });
 server.register(systemRoutes, { prefix: "/api/v1/system" });
+server.register(storageRoutes, { prefix: "/api/v1/storage" });
 
 // Health check endpoint for cloud monitoring (Render, etc.)
 server.get("/healthz", async () => {
@@ -81,6 +83,17 @@ server.get("/healthz", async () => {
 import path from "path";
 import fastifyStatic from "@fastify/static";
 import fs from "fs";
+
+// Serve uploaded storage files (photos, videos, designs)
+const uploadsDir = path.resolve(__dirname, "../storage/uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+server.register(fastifyStatic, {
+  root: uploadsDir,
+  prefix: "/api/v1/storage/uploads/",
+  decorateReply: false,
+});
 
 // Serve static frontend files (assuming we run from backend root, pointing to ../frontend/dist)
 const frontendDistPath = path.join(process.cwd(), "../frontend/dist");

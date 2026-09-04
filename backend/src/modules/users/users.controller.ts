@@ -118,12 +118,26 @@ export class UsersController {
 
       // Kirim email selamat datang dan kredensial akun jika email terisi
       if (body.email) {
+        const ROLE_LABEL_MAP: Record<string, string> = {
+          PRAHUM: "Pranata Humas (Penulis Naskah)",
+          FOTOGRAFER: "Petugas Fotografer",
+          VIDEOGRAFER: "Petugas Videografer",
+          DESAINER_EDITOR: "Desainer & Editor Grafis",
+          FOTO_VIDEO: "Petugas Foto & Video",
+          AHLI_PERTAMA: "Pranata Humas Ahli Pertama (Redaktur)",
+          ADMIN: "Administrator Sistem",
+          MANAGER: "Pimpinan / Manager",
+          REVIEWER: "Tim Reviewer",
+        };
+
+        const displayRole = (body.program && ROLE_LABEL_MAP[body.program]) || ROLE_LABEL_MAP[targetRoleName] || "Petugas Lapangan";
+
         sendWelcomeNewUserEmail({
           to: body.email,
           name: body.name || body.username,
           username: body.username,
           temporaryPassword: body.password || "Sesuai yang didaftarkan Admin",
-          roleName: "Petugas Lapangan",
+          roleName: displayRole,
         }).catch((err) => {
           console.error("[UsersController] Gagal mengirim welcome email:", err);
         });
@@ -150,6 +164,77 @@ export class UsersController {
     } catch (error) {
       request.log.error(error);
       return reply.status(500).send({ success: false, error: "Gagal menghapus petugas" });
+    }
+  }
+
+  static async updateProfile(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const body = request.body as any;
+      const { id, username, name, email, nik, phone, bio, pasFotoUrl, avatar, staffType } = body;
+
+      let targetUserId = id;
+      const cookieSession = request.cookies["simikp_session"];
+      if (!targetUserId && cookieSession) {
+        try {
+          const decoded = Buffer.from(cookieSession, "base64").toString("utf-8");
+          const session = JSON.parse(decoded);
+          targetUserId = session.id;
+        } catch {}
+      }
+
+      let existingUser: any[] = [];
+      if (targetUserId) {
+        existingUser = await db.select().from(users).where(eq(users.id, targetUserId)).limit(1);
+      } else if (username) {
+        existingUser = await db.select().from(users).where(eq(users.username, username.trim())).limit(1);
+      }
+
+      if (!existingUser.length) {
+        return reply.status(404).send({ success: false, error: "Pengguna tidak ditemukan" });
+      }
+
+      const userRecord = existingUser[0];
+      const updateData: Record<string, any> = {};
+
+      if (name !== undefined) updateData.name = name;
+      if (email !== undefined) updateData.email = email;
+      if (nik !== undefined) updateData.nik = nik;
+      if (phone !== undefined) updateData.phone = phone;
+      if (bio !== undefined) updateData.bio = bio;
+      if (staffType !== undefined) updateData.staffType = staffType;
+      if (pasFotoUrl !== undefined || avatar !== undefined) {
+        updateData.pasFotoUrl = pasFotoUrl ?? avatar;
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        await db.update(users).set(updateData).where(eq(users.id, userRecord.id));
+        await logAudit(request, "UPDATE_PROFILE", "users", userRecord.id);
+      }
+
+      const [updated] = await db
+        .select({
+          id: users.id,
+          username: users.username,
+          name: users.name,
+          email: users.email,
+          phone: users.phone,
+          bio: users.bio,
+          nik: users.nik,
+          staffType: users.staffType,
+          pasFotoUrl: users.pasFotoUrl,
+        })
+        .from(users)
+        .where(eq(users.id, userRecord.id))
+        .limit(1);
+
+      return reply.send({
+        success: true,
+        message: "Profil berhasil diperbarui",
+        data: updated,
+      });
+    } catch (error) {
+      request.log.error(error);
+      return reply.status(500).send({ success: false, error: "Gagal memperbarui profil pengguna" });
     }
   }
 }
