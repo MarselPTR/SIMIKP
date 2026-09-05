@@ -44,7 +44,7 @@ export const router = createBrowserRouter([
 
               // Eksklusif Ahli Pertama: Review & Persetujuan
               {
-                element: <RoleRoute allow={[Role.SUPER_ADMIN, Role.AHLI_PERTAMA, Role.REVIEWER]} />,
+                element: <RoleRoute allow={[Role.AHLI_PERTAMA]} />,
                 children: [
                   { path: "review", element: <ReviewPage /> },
                 ],

@@ -140,7 +140,7 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
         });
       }
     } else {
-      if (notifType === "REVIEW" || notifTitle.includes("review") || notifTitle.includes("telaah")) {
+      if (user?.role?.toLowerCase() === "ahli_pertama" && (notifType === "REVIEW" || notifTitle.includes("review") || notifTitle.includes("telaah"))) {
         navigate("/review");
       } else if (notifType === "ACTIVITY" || (!taskId && activityId) || notifTitle.includes("kegiatan")) {
         navigate(activityId ? `/kegiatan?id=${activityId}` : "/kegiatan");
