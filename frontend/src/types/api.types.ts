@@ -1,6 +1,3 @@
-// Data dummy untuk mengisi UI selama endpoint backend (Dev 1-5) belum tersedia.
-// Ganti pemakaian file ini dengan panggilan lib/api-client.ts begitu endpoint asli siap.
-
 export const Role = {
   SUPER_ADMIN: "super_admin",
   AHLI_PERTAMA: "ahli_pertama",
@@ -11,37 +8,17 @@ export const Role = {
   PETUGAS: "petugas",
 } as const;
 
-export interface MockUser {
+export interface ApiUser {
   id: string;
   name: string;
   email: string;
-  password: string;
+  password?: string;
   role: (typeof Role)[keyof typeof Role];
-  avatar: string;
-  // Hanya diisi untuk role PETUGAS — menentukan alur kerja & tugas lapangan mana yang terlihat.
+  avatar?: string;
   bidang?: string;
 }
 
-export const mockUsers: MockUser[] = [
-  {
-    id: "mock-ahli-pertama-01",
-    name: "Bambang S., S.Kom",
-    email: "ahli@kominfo.batukota.go.id",
-    password: "admin",
-    role: Role.AHLI_PERTAMA,
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
-    bidang: "AHLI_PERTAMA",
-  },
-];
-
-// Alur status per bidang kerja petugas lapangan — dipakai di halaman Penugasan Saya.
-export const WORKFLOWS: Record<string, string[]> = {
-  PRAHUM: ["BELUM", "LIPUTAN", "MENULIS", "SIAP_TAYANG", "SELESAI"],
-  DESAINER_EDITOR: ["BELUM", "DESAIN", "REVISI", "SIAP_TAYANG", "SELESAI"],
-  FOTO_VIDEO: ["BELUM", "LIPUTAN", "SIAP_TAYANG", "SELESAI"],
-};
-
-export interface MockTugasPetugas {
+export interface ApiTugasPetugas {
   id: string;
   kegiatan: string;
   lokasi: string;
@@ -57,9 +34,7 @@ export interface MockTugasPetugas {
   waktuPelaksanaan?: string;
 }
 
-
-
-export interface MockKegiatan {
+export interface ApiKegiatan {
   id: string;
   title: string;
   status: "active" | "review" | "done" | "pending";
@@ -69,25 +44,10 @@ export interface MockKegiatan {
   lokasi?: string;
   opdPenyelenggara?: string;
   outputDibutuhkan?: string[];
+  activityTime?: string;
 }
 
-export const KEGIATAN_STATUS_COLORS: Record<MockKegiatan["status"], string> = {
-  active: "#22c55e",
-  review: "#f59e0b",
-  done: "#9ca3af",
-  pending: "#3b82f6",
-};
-
-export const KEGIATAN_STATUS_LABELS: Record<MockKegiatan["status"], string> = {
-  active: "Aktif",
-  review: "Review",
-  done: "Selesai",
-  pending: "Pending",
-};
-
-
-
-export interface MockPenugasan {
+export interface ApiPenugasan {
   id: string;
   activityId?: string;
   kegiatanTerkait: string;
@@ -104,23 +64,21 @@ export interface MockPenugasan {
   lokasi?: string;
   deadline?: string;
   catatan?: string;
+  revisionNotes?: string;
 }
 
-
-
-export interface MockProduksi {
+export interface ApiProduksi {
   id: string;
   kegiatan: string;
   bidangPekerjaan: string;
   workLink?: string;
+  picName?: string;
   startDate: string;
   endDate: string;
   status: "BELUM" | "LIPUTAN" | "DESAIN" | "REVISI" | "SIAP_TAYANG" | "SELESAI";
 }
 
-
-
-export interface MockReview {
+export interface ApiReview {
   id: string;
   content: string;
   reviewer: string;
@@ -129,9 +87,7 @@ export interface MockReview {
   feedback: string;
 }
 
-
-
-export interface MockPublikasi {
+export interface ApiPublikasi {
   id: string;
   title: string;
   channel: string;
@@ -141,9 +97,7 @@ export interface MockPublikasi {
   link?: string;
 }
 
-
-
-export interface MockBankKontenFile {
+export interface ApiBankKontenFile {
   id: string;
   name: string;
   jenisKonten: "foto" | "video";
@@ -152,7 +106,7 @@ export interface MockBankKontenFile {
   workLink?: string;
 }
 
-export interface MockBankKontenFolder {
+export interface ApiBankKontenFolder {
   id: string;
   title: string;
   tanggal: string;
@@ -160,9 +114,5 @@ export interface MockBankKontenFolder {
   kategori?: string;
   strakomNumber?: string;
   thumbnailUrl?: string;
-  files: MockBankKontenFile[];
+  files: ApiBankKontenFile[];
 }
-
-
-
-

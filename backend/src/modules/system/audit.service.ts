@@ -16,8 +16,7 @@ export async function logAudit(
     let actorUserId: string | null = null;
     if (cookieSession) {
       try {
-        const decoded = Buffer.from(cookieSession, "base64").toString("utf-8");
-        const session = JSON.parse(decoded);
+        const session = request.server.jwt.verify(cookieSession) as any;
         actorUserId = session.id || null;
       } catch {}
     }

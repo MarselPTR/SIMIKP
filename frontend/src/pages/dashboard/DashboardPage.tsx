@@ -16,8 +16,8 @@ import {
 } from "lucide-react";
 
 import { apiFetch } from "../../lib/api-client";
-import { KEGIATAN_STATUS_COLORS, KEGIATAN_STATUS_LABELS } from "../../lib/mock-data";
-import type { MockKegiatan } from "../../lib/mock-data";
+import { KEGIATAN_STATUS_COLORS, KEGIATAN_STATUS_LABELS } from "../../lib/constants";
+import type { ApiKegiatan } from "../../types/api.types";
 import EventCalendar, { dateKeyOf } from "../../components/shared/EventCalendar";
 import type { CalendarEvent } from "../../components/shared/EventCalendar";
 import Button from "../../components/ui/Button";
@@ -215,9 +215,9 @@ const initialsOf = (name: string) =>
     .join("")
     .toUpperCase();
 
-const getKegiatanStatusLabel = (status: MockKegiatan["status"], language: string) => {
+const getKegiatanStatusLabel = (status: ApiKegiatan["status"], language: string) => {
   if (language === "en") {
-    const map: Record<MockKegiatan["status"], string> = {
+    const map: Record<ApiKegiatan["status"], string> = {
       active: "Active",
       review: "Review",
       done: "Completed",
@@ -228,7 +228,7 @@ const getKegiatanStatusLabel = (status: MockKegiatan["status"], language: string
   return KEGIATAN_STATUS_LABELS[status] || status;
 };
 
-const TugasTerbaruTable = ({ items }: { items: MockKegiatan[] }) => {
+const TugasTerbaruTable = ({ items }: { items: ApiKegiatan[] }) => {
   const navigate = useNavigate();
   const { language } = useLanguage();
 
@@ -705,7 +705,7 @@ const DashboardPage = () => {
       }
     },
   });
-  const kegiatanList: MockKegiatan[] = Array.isArray(kegiatanResponse)
+  const kegiatanList: ApiKegiatan[] = Array.isArray(kegiatanResponse)
     ? kegiatanResponse
     : (kegiatanResponse as any)?.data || [];
 
@@ -742,7 +742,7 @@ const DashboardPage = () => {
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
 
   const dashboardCalendarLegend = useMemo(() => {
-    return (Object.keys(KEGIATAN_STATUS_LABELS) as MockKegiatan["status"][]).map((status) => ({
+    return (Object.keys(KEGIATAN_STATUS_LABELS) as ApiKegiatan["status"][]).map((status) => ({
       status,
       label: getKegiatanStatusLabel(status, language),
       color: KEGIATAN_STATUS_COLORS[status],

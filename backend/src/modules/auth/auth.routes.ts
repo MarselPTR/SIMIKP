@@ -104,20 +104,19 @@ export async function authRoutes(fastify: FastifyInstance) {
          return reply.status(401).send({ error: "Invalid credentials" });
       }
 
-      // Generate a session token
-      const sessionToken = JSON.stringify({
+      // Generate a session token with JWT
+      const payload = {
         id: user.id,
         username: user.username,
         name: user.name,
         role: user.roleName,
         staffType: user.staffType,
-      });
+      };
 
-      // Encode base64 for safe cookie storage
-      const encodedSession = Buffer.from(sessionToken).toString("base64");
+      const token = fastify.jwt.sign(payload);
 
       // Set HTTP-Only Cookie
-      reply.setCookie("simikp_session", encodedSession, {
+      reply.setCookie("simikp_session", token, {
         path: "/",
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
@@ -146,19 +145,12 @@ export async function authRoutes(fastify: FastifyInstance) {
   });
 
   fastify.get("/me", async (request: FastifyRequest, reply: FastifyReply) => {
-    const cookieSession = request.cookies["simikp_session"];
-    if (!cookieSession) {
-      return reply.status(401).send({ error: "Unauthorized" });
-    }
-
     try {
-      const decodedSession = Buffer.from(cookieSession, "base64").toString("utf-8");
-      const sessionUser = JSON.parse(decodedSession);
-      
-      return reply.send({ success: true, user: sessionUser });
+      await request.jwtVerify();
+      return reply.send({ success: true, user: request.user });
     } catch (err) {
       reply.clearCookie("simikp_session", { path: "/" });
-      return reply.status(401).send({ error: "Invalid session" });
+      return reply.status(401).send({ error: "Unauthorized or invalid session" });
     }
   });
 
@@ -340,9 +332,8 @@ export async function authRoutes(fastify: FastifyInstance) {
       const cookieSession = request.cookies["simikp_session"];
       if (cookieSession) {
         try {
-          const decoded = Buffer.from(cookieSession, "base64").toString("utf-8");
-          const parsed = JSON.parse(decoded);
-          targetUserId = parsed.id;
+          const decoded = fastify.jwt.verify(cookieSession) as any;
+          targetUserId = decoded.id;
         } catch {}
       }
 

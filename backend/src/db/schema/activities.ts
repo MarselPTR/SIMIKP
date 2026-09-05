@@ -1,6 +1,7 @@
 import { mysqlTable, char, varchar, date, datetime, time, text, primaryKey, index } from "drizzle-orm/mysql-core";
 import { locations, contentTypes, opds } from "./master";
 import { users } from "./users";
+import { sql } from "drizzle-orm";
 
 export const activities = mysqlTable("activities", {
   id: char("id", { length: 36 }).primaryKey(),
@@ -16,7 +17,7 @@ export const activities = mysqlTable("activities", {
   priority: varchar("priority", { length: 50 }),
   status: varchar("status", { length: 50 }).notNull(),
   createdBy: char("created_by", { length: 36 }).notNull().references(() => users.id),
-  createdAt: datetime("created_at").default(new Date()),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`),
 }, (t) => ({
   idxActivityDate: index("idx_activity_date").on(t.activityDate),
   idxActivityStatus: index("idx_activity_status").on(t.status),
@@ -34,7 +35,7 @@ export const assignments = mysqlTable("assignments", {
   activityId: char("activity_id", { length: 36 }).notNull().references(() => activities.id),
   userId: char("user_id", { length: 36 }).notNull().references(() => users.id),
   contentTypeId: char("content_type_id", { length: 36 }).notNull().references(() => contentTypes.id),
-  assignedAt: datetime("assigned_at").default(new Date()),
+  assignedAt: datetime("assigned_at").default(sql`CURRENT_TIMESTAMP`),
   startTime: time("start_time"),
   endTime: time("end_time"),
   deadline: datetime("deadline"),
@@ -44,7 +45,7 @@ export const assignments = mysqlTable("assignments", {
   workLink: text("work_link"),
   revisionNotes: text("revision_notes"),
   revisionAuthor: varchar("revision_author", { length: 255 }),
-  revisionDate: varchar("revision_date", { length: 100 }),
+  revisionDate: datetime("revision_date"),
   createdBy: char("created_by", { length: 36 }).notNull().references(() => users.id),
 }, (t) => ({
   idxAssignmentStatus: index("idx_assignment_status").on(t.status),

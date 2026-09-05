@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { apiFetch } from "../../lib/api-client";
-import type { MockPenugasan } from "../../lib/mock-data";
+import type { ApiPenugasan } from "../../types/api.types";
 import { useToast } from "../../contexts/ToastContext";
 import { useConfirm } from "../../contexts/ConfirmContext";
 import { useLanguage } from "../../lib/LanguageContext";
@@ -30,6 +30,7 @@ import {
   RiHourglassLine,
   RiCheckboxCircleFill,
   RiCloseCircleFill,
+  RiAlertFill,
 } from "@remixicon/react";
 
 const FIELD_CLASS =
@@ -41,7 +42,7 @@ const ROW_GRID =
   "grid grid-cols-[1.5rem_minmax(9rem,1.6fr)_minmax(6rem,1fr)_6.5rem_7.5rem_7rem] items-center gap-3 min-w-[640px]";
 
 const STATUS_META: Record<
-  MockPenugasan["status"],
+  ApiPenugasan["status"],
   { labelId: string; labelEn: string; icon: typeof RiTimeLine; badge: string; accent: string }
 > = {
   "in-progress": { labelId: "Proses", labelEn: "In Progress", icon: RiTimeLine, badge: "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60", accent: "border-l-amber-400" },
@@ -51,7 +52,18 @@ const STATUS_META: Record<
   unassigned: { labelId: "Belum Ditugaskan", labelEn: "Unassigned", icon: RiHourglassLine, badge: "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700", accent: "border-l-gray-300 dark:border-l-gray-600" },
 };
 
-function PenugasanStatusBadge({ status, language }: { status: MockPenugasan["status"]; language: string }) {
+function PenugasanStatusBadge({ status, language, revisionNotes }: { status: ApiPenugasan["status"]; language: string; revisionNotes?: string }) {
+  if (status === "in-progress" && revisionNotes) {
+    return (
+      <StatusBadge
+        status="default"
+        leftIcon={RiAlertFill}
+        leftLabel={language === "en" ? "Needs Re-Review" : "Perlu Review Ulang"}
+        className="bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-400 border-orange-400 dark:border-orange-500 shadow-xs animate-pulse font-bold"
+      />
+    );
+  }
+
   const m = STATUS_META[status];
   return (
     <StatusBadge
@@ -62,6 +74,20 @@ function PenugasanStatusBadge({ status, language }: { status: MockPenugasan["sta
     />
   );
 }
+
+const parseActivityTime = (timeStr?: string) => {
+  if (!timeStr) return { start: "08:00", end: "10:00" };
+  const parts = timeStr.split("-").map(t => t.trim().slice(0, 5));
+  if (parts.length >= 2 && parts[0] && parts[1]) {
+    return { start: parts[0], end: parts[1] };
+  } else if (parts.length >= 1 && parts[0]) {
+    const startHour = parseInt(parts[0].split(":")[0] || "8", 10);
+    const endHour = (startHour + 2).toString().padStart(2, "0");
+    const endStr = `${endHour}:${parts[0].split(":")[1] || "00"}`;
+    return { start: parts[0], end: endStr };
+  }
+  return { start: "08:00", end: "10:00" };
+};
 
 export default function PenugasanPage() {
   const { addToast } = useToast();
@@ -86,8 +112,8 @@ export default function PenugasanPage() {
             pic: a.picName || a.user?.name || "Petugas",
             picAvatar: a.picName ? a.picName.slice(0, 2).toUpperCase() : "PT",
             jenisKonten: a.contentType || "Dokumentasi",
-            jamMulai: a.startTime ? a.startTime.slice(0, 5) : "08:00",
-            jamSelesai: a.endTime ? a.endTime.slice(0, 5) : "12:00",
+            jamMulai: a.startTime ? a.startTime.slice(0, 5) : (a.activityTime ? parseActivityTime(a.activityTime).start : "08:00"),
+            jamSelesai: a.endTime ? a.endTime.slice(0, 5) : (a.activityTime ? parseActivityTime(a.activityTime).end : "10:00"),
             status:
               a.status === "COMPLETED"
                 ? "done"
@@ -100,7 +126,8 @@ export default function PenugasanPage() {
                       : "pending",
             lokasi: a.location || "Batu",
             catatan: a.instruction,
-          })) as MockPenugasan[];
+            revisionNotes: a.revisionNotes,
+          })) as ApiPenugasan[];
         }
         return [];
       } catch (err) {
@@ -134,7 +161,7 @@ export default function PenugasanPage() {
     },
   });
 
-  const items: MockPenugasan[] = Array.isArray(initialData)
+  const items: ApiPenugasan[] = Array.isArray(initialData)
     ? initialData
     : (initialData as any)?.data || [];
 
@@ -151,7 +178,7 @@ export default function PenugasanPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<MockPenugasan | null>(null);
+  const [selectedItem, setSelectedItem] = useState<ApiPenugasan | null>(null);
 
   // Auto-open detail modal if navigated with assignment id from notification or link
   useEffect(() => {
@@ -241,7 +268,7 @@ export default function PenugasanPage() {
     jamMulai: "08:00",
     jamSelesai: "10:00",
     waktuSubtitle: "",
-    status: "in-progress" as MockPenugasan["status"],
+    status: "in-progress" as ApiPenugasan["status"],
     lokasi: "Balaikota Among Tani",
     catatan: "",
   });
@@ -262,10 +289,10 @@ export default function PenugasanPage() {
           tanggalKegiatan: formatDisplayDate(found.deadline),
           waktuSubtitle: formatSubtitleDate(found.deadline),
           jenisKonten: found.outputDibutuhkan?.[0] ?? "Foto",
+          jamMulai: parseActivityTime(found.activityTime).start,
+          jamSelesai: parseActivityTime(found.activityTime).end,
           pic: defaultPic,
           picAvatar: defaultAvatar,
-          jamMulai: "08:30",
-          jamSelesai: "11:00",
           status: "in-progress",
           lokasi: found.lokasi ?? "Balaikota Among Tani",
           catatan: `Penugasan untuk kegiatan ${found.title} (${found.opdPenyelenggara ?? "OPD"})`,
@@ -308,7 +335,7 @@ export default function PenugasanPage() {
 
   // Conflict detection in form
   const formConflict = useMemo(() => {
-    if (!formData.pic || !formData.jamMulai || !formData.jamSelesai) return null;
+    if (!formData.pic || !formData.jamMulai || !formData.jamSelesai || !formData.tanggalKegiatan) return null;
 
     const startNum = parseInt(formData.jamMulai.replace(":", ""), 10);
     const endNum = parseInt(formData.jamSelesai.replace(":", ""), 10);
@@ -316,6 +343,7 @@ export default function PenugasanPage() {
     const conflict = items.find((item) => {
       if (selectedItem && item.id === selectedItem.id) return false;
       if (item.pic !== formData.pic) return false;
+      if (item.tanggalKegiatan !== formData.tanggalKegiatan) return false;
 
       const itemStart = parseInt(item.jamMulai.replace(":", ""), 10);
       const itemEnd = parseInt(item.jamSelesai.replace(":", ""), 10);
@@ -383,7 +411,7 @@ export default function PenugasanPage() {
         tanggal?: string;
         lokasi?: string;
         activityId?: string;
-        rows: MockPenugasan[];
+        rows: ApiPenugasan[];
       }
     >();
     for (const it of filteredItems) {
@@ -417,7 +445,7 @@ export default function PenugasanPage() {
   };
 
   // Bulk Actions
-  const handleBulkMarkStatus = async (status: MockPenugasan["status"]) => {
+  const handleBulkMarkStatus = async (status: ApiPenugasan["status"]) => {
     if (selectedIds.length === 0) return;
 
     try {
@@ -488,10 +516,10 @@ export default function PenugasanPage() {
       kegiatanTerkait: firstKeg ? firstKeg.title : "",
       tanggalKegiatan: firstKeg ? formatDisplayDate(firstKeg.deadline) : "Senin, 24 Agustus 2026",
       jenisKonten: firstKeg?.outputDibutuhkan?.[0] ?? JENIS_KONTEN_OPTIONS[0] ?? "Foto",
+      jamMulai: parseActivityTime(firstKeg?.activityTime).start,
+      jamSelesai: parseActivityTime(firstKeg?.activityTime).end,
       pic: firstPic ? firstPic.name : "",
       picAvatar: firstPic ? firstPic.avatar : "PT",
-      jamMulai: "08:00",
-      jamSelesai: "10:00",
       waktuSubtitle: firstKeg ? formatSubtitleDate(firstKeg.deadline) : "",
       status: "in-progress",
       lokasi: firstKeg?.lokasi ?? "Balaikota Among Tani",
@@ -512,10 +540,10 @@ export default function PenugasanPage() {
       tanggalKegiatan: group.tanggal ?? (keg ? formatDisplayDate(keg.deadline) : ""),
       waktuSubtitle: keg ? formatSubtitleDate(keg.deadline) : "",
       jenisKonten: keg?.outputDibutuhkan?.[0] ?? JENIS_KONTEN_OPTIONS[0] ?? "Foto",
+      jamMulai: parseActivityTime(keg?.activityTime).start,
+      jamSelesai: parseActivityTime(keg?.activityTime).end,
       pic: firstPic ? firstPic.name : "",
       picAvatar: firstPic ? firstPic.avatar : "PT",
-      jamMulai: "08:00",
-      jamSelesai: "10:00",
       status: "in-progress",
       lokasi: group.lokasi ?? keg?.lokasi ?? "Balaikota Among Tani",
       catatan: `Penugasan untuk kegiatan ${group.kegiatan}`,
@@ -524,7 +552,7 @@ export default function PenugasanPage() {
   };
 
   // Handler Open Edit
-  const handleOpenEdit = (item: MockPenugasan) => {
+  const handleOpenEdit = (item: ApiPenugasan) => {
     setSelectedItem(item);
     setFormData({
       kegiatanTerkait: item.kegiatanTerkait,
@@ -543,13 +571,13 @@ export default function PenugasanPage() {
   };
 
   // Handler Open Detail
-  const handleOpenDetail = (item: MockPenugasan) => {
+  const handleOpenDetail = (item: ApiPenugasan) => {
     setSelectedItem(item);
     setIsDetailOpen(true);
   };
 
   // Handler Open Delete
-  const handleOpenDelete = async (item: MockPenugasan) => {
+  const handleOpenDelete = async (item: ApiPenugasan) => {
     const confirmed = await confirm({
       title: language === "en" ? "Confirm Delete Assignment" : "Konfirmasi Hapus Penugasan",
       message: language === "en"
@@ -931,7 +959,7 @@ export default function PenugasanPage() {
                       ? prev.filter((id) => !groupIds.includes(id))
                       : [...new Set([...prev, ...groupIds])]
                   );
-                const agg: MockPenugasan["status"] = group.rows.some((r) => r.status === "conflict")
+                const agg: ApiPenugasan["status"] = group.rows.some((r) => r.status === "conflict")
                   ? "conflict"
                   : group.rows.some((r) => r.status === "in-progress")
                     ? "in-progress"
@@ -1019,9 +1047,9 @@ export default function PenugasanPage() {
                               <span className="font-mono text-xs text-slate-600 dark:text-slate-400">
                                 {isVacant ? "-" : `${item.jamMulai}\u2013${item.jamSelesai}`}
                               </span>
-                              <span>
-                                <PenugasanStatusBadge status={item.status} language={language} />
-                              </span>
+                                <span>
+                                  <PenugasanStatusBadge status={item.status} language={language} revisionNotes={item.revisionNotes} />
+                                </span>
                               <div className="flex items-center justify-end gap-0.5 text-slate-400 dark:text-slate-500">
                                 {isVacant ? (
                                   <button
@@ -1035,8 +1063,8 @@ export default function PenugasanPage() {
                                         jenisKonten: item.jenisKonten,
                                         pic: firstPic ? firstPic.name : "",
                                         picAvatar: firstPic ? firstPic.avatar : "PT",
-                                        jamMulai: "08:00",
-                                        jamSelesai: "10:00",
+                                        jamMulai: item.jamMulai || parseActivityTime(keg?.activityTime).start,
+                                        jamSelesai: item.jamSelesai || parseActivityTime(keg?.activityTime).end,
                                         waktuSubtitle: keg ? formatSubtitleDate(keg.deadline) : "",
                                         status: "in-progress",
                                         lokasi: item.lokasi ?? keg?.lokasi ?? "Balaikota Among Tani",
@@ -1191,6 +1219,8 @@ export default function PenugasanPage() {
                     kegiatanTerkait: selectedKeg.title,
                     tanggalKegiatan: formatDisplayDate(selectedKeg.deadline),
                     waktuSubtitle: formatSubtitleDate(selectedKeg.deadline),
+                    jamMulai: parseActivityTime(selectedKeg.activityTime).start,
+                    jamSelesai: parseActivityTime(selectedKeg.activityTime).end,
                     lokasi: selectedKeg.lokasi ?? formData.lokasi,
                     jenisKonten: selectedKeg.outputDibutuhkan?.[0] ?? formData.jenisKonten,
                     catatan: `Penugasan untuk kegiatan ${selectedKeg.title} (${selectedKeg.opdPenyelenggara ?? "OPD"})`,
@@ -1298,36 +1328,16 @@ export default function PenugasanPage() {
             </div>
           </div>
 
-          {/* Lokasi + Status */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className={LABEL_CLASS}>{language === "en" ? "Coverage location" : "Lokasi liputan"}</label>
-              <input
-                type="text"
-                placeholder="Balaikota Among Tani"
-                value={formData.lokasi}
-                onChange={(e) => setFormData({ ...formData, lokasi: e.target.value })}
-                className={FIELD_CLASS}
-              />
-            </div>
-            <div>
-              <label className={LABEL_CLASS}>Status</label>
-              <select
-                value={formData.status}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    status: e.target.value as MockPenugasan["status"],
-                  })
-                }
-                className={FIELD_CLASS}
-              >
-                <option value="pending">{language === "en" ? "Pending" : "Menunggu"}</option>
-                <option value="in-progress">{language === "en" ? "In Progress" : "Proses"}</option>
-                <option value="done">{language === "en" ? "Completed" : "Selesai"}</option>
-                <option value="conflict">{language === "en" ? "Conflict" : "Bentrok"}</option>
-              </select>
-            </div>
+          {/* Lokasi */}
+          <div>
+            <label className={LABEL_CLASS}>{language === "en" ? "Coverage location" : "Lokasi liputan"}</label>
+            <input
+              type="text"
+              placeholder="Balaikota Among Tani"
+              value={formData.lokasi}
+              onChange={(e) => setFormData({ ...formData, lokasi: e.target.value })}
+              className={FIELD_CLASS}
+            />
           </div>
 
           {/* Catatan */}
@@ -1368,7 +1378,7 @@ export default function PenugasanPage() {
                       : "—"}
                   </p>
                 </div>
-                <PenugasanStatusBadge status={selectedItem.status} language={language} />
+                <PenugasanStatusBadge status={selectedItem.status} language={language} revisionNotes={selectedItem.revisionNotes} />
               </div>
             </div>
 

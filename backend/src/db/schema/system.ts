@@ -1,5 +1,6 @@
-import { mysqlTable, char, varchar, text, datetime, json } from "drizzle-orm/mysql-core";
+import { mysqlTable, char, varchar, text, datetime, json, boolean } from "drizzle-orm/mysql-core";
 import { users } from "./users";
+import { sql } from "drizzle-orm";
 
 export const notifications = mysqlTable("notifications", {
   id: char("id", { length: 36 }).primaryKey(),
@@ -9,7 +10,7 @@ export const notifications = mysqlTable("notifications", {
   message: text("message").notNull(),
   readAt: datetime("read_at"),
   metadata: json("metadata"),
-  createdAt: datetime("created_at").default(new Date()),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const auditLogs = mysqlTable("audit_logs", {

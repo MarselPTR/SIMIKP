@@ -3,6 +3,7 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import cookie from "@fastify/cookie";
 import multipart from "@fastify/multipart";
+import fastifyJwt from "@fastify/jwt";
 import { ZodError } from "zod";
 
 const server = Fastify({
@@ -24,6 +25,17 @@ server.register(cookie, {
 server.register(multipart, {
   limits: {
     fileSize: (parseInt(process.env.MAX_FILE_SIZE_MB || "4096") * 1024 * 1024),
+  }
+});
+
+server.register(fastifyJwt, {
+  secret: process.env.JWT_SECRET || "simikp_super_secret_key_2026",
+  cookie: {
+    cookieName: "simikp_session",
+    signed: false,
+  },
+  sign: {
+    expiresIn: "7d",
   }
 });
 
@@ -93,6 +105,15 @@ server.register(fastifyStatic, {
   root: uploadsDir,
   prefix: "/api/v1/storage/uploads/",
   decorateReply: false,
+  setHeaders: (res: any, path) => {
+    if (typeof res.setHeader === "function") {
+      res.setHeader("Content-Disposition", "inline");
+      res.setHeader("Accept-Ranges", "bytes");
+    } else if (typeof res.header === "function") {
+      res.header("Content-Disposition", "inline");
+      res.header("Accept-Ranges", "bytes");
+    }
+  },
 });
 
 // Serve static frontend files (assuming we run from backend root, pointing to ../frontend/dist)

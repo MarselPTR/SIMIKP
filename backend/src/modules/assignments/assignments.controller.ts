@@ -88,6 +88,20 @@ const updateAssignmentSchema = z.object({
   isRevisionSubmission: z.boolean().optional(),
 });
 
+const parseActivityTime = (timeStr?: string | null) => {
+  if (!timeStr) return { start: "08:00", end: "10:00" };
+  const parts = timeStr.split("-").map(t => t.trim().slice(0, 5));
+  if (parts.length >= 2 && parts[0] && parts[1]) {
+    return { start: parts[0], end: parts[1] };
+  } else if (parts.length >= 1 && parts[0]) {
+    const startHour = parseInt(parts[0].split(":")[0] || "8", 10);
+    const endHour = (startHour + 2).toString().padStart(2, "0");
+    const endStr = `${endHour}:${parts[0].split(":")[1] || "00"}`;
+    return { start: parts[0], end: endStr };
+  }
+  return { start: "08:00", end: "10:00" };
+};
+
 export class AssignmentsController {
   static async getAllAssignments(request: FastifyRequest, reply: FastifyReply) {
     try {
@@ -98,6 +112,7 @@ export class AssignmentsController {
           userId: assignments.userId,
           activityTitle: activities.title,
           activityDate: activities.activityDate,
+          activityTime: activities.activityTime,
           picName: users.name,
           staffType: users.staffType,
           contentType: contentTypes.name,
@@ -188,6 +203,7 @@ export class AssignmentsController {
               startTime: assignments.startTime,
               endTime: assignments.endTime,
               activityTitle: activities.title,
+              activityTime: activities.activityTime,
             })
             .from(assignments)
             .innerJoin(activities, eq(assignments.activityId, activities.id))
@@ -197,15 +213,16 @@ export class AssignmentsController {
                 eq(activities.activityDate, tDate)
               )
             );
-          
+
           const isOverlap = (start1: string, end1: string, start2: string, end2: string) => {
             return start1 < end2 && start2 < end1;
           };
 
-          const conflicts = existingOnSameDate.filter(ex => 
-            ex.startTime && ex.endTime && 
-            isOverlap(body.startTime!, body.endTime!, ex.startTime.toString(), ex.endTime.toString())
-          );
+          const conflicts = existingOnSameDate.filter(ex => {
+            const exStart = ex.startTime ? ex.startTime.toString() : parseActivityTime(ex.activityTime?.toString()).start;
+            const exEnd = ex.endTime ? ex.endTime.toString() : parseActivityTime(ex.activityTime?.toString()).end;
+            return isOverlap(body.startTime!, body.endTime!, exStart, exEnd);
+          });
 
           if (conflicts.length > 0) {
             return reply.status(409).send({
@@ -222,7 +239,7 @@ export class AssignmentsController {
       let createdBy = finalUserId || "system";
       if (cookieSession) {
         try {
-          const session = JSON.parse(Buffer.from(cookieSession, "base64").toString("utf-8"));
+          const session = request.server.jwt.verify(cookieSession) as any;
           createdBy = session.id;
         } catch (e) {}
       }
@@ -330,7 +347,7 @@ export class AssignmentsController {
       let userId: string | null = null;
       if (cookieSession) {
         try {
-          const session = JSON.parse(Buffer.from(cookieSession, "base64").toString("utf-8"));
+          const session = request.server.jwt.verify(cookieSession) as any;
           userId = session.id;
         } catch (e) {}
       }
@@ -347,6 +364,7 @@ export class AssignmentsController {
         return reply.status(404).send({ success: false, error: "Agenda tidak ditemukan", message: "Agenda tidak ditemukan" });
       }
       const finalActivityId = actMatches[0].id;
+      const agendaTime = parseActivityTime(actMatches[0].activityTime);
 
       const contentTypeKey = body.contentTypeId || body.contentType;
       if (!contentTypeKey) {
@@ -384,6 +402,8 @@ export class AssignmentsController {
           activityId: finalActivityId,
           userId: finalUserId,
           contentTypeId: finalContentTypeId,
+          startTime: agendaTime.start,
+          endTime: agendaTime.end,
           status: "ASSIGNED",
           createdBy: finalUserId,
         });
@@ -489,13 +509,7 @@ export class AssignmentsController {
       if (body.revisionNotes !== undefined) {
         updateData.revisionNotes = body.revisionNotes;
         updateData.revisionAuthor = body.revisionAuthor || "Pranata Humas Ahli Pertama";
-        updateData.revisionDate = new Date().toLocaleDateString("id-ID", {
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        }) + " WIB";
+        updateData.revisionDate = new Date();
       }
 
       if (Object.keys(updateData).length > 0) {
@@ -584,6 +598,7 @@ export class AssignmentsController {
 
           const targetAhliReviewers = await db
             .select({
+              id: users.id,
               name: users.name,
               email: users.email,
             })
@@ -610,6 +625,14 @@ export class AssignmentsController {
                 previousNotes: body.revisionNotes || undefined,
               }).catch((err) => console.error("[AssignmentsController] Gagal kirim email verifikasi revisi ke Ahli Pertama:", err));
             }
+
+            createNotification({
+              userId: reviewer.id,
+              type: "REVISION_SUBMITTED",
+              title: "Revisi Dikembalikan",
+              message: `Petugas ${revSubmitDetail[0]?.officerName || "Lapangan"} telah mengunggah kembali hasil revisi untuk kegiatan ${revSubmitDetail[0]?.activityTitle || "Liputan"}. Mohon segera ditelaah ulang.`,
+              metadata: { assignmentId: id }
+            }).catch((err) => console.error("[AssignmentsController] Gagal membuat notifikasi DB:", err));
           }
         }
 

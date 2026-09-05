@@ -1,6 +1,6 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../lib/AuthContext";
-import { Role } from "../lib/mock-data";
+import { Role } from "../types/api.types";
 
 interface RoleRouteProps {
   allow: string[];

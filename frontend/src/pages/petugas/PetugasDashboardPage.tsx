@@ -17,7 +17,7 @@ import { usePetugasTasksStore, type PetugasTaskItem } from "../../lib/petugas-st
 import EventCalendar, { dateKeyOf } from "../../components/shared/EventCalendar";
 import Dialog from "../../components/ui/Dialog";
 import Button from "../../components/ui/Button";
-import { WORKFLOWS } from "../../lib/mock-data";
+import { WORKFLOWS } from "../../lib/constants";
 import { useLanguage } from "../../lib/LanguageContext";
 
 /* ---------------------------------------------------------------------- */

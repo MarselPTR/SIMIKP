@@ -17,8 +17,8 @@ import {
   X,
 } from "lucide-react";
 import { apiFetch } from "../../lib/api-client";
-import { KEGIATAN_STATUS_COLORS, KEGIATAN_STATUS_LABELS } from "../../lib/mock-data";
-import type { MockKegiatan, MockPenugasan } from "../../lib/mock-data";
+import { KEGIATAN_STATUS_COLORS, KEGIATAN_STATUS_LABELS } from "../../lib/constants";
+import type { ApiKegiatan, ApiPenugasan } from "../../types/api.types";
 import Badge from "../../components/ui/Badge";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
@@ -34,27 +34,27 @@ import type { CalendarEvent } from "../../components/shared/EventCalendar";
 const STATUS_COLORS = KEGIATAN_STATUS_COLORS;
 const STATUS_LABELS = KEGIATAN_STATUS_LABELS;
 
-const STATUS_LABELS_EN: Record<MockKegiatan["status"], string> = {
+const STATUS_LABELS_EN: Record<ApiKegiatan["status"], string> = {
   active: "Active",
   review: "Needs Review",
   done: "Done",
   pending: "Pending",
 };
 
-const STATUS_BADGE_VARIANT: Record<MockKegiatan["status"], "success" | "warning" | "default" | "info"> = {
+const STATUS_BADGE_VARIANT: Record<ApiKegiatan["status"], "success" | "warning" | "default" | "info"> = {
   active: "success",
   review: "warning",
   done: "default",
   pending: "info",
 };
 
-const PRIORITAS_BADGE_VARIANT: Record<MockKegiatan["prioritas"], "warning" | "info" | "default"> = {
+const PRIORITAS_BADGE_VARIANT: Record<ApiKegiatan["prioritas"], "warning" | "info" | "default"> = {
   Tinggi: "warning",
   Sedang: "info",
   Rendah: "default",
 };
 
-const getPrioritasLabel = (prioritas: MockKegiatan["prioritas"], lang: string) => {
+const getPrioritasLabel = (prioritas: ApiKegiatan["prioritas"], lang: string) => {
   if (lang === "en") {
     if (prioritas === "Tinggi") return "High";
     if (prioritas === "Sedang") return "Medium";
@@ -154,7 +154,7 @@ const emptyForm = {
   desaKelurahan: "",
   alamat: "",
   opdPenyelenggara: "",
-  prioritas: "Sedang" as MockKegiatan["prioritas"],
+  prioritas: "Sedang" as ApiKegiatan["prioritas"],
   outputDibutuhkan: [] as string[],
 };
 
@@ -187,7 +187,7 @@ const KegiatanPage = () => {
   const confirm = useConfirm();
   const { t, language } = useLanguage();
 
-  const getStatusLabel = (st: MockKegiatan["status"]) =>
+  const getStatusLabel = (st: ApiKegiatan["status"]) =>
     language === "en" ? STATUS_LABELS_EN[st] : STATUS_LABELS[st];
 
   const { data: rawKegiatanData, isLoading, error, refetch } = useQuery({
@@ -223,7 +223,7 @@ const KegiatanPage = () => {
   });
   
   // Normalise items from real API or mock – map to shape expected by JSX
-  const penugasanList: MockPenugasan[] = useMemo(() => {
+  const penugasanList: ApiPenugasan[] = useMemo(() => {
     return (penugasanResponse?.data ?? []).map((p: any) => ({
       id: p.id,
       kegiatanTerkait: p.activityTitle ?? p.kegiatanTerkait ?? "",
@@ -237,14 +237,14 @@ const KegiatanPage = () => {
     }));
   }, [penugasanResponse?.data]);
 
-  const getAssignedTasks = (title: string): MockPenugasan[] => {
+  const getAssignedTasks = (title: string): ApiPenugasan[] => {
     if (!title) return [];
     return penugasanList.filter((p) =>
       (p.kegiatanTerkait ?? "").toLowerCase() === title.toLowerCase()
     );
   };
 
-  const items: (MockKegiatan & { activityTime?: string; lokasi?: string })[] = useMemo(
+  const items: (ApiKegiatan & { activityTime?: string; lokasi?: string })[] = useMemo(
     () => (Array.isArray(rawKegiatanData) ? rawKegiatanData.map((d: any) => ({
       ...d,
       deadline: d.activityDate ? (typeof d.activityDate === 'string' ? d.activityDate.split("T")[0] : new Date(d.activityDate).toISOString().split("T")[0]) : "",
@@ -255,7 +255,7 @@ const KegiatanPage = () => {
 
   const [search, setSearch] = useState("");
   const [filterDate, setFilterDate] = useState("all");
-  const [statusFilter, setStatusFilter] = useState<MockKegiatan["status"] | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<ApiKegiatan["status"] | "all">("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -289,13 +289,13 @@ const KegiatanPage = () => {
     return map;
   }, [items]);
 
-  const calendarLegend = (Object.keys(STATUS_LABELS) as MockKegiatan["status"][]).map((status) => ({
+  const calendarLegend = (Object.keys(STATUS_LABELS) as ApiKegiatan["status"][]).map((status) => ({
     label: getStatusLabel(status),
     color: STATUS_COLORS[status],
   }));
 
   const statusCounts = useMemo(() => {
-    const counts: Record<MockKegiatan["status"], number> = { active: 0, review: 0, done: 0, pending: 0 };
+    const counts: Record<ApiKegiatan["status"], number> = { active: 0, review: 0, done: 0, pending: 0 };
     for (const k of items) counts[k.status]++;
     return counts;
   }, [items]);
@@ -311,7 +311,7 @@ const KegiatanPage = () => {
     setIsModalOpen(true);
   };
 
-  const openEditDialog = (item: MockKegiatan & any) => {
+  const openEditDialog = (item: ApiKegiatan & any) => {
     setEditingId(item.id);
     setForm({
       title: item.title,
@@ -630,7 +630,7 @@ const KegiatanPage = () => {
         >
           {t("all")} ({items.length})
         </button>
-        {(Object.keys(STATUS_LABELS) as MockKegiatan["status"][]).map((st) => (
+        {(Object.keys(STATUS_LABELS) as ApiKegiatan["status"][]).map((st) => (
           <button
             key={st}
             type="button"
@@ -796,7 +796,7 @@ const KegiatanPage = () => {
                 ]}
                 className="mt-1"
                 value={form.prioritas}
-                onChange={(e) => setForm((f) => ({ ...f, prioritas: e.target.value as MockKegiatan["prioritas"] }))}
+                onChange={(e) => setForm((f) => ({ ...f, prioritas: e.target.value as ApiKegiatan["prioritas"] }))}
               />
             </div>
           </div>

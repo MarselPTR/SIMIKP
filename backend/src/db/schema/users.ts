@@ -1,5 +1,5 @@
-import { mysqlTable, char, varchar, boolean, datetime, text, primaryKey } from "drizzle-orm/mysql-core";
-import { relations } from "drizzle-orm";
+import { mysqlTable, char, varchar, boolean, datetime, date, text, primaryKey } from "drizzle-orm/mysql-core";
+import { relations, sql } from "drizzle-orm";
 
 export const users = mysqlTable("users", {
   id: char("id", { length: 36 }).primaryKey(),
@@ -13,12 +13,12 @@ export const users = mysqlTable("users", {
   nik: varchar("nik", { length: 20 }),
   gender: varchar("gender", { length: 15 }),
   birthPlace: varchar("birth_place", { length: 100 }),
-  birthDate: datetime("birth_date"),
+  birthDate: date("birth_date"),
   religion: varchar("religion", { length: 50 }),
   education: varchar("education", { length: 100 }),
   pasFotoUrl: text("pas_foto_url"),
   active: boolean("active").default(true),
-  createdAt: datetime("created_at").default(new Date()),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const roles = mysqlTable("roles", {
@@ -39,5 +39,5 @@ export const passwordResetTokens = mysqlTable("password_reset_tokens", {
   token: varchar("token", { length: 255 }).notNull().unique(),
   expiresAt: datetime("expires_at").notNull(),
   usedAt: datetime("used_at"),
-  createdAt: datetime("created_at").default(new Date()),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`),
 });

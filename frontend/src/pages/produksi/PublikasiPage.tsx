@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { apiFetch } from "../../lib/api-client";
-import type { MockPublikasi } from "../../lib/mock-data";
+import type { ApiPublikasi } from "../../types/api.types";
 import Card from "../../components/ui/Card";
 import Table from "../../components/ui/Table";
 import type { TableColumn } from "../../components/ui/Table";
@@ -53,7 +53,7 @@ const PublikasiPage = () => {
     return val;
   };
 
-  const columns: TableColumn<MockPublikasi>[] = [
+  const columns: TableColumn<ApiPublikasi>[] = [
     {
       key: "title",
       label: t("pub_col_title"),

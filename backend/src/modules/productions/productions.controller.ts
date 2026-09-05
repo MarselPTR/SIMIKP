@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { db } from "../../db";
-import { assignments, activities, contentTypes, users, userRoles, roles } from "../../db/schema";
+import { assignments, activities, contentTypes, users, userRoles, roles, locations } from "../../db/schema";
 import { productionItems, productionVersions, productionFiles } from "../../db/schema/production";
 import { eq, and, or, desc } from "drizzle-orm";
 import { z } from "zod";
@@ -144,7 +144,12 @@ export class ProductionsController {
       const data = await db
         .select({
           id: assignments.id,
+          activityId: activities.id,
           kegiatan: activities.title,
+          tanggalKegiatan: activities.activityDate,
+          activityTime: activities.activityTime,
+          lokasi: locations.name,
+          picName: users.name,
           bidangPekerjaan: contentTypes.name,
           workLink: productionVersions.workLink,
           startDate: assignments.startTime,
@@ -153,6 +158,8 @@ export class ProductionsController {
         })
         .from(assignments)
         .leftJoin(activities, eq(assignments.activityId, activities.id))
+        .leftJoin(locations, eq(activities.locationId, locations.id))
+        .leftJoin(users, eq(assignments.userId, users.id))
         .leftJoin(contentTypes, eq(assignments.contentTypeId, contentTypes.id))
         .leftJoin(productionItems, eq(productionItems.assignmentId, assignments.id))
         .leftJoin(productionVersions, and(
@@ -229,7 +236,8 @@ export class ProductionsController {
         files: Array<{
           id: string;
           name: string;
-          jenisKonten: "foto" | "video";
+          jenisKonten: "foto" | "video" | "naskah";
+          roleCategory?: "FOTOGRAFER" | "DESAINER" | "PRAHUM";
           size: string;
           thumbnailUrl?: string;
           workLink: string;
@@ -250,6 +258,13 @@ export class ProductionsController {
         if (lower.includes("ekonomi") || lower.includes("pasar") || lower.includes("umkm") || lower.includes("wisata")) return "EKONOMI";
         if (lower.includes("lingkungan") || lower.includes("taman") || lower.includes("sampah")) return "LINGKUNGAN";
         return "SOSIAL";
+      };
+
+      const getRoleCategory = (contentType: string | null) => {
+        const type = (contentType || "").toLowerCase();
+        if (type.includes("prahum") || type.includes("naskah") || type.includes("berita") || type.includes("artikel")) return "PRAHUM";
+        if (type.includes("editor") || type.includes("desain") || type.includes("infografis")) return "DESAINER";
+        return "FOTOGRAFER";
       };
 
       // A. Masukkan berkas dari tabel production_files (hasil kurasi Ahli Pertama)
@@ -281,6 +296,7 @@ export class ProductionsController {
           id: row.fileId,
           name: row.originalFilename,
           jenisKonten: isVideo ? "video" : "foto",
+          roleCategory: getRoleCategory(row.contentType),
           size: formatSize(row.fileSize),
           thumbnailUrl,
           workLink,
@@ -330,6 +346,7 @@ export class ProductionsController {
                     id: crypto.randomUUID(),
                     name: f.originalName || f.filename || "Berkas Dokumentasi",
                     jenisKonten: isVideo ? "video" : "foto",
+                    roleCategory: getRoleCategory(asg.contentType),
                     size: formatSize(f.fileSize),
                     thumbnailUrl,
                     workLink: f.url,
@@ -355,6 +372,7 @@ export class ProductionsController {
               id: asg.assignmentId,
               name: `[${asg.contentType || "Dokumentasi"}] ${asg.activityTitle}`,
               jenisKonten: isVideo ? "video" : "foto",
+              roleCategory: getRoleCategory(asg.contentType),
               size: "2.5 MB",
               thumbnailUrl: thumb,
               workLink: asg.workLink,
@@ -362,6 +380,22 @@ export class ProductionsController {
 
             if (!folder.thumbnailUrl && thumb) {
               folder.thumbnailUrl = thumb;
+            }
+          }
+        } else {
+          // Handle Prahum Naskah (raw text)
+          const role = getRoleCategory(asg.contentType);
+          if (role === "PRAHUM") {
+            const alreadyExists = folder.files.some((existing) => existing.id === asg.assignmentId);
+            if (!alreadyExists) {
+              folder.files.push({
+                id: asg.assignmentId,
+                name: `[Naskah Berita] ${asg.activityTitle}`,
+                jenisKonten: "naskah",
+                roleCategory: "PRAHUM",
+                size: "N/A",
+                workLink: asg.workLink,
+              });
             }
           }
         }
@@ -396,7 +430,7 @@ export class ProductionsController {
       const cookieSession = request.cookies["simikp_session"];
       if (!cookieSession) return reply.status(401).send({ error: "Unauthorized" });
 
-      const session = JSON.parse(Buffer.from(cookieSession, "base64").toString("utf-8"));
+      const session = request.server.jwt.verify(cookieSession) as any;
       const userId = session.id;
 
       const userTasks = await db
@@ -656,17 +690,34 @@ export class ProductionsController {
         const fileId = crypto.randomUUID();
         const origName = file.originalName || file.filename || "file_kurasi";
         const ext = origName.includes(".") ? origName.split(".").pop()?.toLowerCase() : "bin";
+        const storedName = file.filename || origName;
+
+        // Cek duplikasi agar tidak terjadi error 500 (ER_DUP_ENTRY)
+        const existingFile = await db
+          .select({ id: productionFiles.id })
+          .from(productionFiles)
+          .where(eq(productionFiles.storedFilename, storedName))
+          .limit(1);
+          
+        if (existingFile.length > 0) {
+          continue; // Lewati jika sudah ada (mungkin di-klik setujui 2 kali)
+        }
+
+        const uploaderId = asg[0].userId;
+        if (!uploaderId) {
+          throw new Error("Penugasan tidak memiliki Petugas pengunggah yang valid.");
+        }
 
         await db.insert(productionFiles).values({
           id: fileId,
           productionVersionId: pVerId,
           originalFilename: origName,
-          storedFilename: file.filename || origName,
+          storedFilename: storedName,
           storagePath: file.url,
           mimeType: file.mimeType || "application/octet-stream",
           fileExtension: ext || "bin",
           fileSize: file.fileSize || 0,
-          uploadedBy: asg[0].userId,
+          uploadedBy: uploaderId,
         });
 
       }

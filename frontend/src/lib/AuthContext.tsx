@@ -1,8 +1,8 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import type { ReactNode } from "react";
 import { apiFetch } from "./api-client";
-import { mockUsers, Role } from "./mock-data";
-import type { MockUser } from "./mock-data";
+import { Role } from "../types/api.types";
+import type { ApiUser } from "../types/api.types";
 
 export interface AuthUser {
   id: string;
@@ -28,7 +28,6 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   login: (username: string, password: string) => Promise<LoginResult>;
   logout: () => Promise<void>;
-  switchUser: (mockUserOrId: MockUser | string) => void;
   updateUser: (updatedData: Partial<AuthUser>) => void;
 }
 
@@ -49,7 +48,6 @@ export const useAuth = (): AuthContextValue => {
         logout: async () => {
           localStorage.removeItem("simikp_user");
         },
-        switchUser: () => {},
         updateUser: async (data) => {
           if (parsedUser) {
             const next = { ...parsedUser, ...data };
@@ -78,7 +76,6 @@ export const useAuth = (): AuthContextValue => {
         isAuthenticated: false,
         login: async () => ({ success: false, error: "AuthProvider belum siap" }),
         logout: async () => {},
-        switchUser: () => {},
         updateUser: () => {},
       };
     }
@@ -108,7 +105,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           localStorage.setItem("simikp_user", JSON.stringify(res.user));
         }
       })
-      .catch((_err) => {
+      .catch((err) => {
+        // Jika sesi tidak valid (401), paksa hapus data lokal
+        if (err?.status === 401 || err?.message?.toLowerCase().includes("unauthorized")) {
+          localStorage.removeItem("simikp_user");
+          setUser(null);
+          return;
+        }
+
         // Keep local user if available in localStorage to guarantee zero unexpected logouts on refresh
         const savedUser = localStorage.getItem("simikp_user");
         if (savedUser) {
@@ -131,31 +135,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
   }, []);
 
-  const switchUser = (mockUserOrId: MockUser | string) => {
-    let target: MockUser | undefined;
-    if (typeof mockUserOrId === "string") {
-      target = mockUsers.find(
-        (u) =>
-          u.id === mockUserOrId ||
-          u.email.toLowerCase() === mockUserOrId.toLowerCase() ||
-          u.name.toLowerCase().includes(mockUserOrId.toLowerCase())
-      );
-    } else {
-      target = mockUserOrId;
-    }
-    if (target) {
-      const authUser: AuthUser = {
-        id: target.id,
-        name: target.name,
-        username: target.email,
-        role: target.role,
-        staffType: target.bidang ?? null,
-      };
-      setUser(authUser);
-      localStorage.setItem("simikp_user", JSON.stringify(authUser));
-    }
-  };
-
   const login = async (username: string, password: string): Promise<LoginResult> => {
     setLoading(true);
     try {
@@ -167,7 +146,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem("simikp_user", JSON.stringify(res.user));
       return { success: true, user: res.user };
     } catch (err: any) {
-      // Direct fallback for default roles (ahli, admin, etc.) if mockUsers is empty or API offline
+      // Direct fallback for default roles (ahli, admin, etc.) if ApiUsers is empty or API offline
       const lowerUser = username.toLowerCase().trim();
       if (lowerUser === "ahli" || lowerUser === "ahli_pertama" || lowerUser.includes("ahli")) {
         const ahliAuthUser: AuthUser = {
@@ -195,28 +174,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(adminAuthUser);
         localStorage.setItem("simikp_user", JSON.stringify(adminAuthUser));
         return { success: true, user: adminAuthUser };
-      }
-
-      const foundMock = mockUsers.find(
-        (u) =>
-          u.email.toLowerCase() === username.toLowerCase() ||
-          u.name.toLowerCase().includes(username.toLowerCase()) ||
-          (username.toLowerCase() === "rizky" && u.email.includes("rizky")) ||
-          (username.toLowerCase() === "dinda" && u.email.includes("dinda")) ||
-          (username.toLowerCase() === "fajar" && u.email.includes("fajar"))
-      );
-
-      if (foundMock && (foundMock.password === password || password.length > 0)) {
-        const mockAuthUser: AuthUser = {
-          id: foundMock.id,
-          name: foundMock.name,
-          username: foundMock.email,
-          role: foundMock.role,
-          staffType: foundMock.bidang ?? null,
-        };
-        setUser(mockAuthUser);
-        localStorage.setItem("simikp_user", JSON.stringify(mockAuthUser));
-        return { success: true, user: mockAuthUser };
       }
 
       return { success: false, error: err.message || "Username atau password salah" };
@@ -264,7 +221,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, isAuthenticated: user !== null, login, logout, switchUser, updateUser }}>
+    <AuthContext.Provider value={{ user, loading, isAuthenticated: user !== null, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,4 +1,5 @@
 import { mysqlTable, char, varchar, datetime, int, boolean, bigint, unique } from "drizzle-orm/mysql-core";
+import { relations, sql } from "drizzle-orm";
 import { assignments } from "./activities";
 import { users } from "./users";
 
@@ -16,7 +17,7 @@ export const productionVersions = mysqlTable("production_versions", {
   versionNumber: int("version_number").notNull(),
   workLink: varchar("work_link", { length: 500 }),
   isCurrent: boolean("is_current").default(false),
-  createdAt: datetime("created_at").default(new Date()),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`),
 }, (t) => ({
   unqItemVersion: unique().on(t.productionItemId, t.versionNumber),
 }));
@@ -31,5 +32,5 @@ export const productionFiles = mysqlTable("production_files", {
   fileExtension: varchar("file_extension", { length: 10 }).notNull(),
   fileSize: bigint("file_size", { mode: 'number' }).notNull(),
   uploadedBy: char("uploaded_by", { length: 36 }).notNull().references(() => users.id),
-  uploadedAt: datetime("uploaded_at").default(new Date()),
+  uploadedAt: datetime("uploaded_at").default(sql`CURRENT_TIMESTAMP`),
 });

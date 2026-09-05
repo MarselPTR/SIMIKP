@@ -18,10 +18,11 @@ import {
   Layers,
   X,
   Loader2,
+  Play,
 } from "lucide-react";
 import { useAuth } from "../../lib/AuthContext";
 import { usePetugasTasksStore, type MediaFileInfo, type MediaWorkPayload } from "../../lib/petugas-store";
-import { WORKFLOWS } from "../../lib/mock-data";
+import { WORKFLOWS } from "../../lib/constants";
 import { useToast } from "../../contexts/ToastContext";
 import { useLanguage } from "../../lib/LanguageContext";
 
@@ -39,7 +40,7 @@ const PetugasPenugasanPage = () => {
   const { t, language } = useLanguage();
 
   // Identitas (userId), bukan kategori tetap — role sekarang melekat per-tugas.
-  const { tasks: userTasks, submitWork: storeSubmitWork } = usePetugasTasksStore(user?.id);
+  const { tasks: userTasks, submitWork: storeSubmitWork, updateStatus: storeUpdateStatus } = usePetugasTasksStore(user?.id);
   const userBidang = userTasks[0]?.bidang || "PRAHUM";
 
   const searchParams = new URLSearchParams(location.search);
@@ -169,8 +170,7 @@ const PetugasPenugasanPage = () => {
         const q = searchQuery.toLowerCase();
         return (
           t.kegiatan.toLowerCase().includes(q) ||
-          t.lokasi.toLowerCase().includes(q) ||
-          t.jenisPekerjaan.toLowerCase().includes(q)
+          (t.lokasi || "").toLowerCase().includes(q)
         );
       }
       return true;
@@ -221,6 +221,7 @@ const PetugasPenugasanPage = () => {
           const totalSteps = taskWorkflow.length;
           const rawStatus = selectedTask.status.toUpperCase();
           const isRevision = rawStatus === "REVISI";
+          const isResubmitted = (rawStatus === "MENULIS" || rawStatus === "DESAIN" || rawStatus === "LIPUTAN" || rawStatus === "IN_PROGRESS" || rawStatus === "KURASI") && selectedTask.revisionNotes;
           const isPrahum = selectedTask.bidang === "PRAHUM";
           const isEditor = selectedTask.bidang === "DESAINER_EDITOR";
           const isFotoVideo = selectedTask.bidang === "FOTOGRAFER" || selectedTask.bidang === "VIDEOGRAFER" || selectedTask.bidang === "FOTO_VIDEO";
@@ -243,6 +244,8 @@ const PetugasPenugasanPage = () => {
                     className={`px-3.5 py-1 text-xs font-bold rounded-full border flex items-center gap-1.5 ${
                       isCompleted
                         ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800"
+                        : isResubmitted
+                        ? "bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-400 border-orange-400 dark:border-orange-500 shadow-xs animate-pulse font-extrabold"
                         : isRevision
                         ? "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800 animate-pulse"
                         : rawStatus === "BELUM"
@@ -250,9 +253,27 @@ const PetugasPenugasanPage = () => {
                         : "bg-blue-50 dark:bg-blue-950/40 text-[#0a1647] dark:text-sky-300 border-blue-200 dark:border-blue-800"
                     }`}
                   >
-                    {isCompleted && <CheckCircle2 size={13} className="text-emerald-600 dark:text-emerald-400" />}
-                    {isRevision && <AlertTriangle size={13} className="text-amber-600 dark:text-amber-400" />}
-                    <span>{t("status")}: {isRevision ? (language === "en" ? "NEEDS REVISION" : "PERLU REVISI") : rawStatus.replace("_", " ")} ({progressPercent}%)</span>
+                    {isCompleted ? (
+                      <>
+                        <CheckCircle2 size={14} className="text-emerald-600 dark:text-emerald-400" />
+                        <span>{language === "en" ? "Task Completed" : "Tugas Selesai"}</span>
+                      </>
+                    ) : isResubmitted ? (
+                      <>
+                        <Clock size={14} className="text-orange-600 dark:text-orange-400" />
+                        <span>{language === "en" ? "Waiting for Re-Review" : "Menunggu Review Ulang"}</span>
+                      </>
+                    ) : isRevision ? (
+                      <>
+                        <AlertTriangle size={14} className="text-amber-600 dark:text-amber-400" />
+                        <span>{language === "en" ? "Needs Revision" : "Perlu Direvisi"}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Clock size={14} className="text-[#0a1647] dark:text-sky-400" />
+                        <span>{rawStatus.replace("_", " ")}</span>
+                      </>
+                    )}
                   </span>
                 </div>
               </div>
@@ -266,7 +287,7 @@ const PetugasPenugasanPage = () => {
                     </div>
                     {selectedTask.revisionDate && (
                       <span className="text-[11px] text-amber-700/80 dark:text-amber-400/80 font-medium">
-                        {selectedTask.revisionDate}
+                        {new Date(selectedTask.revisionDate).toLocaleDateString(language === "en" ? "en-US" : "id-ID", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }) + (language === "en" ? "" : " WIB")}
                       </span>
                     )}
                   </div>
@@ -325,7 +346,48 @@ const PetugasPenugasanPage = () => {
                 </div>
 
                 <div className="lg:col-span-8 bg-white dark:bg-gray-900/60 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 space-y-5 shadow-xs">
-                  <div>
+                  {rawStatus === "BELUM" ? (
+                    <div className="text-center py-16 space-y-5">
+                      <div className="bg-blue-50 dark:bg-sky-900/30 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                        <Play size={36} className="text-blue-600 dark:text-sky-400 ml-1" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">
+                        {language === "en" ? "Time to Start Assignment" : "Waktunya Memulai Tugas"}
+                      </h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto leading-relaxed">
+                        {language === "en"
+                          ? "Please click the button below to start your assignment and unlock the upload form."
+                          : "Silakan klik tombol di bawah ini untuk mulai bekerja dan membuka form pengunggahan berkas."}
+                      </p>
+                      
+                      {selectedTask.waktuPelaksanaan && (
+                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-medium mt-2">
+                          <Clock size={16} />
+                          <span>
+                            {new Date(selectedTask.waktuPelaksanaan).toLocaleString(language === "en" ? "en-US" : "id-ID")}
+                          </span>
+                        </div>
+                      )}
+
+                      <div>
+                        <button
+                          onClick={async () => {
+                            try {
+                              await storeUpdateStatus(selectedTask.id, isPrahum ? "LIPUTAN" : isEditor ? "DESAIN" : "LIPUTAN");
+                              addToast(language === "en" ? "Task started successfully!" : "Tugas berhasil dimulai!", "success");
+                            } catch (err: any) {
+                              addToast(err?.message || (language === "en" ? "Failed to start task" : "Gagal memulai tugas"), "error");
+                            }
+                          }}
+                          className="mt-6 px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition-colors shadow-lg shadow-blue-600/20 cursor-pointer"
+                        >
+                          {language === "en" ? "Start Assignment" : "Mulai Meliput"}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div>
                     <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                       {isPrahum ? (
                         <>
@@ -590,11 +652,9 @@ const PetugasPenugasanPage = () => {
                         onClick={async () => {
                           try {
                             setIsUploading(true);
-                            let filesToUpload: File[] = [];
-                            if (activeMediaTab === "foto") {
-                              filesToUpload = selectedPhotoFiles;
-                            } else if (selectedVideoFile) {
-                              filesToUpload = [selectedVideoFile];
+                            let filesToUpload: File[] = [...selectedPhotoFiles];
+                            if (selectedVideoFile) {
+                              filesToUpload.push(selectedVideoFile);
                             }
 
                             let uploadedFiles: MediaFileInfo[] = [];
@@ -604,9 +664,7 @@ const PetugasPenugasanPage = () => {
                               uploadedFiles = selectedTask.mediaData.files;
                             } else {
                               addToast(
-                                activeMediaTab === "foto"
-                                  ? (language === "en" ? "Please select at least 1 photo" : "Harap pilih minimal 1 foto dokumentasi")
-                                  : (language === "en" ? "Please select a video file" : "Harap pilih berkas video liputan"),
+                                language === "en" ? "Please select at least 1 photo or video" : "Harap pilih minimal 1 foto dokumentasi atau video liputan",
                                 "warning"
                               );
                               setIsUploading(false);
@@ -615,7 +673,7 @@ const PetugasPenugasanPage = () => {
 
                             const payload: MediaWorkPayload = {
                               type: "MEDIA_SUBMISSION",
-                              subType: activeMediaTab,
+                              subType: (selectedPhotoFiles.length > 0 && selectedVideoFile) ? undefined : activeMediaTab,
                               files: uploadedFiles,
                               caption: caption.trim() || undefined,
                             };
@@ -745,7 +803,7 @@ const PetugasPenugasanPage = () => {
 
                       {isUploading && (
                         <div className="space-y-2 p-3.5 bg-purple-50 dark:bg-purple-950/40 rounded-xl border border-purple-200 dark:border-purple-800">
-                          <div className="flex items-center justify-between text-xs font-bold text-purple-900 dark:text-purple-200">
+                          <div className="flex items-center justify-between text-xs font-bold text-purple-900 dark:purple-200">
                             <span className="flex items-center gap-1.5">
                               <Loader2 size={14} className="animate-spin text-purple-600" />
                               {language === "en" ? "Uploading Design to Server..." : "Mengunggah Desain ke Server..."}
@@ -880,6 +938,8 @@ const PetugasPenugasanPage = () => {
                       </div>
                     </div>
                   )}
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -959,11 +1019,12 @@ const PetugasPenugasanPage = () => {
             ) : (
               filteredTasks.map((tItem) => {
                 const taskWorkflow = WORKFLOWS[tItem.bidang || userBidang || "PRAHUM"] || WORKFLOWS["PRAHUM"];
-                const rawStatus = tItem.status === "COMPLETED" ? "SELESAI" : tItem.status === "ASSIGNED" ? "BELUM" : tItem.status;
+                const rawStatus = tItem.status === "COMPLETED" ? "SELESAI" : tItem.status === "ASSIGNED" ? "BELUM" : tItem.status === "IN_PROGRESS" ? (tItem.bidang === "PRAHUM" ? "MENULIS" : tItem.bidang === "DESAINER_EDITOR" ? "DESAIN" : "LIPUTAN") : tItem.status;
                 const foundIndex = taskWorkflow.indexOf(rawStatus);
                 const stepIndex = foundIndex >= 0 ? foundIndex : rawStatus === "SELESAI" ? taskWorkflow.length - 1 : 0;
                 const totalSteps = taskWorkflow.length;
                 const isCompleted = rawStatus === "SELESAI" || tItem.status === "COMPLETED";
+                const isResubmitted = (rawStatus === "MENULIS" || rawStatus === "DESAIN" || rawStatus === "LIPUTAN" || rawStatus === "IN_PROGRESS" || rawStatus === "KURASI") && tItem.revisionNotes;
 
                 return (
                   <div
@@ -983,16 +1044,36 @@ const PetugasPenugasanPage = () => {
                             className={`px-3 py-1 text-xs font-bold rounded-lg border flex items-center gap-1.5 ${
                               isCompleted
                                 ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800"
+                                : isResubmitted
+                                ? "bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-400 border-orange-400 dark:border-orange-500 shadow-xs animate-pulse font-extrabold"
                                 : tItem.status === "REVISI"
                                 ? "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800"
-                                : rawStatus === "BELUM"
-                                ? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700"
-                                : "bg-blue-50 dark:bg-blue-950/40 text-[#0a1647] dark:text-sky-300 border-blue-200 dark:border-blue-800"
+                                : tItem.status === "BELUM" || tItem.status === "ASSIGNED"
+                                ? "bg-slate-100 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700"
+                                : "bg-blue-50 dark:bg-blue-900/40 text-[#0a1647] dark:text-sky-400 border-blue-200 dark:border-blue-800"
                             }`}
                           >
-                            {isCompleted && <CheckCircle2 size={13} className="text-emerald-600 dark:text-emerald-400" />}
-                            {tItem.status === "REVISI" && <AlertTriangle size={13} className="text-amber-600 dark:text-amber-400" />}
-                            {tItem.status === "REVISI" ? (language === "en" ? "NEEDS REVISION" : "PERLU REVISI") : rawStatus.replace("_", " ")}
+                            {isCompleted ? (
+                              <>
+                                <CheckCircle2 size={14} className="text-emerald-600 dark:text-emerald-400" />
+                                <span>{language === "en" ? "Done" : "Selesai"}</span>
+                              </>
+                            ) : isResubmitted ? (
+                              <>
+                                <Clock size={14} className="text-orange-600 dark:text-orange-400" />
+                                <span>{language === "en" ? "Wait Re-Review" : "Menunggu Review Ulang"}</span>
+                              </>
+                            ) : tItem.status === "REVISI" ? (
+                              <>
+                                <AlertTriangle size={14} className="text-amber-600 dark:text-amber-400" />
+                                <span>{language === "en" ? "Needs Revision" : "Perlu Direvisi"}</span>
+                              </>
+                            ) : (
+                              <>
+                                <Clock size={14} className="text-[#0a1647] dark:text-sky-400" />
+                                <span>{rawStatus.replace("_", " ")}</span>
+                              </>
+                            )}
                           </span>
 
                           <span className="px-3 py-1 text-xs font-semibold rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300">
@@ -1035,7 +1116,7 @@ const PetugasPenugasanPage = () => {
                               </span>
                               {tItem.revisionDate && (
                                 <span className="text-[10px] font-normal text-amber-700 dark:text-amber-400">
-                                  {tItem.revisionDate}
+                                  {new Date(tItem.revisionDate).toLocaleDateString(language === "en" ? "en-US" : "id-ID", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }) + (language === "en" ? "" : " WIB")}
                                 </span>
                               )}
                             </div>

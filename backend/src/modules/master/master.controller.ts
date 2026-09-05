@@ -76,7 +76,7 @@ export class MasterController {
 
       // Cek apakah konten masih digunakan di relasi kegiatan
       const inUse = await db
-        .select({ id: activityRequiredContents.id })
+        .select({ activityId: activityRequiredContents.activityId })
         .from(activityRequiredContents)
         .where(eq(activityRequiredContents.contentTypeId, id))
         .limit(1);

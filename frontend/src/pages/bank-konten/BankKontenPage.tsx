@@ -1,17 +1,17 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 
 import { apiFetch } from "../../lib/api-client";
-import type { MockBankKontenFolder, MockBankKontenFile } from "../../lib/mock-data";
+import type { ApiBankKontenFolder } from "../../types/api.types";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
 import Button from "../../components/ui/Button";
-import Dialog from "../../components/ui/Dialog";
 import { LoadingSpinner, ErrorState, EmptyState } from "../../components/shared/StateComponents";
 import {
-  Folder, Image as ImageIcon, Video, Calendar, User,
-  Download, Eye, ArrowUpRight, UploadCloud, HardDrive,
-  FileCheck, Filter, Search
+  Folder, Image as ImageIcon, Video, Calendar,
+  ArrowUpRight, UploadCloud, HardDrive,
+  Filter, Search
 } from "lucide-react";
 import { useToast } from "../../contexts/ToastContext";
 import { useLanguage } from "../../lib/LanguageContext";
@@ -19,7 +19,7 @@ import { useLanguage } from "../../lib/LanguageContext";
 const formatTanggal = (iso: string, language: string) =>
   new Date(iso).toLocaleDateString(language === "en" ? "en-US" : "id-ID", { day: "numeric", month: "short", year: "numeric" });
 
-const getCoverGradient = (folder: MockBankKontenFolder) => {
+const getCoverGradient = (folder: ApiBankKontenFolder) => {
   const category = folder.kategori?.toUpperCase();
   if (category === "SOSIAL") return "from-blue-600/15 via-indigo-500/10 to-violet-600/20";
   if (category === "EKONOMI") return "from-emerald-600/15 via-teal-500/10 to-cyan-600/20";
@@ -35,7 +35,7 @@ const getCategoryBadgeColor = (kategori?: string) => {
   return "bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800";
 };
 
-const summarizeJenis = (folder: MockBankKontenFolder) => {
+const summarizeJenis = (folder: ApiBankKontenFolder) => {
   const jumlahFoto = (folder.files || []).filter((f) => f.jenisKonten === "foto").length;
   const jumlahVideo = (folder.files || []).filter((f) => f.jenisKonten === "video").length;
   const totalFiles = (folder.files || []).length;
@@ -50,7 +50,7 @@ const BankKontenPage = () => {
     queryKey: ["bank-konten"],
     queryFn: async () => {
       try {
-        const res = await apiFetch<{ success: boolean; data: MockBankKontenFolder[] }>("/productions/bank-konten");
+        const res = await apiFetch<{ success: boolean; data: ApiBankKontenFolder[] }>("/productions/bank-konten");
         return res.data || [];
       } catch {
         return [];
@@ -58,18 +58,15 @@ const BankKontenPage = () => {
     },
   });
 
+  const navigate = useNavigate();
+
   const [search, setSearch] = useState("");
   const [tahun, setTahun] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [urutan, setUrutan] = useState("terbaru");
-  const [selectedFolder, setSelectedFolder] = useState<MockBankKontenFolder | null>(null);
-  const [dialogJenisKonten, setDialogJenisKonten] = useState<"ALL" | "foto" | "video">("ALL");
-  const [dialogSearch, setDialogSearch] = useState("");
 
-  const openFolder = (folder: MockBankKontenFolder) => {
-    setSelectedFolder(folder);
-    setDialogJenisKonten("ALL");
-    setDialogSearch("");
+  const openFolder = (folder: ApiBankKontenFolder) => {
+    navigate(folder.id);
   };
 
   const tahunOptions = useMemo(() => {
@@ -123,55 +120,10 @@ const BankKontenPage = () => {
     });
   }, [folders, search, selectedCategory, tahun, urutan]);
 
-  const dialogFiles = useMemo(() => {
-    if (!selectedFolder) return [];
-    let files = selectedFolder.files;
-    if (dialogJenisKonten !== "ALL") {
-      files = files.filter((f) => f.jenisKonten === dialogJenisKonten);
-    }
-    if (dialogSearch.trim()) {
-      const q = dialogSearch.toLowerCase();
-      files = files.filter((f) => f.name.toLowerCase().includes(q));
-    }
-    return files;
-  }, [selectedFolder, dialogJenisKonten, dialogSearch]);
 
-  const handleDownloadSingle = (file: MockBankKontenFile) => {
-    addToast(
-      language === "en" ? `Starting download for "${file.name}"...` : `Memulai unduhan file "${file.name}"...`,
-      "success"
-    );
-    const link = document.createElement("a");
-    link.href = file.workLink;
-    link.target = "_blank";
-    link.download = file.name;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
-  const handleDownloadAllFolder = () => {
-    if (!selectedFolder || !selectedFolder.files.length) return;
-    addToast(
-      language === "en"
-        ? `Starting download for ${selectedFolder.files.length} files in ${selectedFolder.title}...`
-        : `Memulai pengunduhan ${selectedFolder.files.length} arsip kegiatan ${selectedFolder.title}...`,
-      "success"
-    );
-    selectedFolder.files.forEach((file, index) => {
-      setTimeout(() => {
-        if (file.workLink) {
-          const link = document.createElement("a");
-          link.href = file.workLink;
-          link.target = "_blank";
-          link.download = file.name;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        }
-      }, index * 250);
-    });
-  };
+
+
 
   if (isLoading) return <LoadingSpinner />;
   if (error) return <ErrorState message={error.message} onRetry={refetch} />;
@@ -423,205 +375,7 @@ const BankKontenPage = () => {
         </div>
       )}
 
-      {/* MODERN PREVIEW & GALLERY DIALOG */}
-      <Dialog
-        open={selectedFolder !== null}
-        onClose={() => setSelectedFolder(null)}
-        title={selectedFolder?.title || (language === "en" ? "Activity Archive Gallery" : "Galeri Arsip Kegiatan")}
-      >
-        {selectedFolder && (
-          <div className="space-y-5">
-            {/* Modal Header Metadata Banner */}
-            <div className="bg-gradient-to-r from-indigo-50 to-slate-50 dark:bg-slate-900/80 p-4 rounded-xl border border-indigo-100/80 dark:border-gray-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                {selectedFolder.thumbnailUrl ? (
-                  <img
-                    src={selectedFolder.thumbnailUrl}
-                    alt={selectedFolder.title}
-                    className="w-12 h-12 rounded-xl object-cover border border-indigo-200 dark:border-indigo-800 shadow-xs shrink-0"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).style.display = "none";
-                    }}
-                  />
-                ) : (
-                  <div className="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 flex items-center justify-center shrink-0">
-                    <Folder className="w-6 h-6" />
-                  </div>
-                )}
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-indigo-100 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/50">
-                      {selectedFolder.strakomNumber || (language === "en" ? "ARCHIVE" : "ARSIP")}
-                    </span>
-                    {selectedFolder.kategori && (
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${getCategoryBadgeColor(selectedFolder.kategori)}`}>
-                        {selectedFolder.kategori}
-                      </span>
-                    )}
-                    <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5" />
-                      {formatTanggal(selectedFolder.tanggal, language)}
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1">
-                    <User className="w-3.5 h-3.5 text-gray-400" />
-                    {language === "en" ? "Documentation Officer:" : "Petugas Dokumentasi:"} <span className="font-semibold text-gray-800 dark:text-gray-200">{selectedFolder.petugas}</span>
-                  </p>
-                </div>
-              </div>
 
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-indigo-600 text-indigo-700 hover:bg-indigo-50 font-medium flex items-center gap-1.5 self-start sm:self-auto shrink-0 text-xs cursor-pointer"
-                onClick={handleDownloadAllFolder}
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>{language === "en" ? `Download All (${selectedFolder.files.length} Files)` : `Unduh Semua (${selectedFolder.files.length} File)`}</span>
-              </Button>
-            </div>
-
-            {/* Filter Tabs & Search inside Dialog */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-[#161b22] border border-transparent dark:border-gray-800 p-1 rounded-lg text-xs self-start">
-                <button
-                  onClick={() => setDialogJenisKonten("ALL")}
-                  className={`px-3 py-1 rounded-md font-medium transition-all cursor-pointer ${
-                    dialogJenisKonten === "ALL"
-                      ? "bg-white dark:bg-gray-800 text-indigo-700 dark:text-sky-300 shadow-xs font-semibold"
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
-                  }`}
-                >
-                  {language === "en" ? `All (${selectedFolder.files.length})` : `Semua (${selectedFolder.files.length})`}
-                </button>
-                <button
-                  onClick={() => setDialogJenisKonten("foto")}
-                  className={`px-3 py-1 rounded-md font-medium transition-all flex items-center gap-1 cursor-pointer ${
-                    dialogJenisKonten === "foto"
-                      ? "bg-white dark:bg-gray-800 text-emerald-700 dark:text-emerald-300 shadow-xs font-semibold"
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
-                  }`}
-                >
-                  <ImageIcon className="w-3 h-3 text-emerald-600" />
-                  <span>{language === "en" ? `Photos (${selectedFolder.files.filter((f) => f.jenisKonten === "foto").length})` : `Foto (${selectedFolder.files.filter((f) => f.jenisKonten === "foto").length})`}</span>
-                </button>
-                <button
-                  onClick={() => setDialogJenisKonten("video")}
-                  className={`px-3 py-1 rounded-md font-medium transition-all flex items-center gap-1 cursor-pointer ${
-                    dialogJenisKonten === "video"
-                      ? "bg-white dark:bg-gray-800 text-blue-700 dark:text-sky-300 shadow-xs font-semibold"
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
-                  }`}
-                >
-                  <Video className="w-3 h-3 text-blue-600" />
-                  <span>{language === "en" ? `Videos (${selectedFolder.files.filter((f) => f.jenisKonten === "video").length})` : `Video (${selectedFolder.files.filter((f) => f.jenisKonten === "video").length})`}</span>
-                </button>
-              </div>
-
-              <div className="w-full sm:w-48">
-                <Input
-                  placeholder={language === "en" ? "Search files..." : "Cari file..."}
-                  value={dialogSearch}
-                  onChange={(e) => setDialogSearch(e.target.value)}
-                  className="w-full text-xs py-1"
-                />
-              </div>
-            </div>
-
-            {/* Media Files Grid in Dialog */}
-            {dialogFiles.length === 0 ? (
-              <div className="py-12 text-center text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-[#161b22] rounded-xl border border-gray-100 dark:border-gray-800">
-                <FileCheck className="w-10 h-10 mx-auto mb-2 text-gray-300" />
-                <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">
-                  {language === "en" ? "No matching files" : "Tidak ada file yang cocok"}
-                </p>
-                <p className="text-[11px] text-gray-400 mt-0.5">
-                  {language === "en" ? "Try changing content type filter or search keywords." : "Coba ganti filter jenis konten atau kata kunci."}
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 max-h-[50vh] overflow-y-auto pr-1">
-                {dialogFiles.map((file) => {
-                  const isVideo = file.jenisKonten === "video";
-                  return (
-                    <div
-                      key={file.id}
-                      className="group relative rounded-xl border border-gray-200/90 dark:border-gray-800 bg-white dark:bg-[#161b22] hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col justify-between"
-                    >
-                      <div className="h-28 bg-gray-900 flex flex-col items-center justify-center text-gray-400 relative overflow-hidden">
-                        {file.thumbnailUrl ? (
-                          <>
-                            <img
-                              src={file.thumbnailUrl}
-                              alt={file.name}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                              onError={(e) => {
-                                (e.currentTarget as HTMLImageElement).style.display = "none";
-                              }}
-                            />
-                            <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
-                          </>
-                        ) : (
-                          <div className={`w-full h-full ${isVideo ? "bg-gradient-to-br from-blue-900/10 to-indigo-900/20" : "bg-gradient-to-br from-emerald-900/10 to-teal-900/20"} flex items-center justify-center`}>
-                            {isVideo ? (
-                              <div className="w-10 h-10 rounded-full bg-blue-100/90 text-blue-700 flex items-center justify-center shadow-xs">
-                                <Video className="w-5 h-5" />
-                              </div>
-                            ) : (
-                              <div className="w-10 h-10 rounded-full bg-emerald-100/90 text-emerald-700 flex items-center justify-center shadow-xs">
-                                <ImageIcon className="w-5 h-5" />
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        <span className="absolute bottom-2 right-2 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-md text-white border border-white/20">
-                          {isVideo ? "MP4" : "JPG"}
-                        </span>
-                      </div>
-
-                      <div className="p-2.5 space-y-1.5">
-                        <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate" title={file.name}>
-                          {file.name}
-                        </p>
-                        <div className="flex items-center justify-between text-[10px] text-gray-400">
-                          <span>{file.size || "3.5 MB"}</span>
-                          <span className={`capitalize font-medium ${isVideo ? "text-blue-600" : "text-emerald-600"}`}>
-                            {file.jenisKonten}
-                          </span>
-                        </div>
-
-                        <div className="pt-1.5 flex items-center gap-1.5 border-t border-gray-100 dark:border-gray-800">
-                          <button
-                            onClick={() => {
-                              if (file.workLink || file.thumbnailUrl) {
-                                window.open(file.workLink || file.thumbnailUrl, "_blank");
-                              } else {
-                                addToast(language === "en" ? `Preview for ${file.name} not available` : `Pratinjau berkas ${file.name} tidak tersedia`, "info");
-                              }
-                            }}
-                            className="flex-1 py-1 text-[11px] font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 hover:text-indigo-700 dark:hover:text-indigo-300 rounded-md transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                          >
-                            <Eye className="w-3 h-3" />
-                            <span>{language === "en" ? "View" : "Lihat"}</span>
-                          </button>
-                          <button
-                            onClick={() => handleDownloadSingle(file)}
-                            className="py-1 px-2 text-[11px] font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:text-emerald-700 dark:hover:text-emerald-300 rounded-md transition-colors flex items-center justify-center cursor-pointer"
-                            title={language === "en" ? "Download File" : "Unduh File"}
-                          >
-                            <Download className="w-3 h-3" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-      </Dialog>
     </div>
   );
 };

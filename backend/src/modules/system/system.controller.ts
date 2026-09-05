@@ -11,8 +11,7 @@ export class SystemController {
       let userId: string | undefined = undefined;
       if (cookieSession) {
         try {
-          const decoded = Buffer.from(cookieSession, "base64").toString("utf-8");
-          const session = JSON.parse(decoded);
+          const session = request.server.jwt.verify(cookieSession) as any;
           userId = session.id;
         } catch {}
       }
@@ -42,8 +41,7 @@ export class SystemController {
       let userId: string | undefined = undefined;
       if (cookieSession) {
         try {
-          const decoded = Buffer.from(cookieSession, "base64").toString("utf-8");
-          const session = JSON.parse(decoded);
+          const session = request.server.jwt.verify(cookieSession) as any;
           userId = session.id;
         } catch {}
       }

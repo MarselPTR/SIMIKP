@@ -174,8 +174,7 @@ export class UsersController {
       const cookieSession = request.cookies["simikp_session"];
       if (!targetUserId && cookieSession) {
         try {
-          const decoded = Buffer.from(cookieSession, "base64").toString("utf-8");
-          const session = JSON.parse(decoded);
+          const session = request.server.jwt.verify(cookieSession) as any;
           targetUserId = session.id;
         } catch {}
       }

@@ -68,6 +68,7 @@ export interface PetugasTaskItem {
   revisionAuthor?: string;
   revisionDate?: string;
   revisionHistory?: RevisionRecord[];
+  waktuPelaksanaan?: string;
 }
 
 export const INITIAL_PETUGAS_TASKS: PetugasTaskItem[] = [];
@@ -208,7 +209,7 @@ export const submitPetugasTaskWork = async (
       method: "PUT",
       body: JSON.stringify({
         workLink: finalWorkLink,
-        status: nextStatus === "SELESAI" ? "COMPLETED" : "IN_PROGRESS",
+        status: nextStatus,
         isRevisionSubmission: isFromRevision,
         revisionNotes: target?.revisionNotes,
       }),
@@ -239,16 +240,20 @@ export const usePetugasTasksStore = (userId?: string | null) => {
           const mapped: PetugasTaskItem[] = res.data.map((a: any) => {
             const existing = currentMap.get(a.id);
 
-            // Tentukan status yang sinkron tanpa merusak status REVISI
+            // Tentukan status yang sinkron tanpa merusak status REVISI lokal jika belum di-update server
             let finalStatus = a.status;
-            if (existing?.status === "REVISI") {
+            
+            // Jika API mendeteksi sedang in-progress dan memiliki catatan revisi (artinya: baru di-resubmit petugas)
+            if (a.status === "IN_PROGRESS" && a.revisionNotes) {
+               finalStatus = CONTENT_TYPE_TO_BIDANG[a.contentType] === "PRAHUM" ? "MENULIS" : CONTENT_TYPE_TO_BIDANG[a.contentType] === "DESAINER_EDITOR" ? "DESAIN" : "LIPUTAN";
+            } else if (existing?.status === "REVISI" && a.status !== "IN_PROGRESS" && a.status !== "COMPLETED") {
               finalStatus = "REVISI";
             } else if (a.status === "COMPLETED") {
               finalStatus = "SELESAI";
             } else if (a.status === "IN_PROGRESS") {
-              finalStatus = existing?.status || "LIPUTAN";
+              finalStatus = existing?.status && existing.status !== "REVISI" ? existing.status : "LIPUTAN";
             } else if (a.status === "ASSIGNED") {
-              finalStatus = existing?.status || "BELUM";
+              finalStatus = existing?.status && existing.status !== "REVISI" ? existing.status : "BELUM";
             } else if (a.status === "REVISI") {
               finalStatus = "REVISI";
             } else if (!finalStatus) {

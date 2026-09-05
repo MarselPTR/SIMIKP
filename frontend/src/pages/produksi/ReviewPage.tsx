@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   CheckCircle2,
   AlertTriangle,
@@ -17,10 +17,13 @@ import {
   Sparkles,
   Layers,
   Check,
+  Play,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { usePetugasTasksStore } from "../../lib/petugas-store";
 import type { PetugasTaskItem } from "../../lib/petugas-store";
-import { WORKFLOWS } from "../../lib/mock-data";
+import { WORKFLOWS } from "../../lib/constants";
 import { apiFetch } from "../../lib/api-client";
 import Dialog from "../../components/ui/Dialog";
 import Button from "../../components/ui/Button";
@@ -45,6 +48,24 @@ const ReviewPage = () => {
   const [statusFilter, setStatusFilter] = useState<"ALL" | "NEED_REVIEW" | "REVISI" | "APPROVED">("ALL");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
 
+  const hasNotifiedResubmissions = useRef(false);
+  useEffect(() => {
+    if (allTasks.length > 0 && !hasNotifiedResubmissions.current) {
+      const resubmittedTasks = allTasks.filter(
+        i => (i.status === "MENULIS" || i.status === "DESAIN" || i.status === "LIPUTAN" || i.status === "IN_PROGRESS" || i.status === "KURASI") && i.revisionNotes
+      );
+      if (resubmittedTasks.length > 0) {
+        addToast(
+          language === "en" 
+            ? `There are ${resubmittedTasks.length} revised tasks waiting for review!` 
+            : `Ada ${resubmittedTasks.length} tugas hasil revisi menunggu telaah ulang Anda!`, 
+          "warning"
+        );
+      }
+      hasNotifiedResubmissions.current = true;
+    }
+  }, [allTasks, language, addToast]);
+
   // Modal State for Minta Revisi
   const [selectedTaskForRevision, setSelectedTaskForRevision] = useState<PetugasTaskItem | null>(null);
   const [revisionNotesInput, setRevisionNotesInput] = useState("");
@@ -57,6 +78,20 @@ const ReviewPage = () => {
   const [curationTask, setCurationTask] = useState<PetugasTaskItem | null>(null);
   const [selectedFileUrls, setSelectedFileUrls] = useState<Set<string>>(new Set());
   const [isSubmittingCuration, setIsSubmittingCuration] = useState(false);
+
+  // State for Full Screen Preview Slider
+  const [previewMediaList, setPreviewMediaList] = useState<{ url: string; type: "video" | "image"; name: string }[]>([]);
+  const [previewMediaIndex, setPreviewMediaIndex] = useState<number | null>(null);
+
+  const handleOpenPreview = (files: any[], startIndex: number) => {
+    const mapped = files.map(f => ({
+      url: f.url,
+      type: (f.mimeType || (f.jenisKonten === "video" ? "video" : "image")).startsWith("video") ? "video" as const : "image" as const,
+      name: f.originalName || f.name || "Media",
+    }));
+    setPreviewMediaList(mapped);
+    setPreviewMediaIndex(startIndex);
+  };
 
   // Modal State for Desainer & Editor Review
   const [designReviewTask, setDesignReviewTask] = useState<PetugasTaskItem | null>(null);
@@ -349,6 +384,7 @@ const ReviewPage = () => {
             const isCompleted = rawStatus === "SELESAI" || tItem.status === "COMPLETED";
             const isApproved = tItem.status === "SIAP_TAYANG" || isCompleted;
             const isRevision = tItem.status === "REVISI";
+            const isResubmitted = (rawStatus === "MENULIS" || rawStatus === "DESAIN" || rawStatus === "LIPUTAN" || rawStatus === "IN_PROGRESS" || rawStatus === "KURASI") && tItem.revisionNotes;
 
             return (
               <div
@@ -370,6 +406,8 @@ const ReviewPage = () => {
                         className={`px-3 py-1 text-xs font-bold rounded-lg border flex items-center gap-1.5 ${
                           isApproved
                             ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                            : isResubmitted
+                            ? "bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-400 border-orange-400 dark:border-orange-500 shadow-xs animate-pulse font-extrabold"
                             : isRevision
                             ? "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800"
                             : rawStatus === "BELUM"
@@ -381,6 +419,11 @@ const ReviewPage = () => {
                           <>
                             <CheckCircle2 size={13} className="text-emerald-600 dark:text-emerald-400" />
                             <span>{isCompleted ? (language === "en" ? "COMPLETED (100%)" : "SELESAI (100%)") : (language === "en" ? "Approved (Ready to Publish)" : "Disetujui (Siap Tayang)")}</span>
+                          </>
+                        ) : isResubmitted ? (
+                          <>
+                            <AlertTriangle size={13} className="text-orange-600 dark:text-orange-400" />
+                            <span>{language === "en" ? "Status: Needs Re-Review" : "Status: Perlu Review Ulang"}</span>
                           </>
                         ) : isRevision ? (
                           <>
@@ -939,21 +982,32 @@ const ReviewPage = () => {
 
                         {/* Preview Content */}
                         {isVideo ? (
-                          <div className="aspect-video bg-black flex items-center justify-center relative">
-                            <video
-                              src={file.url}
-                              controls
-                              className="w-full h-full object-contain"
-                              onClick={(e) => e.stopPropagation()}
-                            />
+                          <div 
+                            className="bg-black aspect-square flex items-center justify-center cursor-pointer relative group"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenPreview(curationTask.mediaData.files, fIdx);
+                            }}
+                          >
+                            <video src={file.url} className="w-full h-full object-cover opacity-70" preload="metadata" />
+                            <div className="absolute inset-0 bg-gray-900/40 flex items-center justify-center group-hover:bg-gray-800/20 transition-all duration-300">
+                              <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-md group-hover:scale-110 transition-transform duration-300 shadow-lg border border-white/30">
+                                <Play className="w-5 h-5 text-white ml-1" fill="currentColor" />
+                              </div>
+                            </div>
                           </div>
                         ) : (
-                          <div className="aspect-square bg-gray-100 dark:bg-gray-800 overflow-hidden">
-                            <img
-                              src={file.url}
-                              alt={file.originalName}
-                              className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                            />
+                          <div 
+                            className="aspect-square bg-gray-100 dark:bg-gray-800 overflow-hidden cursor-pointer group relative"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenPreview(curationTask.mediaData.files, fIdx);
+                            }}
+                          >
+                            <img src={file.url} alt={file.originalName} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                              <Eye className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 drop-shadow-md" />
+                            </div>
                           </div>
                         )}
 
@@ -1083,15 +1137,35 @@ const ReviewPage = () => {
                         </a>
                       </div>
 
-                      {isImage && (
-                        <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-50 flex items-center justify-center max-h-[45vh]">
-                          <img
-                            src={file.url}
-                            alt={file.originalName}
-                            className="max-h-[45vh] w-auto object-contain"
-                          />
-                        </div>
-                      )}
+                      {isVideo ? (
+                          <div 
+                            className="bg-black aspect-video flex items-center justify-center cursor-pointer relative"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenPreview(designReviewTask.mediaData!.files, idx);
+                            }}
+                          >
+                            <video src={file.url} className="w-full h-full object-cover opacity-70" preload="metadata" />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-md transition-transform duration-300 shadow-lg border border-white/30 group-hover:scale-110">
+                                <Play className="w-5 h-5 text-white ml-1" fill="currentColor" />
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div 
+                            className="bg-gray-100 dark:bg-gray-900 flex items-center justify-center min-h-[150px] p-2 cursor-pointer relative"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenPreview(designReviewTask.mediaData!.files, idx);
+                            }}
+                          >
+                            <img src={file.url} alt={file.originalName} className="max-h-[45vh] w-auto object-contain group-hover:scale-[1.02] transition-transform duration-300" />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                              <Eye className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 drop-shadow-md" />
+                            </div>
+                          </div>
+                        )}
                     </div>
                   );
                 })}
@@ -1109,6 +1183,63 @@ const ReviewPage = () => {
                 </p>
               </div>
             )}
+          </div>
+        )}
+      </Dialog>
+      {/* 4. Full Screen Media Preview Modal */}
+      <Dialog
+        open={previewMediaIndex !== null}
+        onClose={() => setPreviewMediaIndex(null)}
+        title={previewMediaIndex !== null ? previewMediaList[previewMediaIndex]?.name || (language === "en" ? "Media Preview" : "Pratinjau Media") : ""}
+        size="xl"
+      >
+        {previewMediaIndex !== null && previewMediaList[previewMediaIndex] && (
+          <div className="relative flex flex-col items-center justify-center bg-black/95 rounded-xl overflow-hidden min-h-[50vh] p-2 group">
+            {previewMediaIndex > 0 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPreviewMediaIndex(previewMediaIndex - 1);
+                }}
+                className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 hover:bg-black/80 flex items-center justify-center text-white backdrop-blur-md transition-all z-10 opacity-0 group-hover:opacity-100"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+            )}
+
+            {previewMediaList[previewMediaIndex].type === "video" ? (
+              <video
+                key={previewMediaList[previewMediaIndex].url}
+                src={previewMediaList[previewMediaIndex].url}
+                controls
+                controlsList="nodownload"
+                autoPlay
+                className="w-full max-h-[70vh] object-contain rounded-lg shadow-2xl"
+              />
+            ) : (
+              <img
+                key={previewMediaList[previewMediaIndex].url}
+                src={previewMediaList[previewMediaIndex].url}
+                alt={previewMediaList[previewMediaIndex].name}
+                className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-2xl"
+              />
+            )}
+
+            {previewMediaIndex < previewMediaList.length - 1 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPreviewMediaIndex(previewMediaIndex + 1);
+                }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 hover:bg-black/80 flex items-center justify-center text-white backdrop-blur-md transition-all z-10 opacity-0 group-hover:opacity-100"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            )}
+            
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1 bg-black/50 rounded-full text-white/80 text-xs font-medium backdrop-blur-md">
+              {previewMediaIndex + 1} / {previewMediaList.length}
+            </div>
           </div>
         )}
       </Dialog>

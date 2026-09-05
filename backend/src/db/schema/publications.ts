@@ -1,6 +1,7 @@
 import { mysqlTable, char, varchar, datetime, text } from "drizzle-orm/mysql-core";
 import { productionVersions } from "./production";
 import { users } from "./users";
+import { sql } from "drizzle-orm";
 
 export const reviews = mysqlTable("reviews", {
   id: char("id", { length: 36 }).primaryKey(),
@@ -8,7 +9,7 @@ export const reviews = mysqlTable("reviews", {
   reviewerId: char("reviewer_id", { length: 36 }).notNull().references(() => users.id),
   status: varchar("status", { length: 50 }).notNull(),
   comment: text("comment"),
-  reviewedAt: datetime("reviewed_at").default(new Date()),
+  reviewedAt: datetime("reviewed_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const publications = mysqlTable("publications", {

@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../lib/AuthContext";
-import { Role } from "../../lib/mock-data";
+import { Role } from "../../types/api.types";
 import logoKotaBatu from "../../assets/Logo_Kota_Batu.png";
 import { useLanguage } from "../../lib/LanguageContext";
 import { apiFetch } from "../../lib/api-client";
