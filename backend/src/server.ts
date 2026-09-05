@@ -39,6 +39,17 @@ server.register(fastifyJwt, {
   }
 });
 
+server.addHook("onRequest", async (request, reply) => {
+  const url = request.raw.url || "";
+  if (!url.startsWith("/api/v1/") || url.startsWith("/api/v1/auth/")) return;
+
+  try {
+    await request.jwtVerify();
+  } catch {
+    return reply.status(401).send({ success: false, error: "Unauthorized" });
+  }
+});
+
 // Centralized error handler
 server.setErrorHandler((err: unknown, request, reply) => {
   if (err instanceof ZodError) {
@@ -98,8 +109,12 @@ import fs from "fs";
 
 // Serve uploaded storage files (photos, videos, designs)
 const uploadsDir = path.resolve(__dirname, "../storage/uploads");
+const privateUsersDir = path.resolve(__dirname, "../storage/private/users");
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
+}
+if (!fs.existsSync(privateUsersDir)) {
+  fs.mkdirSync(privateUsersDir, { recursive: true });
 }
 server.register(fastifyStatic, {
   root: uploadsDir,
@@ -116,8 +131,28 @@ server.register(fastifyStatic, {
   },
 });
 
+server.get("/api/v1/users/assets/:filename", async (request, reply) => {
+  try {
+    await request.jwtVerify();
+    const { filename } = request.params as { filename: string };
+    const safeFilename = path.basename(filename);
+    if (safeFilename !== filename) {
+      return reply.status(400).send({ success: false, message: "Nama file tidak valid" });
+    }
+
+    const filePath = path.join(privateUsersDir, safeFilename);
+    if (!fs.existsSync(filePath)) {
+      return reply.status(404).send({ success: false, message: "Berkas tidak ditemukan" });
+    }
+
+    return reply.type("application/octet-stream").send(fs.createReadStream(filePath));
+  } catch {
+    return reply.status(401).send({ success: false, message: "Unauthorized" });
+  }
+});
+
 // Serve static frontend files (assuming we run from backend root, pointing to ../frontend/dist)
-const frontendDistPath = path.join(process.cwd(), "../frontend/dist");
+const frontendDistPath = path.resolve(__dirname, "../../frontend/dist");
 
 if (fs.existsSync(frontendDistPath)) {
   server.register(fastifyStatic, {

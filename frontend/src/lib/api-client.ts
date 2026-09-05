@@ -18,6 +18,11 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   if (init?.body && !(init.body instanceof FormData) && !("Content-Type" in headers)) {
     (headers as any)["Content-Type"] = "application/json";
   }
+  // Tambahkan Authorization header dari token localStorage sebagai fallback cookie
+  const token = localStorage.getItem("simikp_token");
+  if (token && !("Authorization" in headers)) {
+    (headers as any)["Authorization"] = `Bearer ${token}`;
+  }
 
   const res = await fetch(`${API_BASE_URL}${path}`, {
     credentials: "include",

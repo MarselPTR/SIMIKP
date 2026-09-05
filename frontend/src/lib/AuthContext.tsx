@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import type { ReactNode } from "react";
 import { apiFetch } from "./api-client";
-import { Role } from "../types/api.types";
 
 export interface AuthUser {
   id: string;
@@ -104,30 +103,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           localStorage.setItem("simikp_user", JSON.stringify(res.user));
         }
       })
-      .catch((err) => {
-        // Jika sesi tidak valid (401), paksa hapus data lokal
-        if (err?.status === 401 || err?.message?.toLowerCase().includes("unauthorized")) {
-          localStorage.removeItem("simikp_user");
-          setUser(null);
-          return;
-        }
-
-        // Keep local user if available in localStorage to guarantee zero unexpected logouts on refresh
-        const savedUser = localStorage.getItem("simikp_user");
-        if (savedUser) {
-          try {
-            const parsed = JSON.parse(savedUser);
-            if (parsed && (parsed.role || parsed.name)) {
-              setUser(parsed);
-              return;
-            }
-          } catch {
-            localStorage.removeItem("simikp_user");
-            setUser(null);
-          }
-        } else {
-          setUser(null);
-        }
+      .catch(() => {
+        localStorage.removeItem("simikp_user");
+        localStorage.removeItem("simikp_token");
+        setUser(null);
       })
       .finally(() => {
         setLoading(false);
@@ -137,44 +116,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (username: string, password: string): Promise<LoginResult> => {
     setLoading(true);
     try {
-      const res = await apiFetch<{ success: boolean; user: AuthUser }>("/auth/login", {
+      const res = await apiFetch<{ success: boolean; user: AuthUser; token?: string }>("/auth/login", {
         method: "POST",
         body: JSON.stringify({ username, password }),
       });
       setUser(res.user);
       localStorage.setItem("simikp_user", JSON.stringify(res.user));
+      if (res.token) {
+        localStorage.setItem("simikp_token", res.token);
+      }
       return { success: true, user: res.user };
     } catch (err: any) {
-      // Direct fallback for default roles (ahli, admin, etc.) if ApiUsers is empty or API offline
-      const lowerUser = username.toLowerCase().trim();
-      if (lowerUser === "ahli" || lowerUser === "ahli_pertama" || lowerUser.includes("ahli")) {
-        const ahliAuthUser: AuthUser = {
-          id: "mock-ahli-pertama-01",
-          name: "Bambang S., S.Kom",
-          username: "ahli@kominfo.batukota.go.id",
-          role: Role.AHLI_PERTAMA,
-          staffType: "AHLI_PERTAMA",
-          nip: "19850714 201001 1 008",
-          bio: "Pranata Komputer / Humas Ahli Pertama Diskominfo Kota Batu. Bertanggung jawab atas pengawasan, telaah strategis naskah, dan verifikasi akhir materi publikasi.",
-        };
-        setUser(ahliAuthUser);
-        localStorage.setItem("simikp_user", JSON.stringify(ahliAuthUser));
-        return { success: true, user: ahliAuthUser };
-      }
-
-      if (lowerUser === "admin") {
-        const adminAuthUser: AuthUser = {
-          id: "mock-admin-01",
-          name: "Admin Diskominfo",
-          username: "admin@kominfo.batukota.go.id",
-          role: Role.ADMIN,
-          staffType: "ADMIN",
-        };
-        setUser(adminAuthUser);
-        localStorage.setItem("simikp_user", JSON.stringify(adminAuthUser));
-        return { success: true, user: adminAuthUser };
-      }
-
       return { success: false, error: err.message || "Username atau password salah" };
     } finally {
       setLoading(false);
@@ -189,6 +141,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setUser(null);
       localStorage.removeItem("simikp_user");
+      localStorage.removeItem("simikp_token");
     }
   };
 

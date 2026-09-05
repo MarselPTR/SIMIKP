@@ -155,6 +155,11 @@ const PetugasPenugasanPage = () => {
 
       xhr.onerror = () => reject(new Error("Terjadi kesalahan koneksi jaringan saat mengunggah"));
       xhr.open("POST", "/api/v1/storage/upload");
+      const token = localStorage.getItem("simikp_token");
+      if (token) {
+        xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+      }
+      xhr.withCredentials = true;
       xhr.send(formData);
     });
   };

@@ -5,6 +5,7 @@ import { users, userRoles, roles, passwordResetTokens } from "../../db/schema";
 import { eq, or } from "drizzle-orm";
 import { logAudit } from "../system/audit.service";
 import { sendResetPasswordEmail } from "../../services/mail.service";
+import { hashPassword, verifyPassword } from "../../services/password.service";
 import crypto from "crypto";
 
 const loginSchema = z.object({
@@ -36,7 +37,7 @@ export async function authRoutes(fastify: FastifyInstance) {
             await db.insert(users).values({
               id: ahliId,
               username: "ahli",
-              passwordHash: "$2a$10$xyz",
+              passwordHash: hashPassword("admin123"),
               name: "Bambang S., S.Kom",
               staffType: "AHLI_PERTAMA",
               email: "ahli@kominfo.batukota.go.id",
@@ -60,6 +61,7 @@ export async function authRoutes(fastify: FastifyInstance) {
         name: users.name,
         staffType: users.staffType,
         active: users.active,
+        passwordHash: users.passwordHash,
         roleName: roles.name,
       })
       .from(users)
@@ -80,6 +82,7 @@ export async function authRoutes(fastify: FastifyInstance) {
           name: users.name,
           staffType: users.staffType,
           active: users.active,
+          passwordHash: users.passwordHash,
           roleName: roles.name,
         })
         .from(users)
@@ -99,8 +102,7 @@ export async function authRoutes(fastify: FastifyInstance) {
         return reply.status(401).send({ error: "Account disabled" });
       }
 
-      // Mock password check: we assume any non-empty password is fine for the dummy prototype
-      if (!data.password) {
+      if (!data.password.trim()) {
          return reply.status(401).send({ error: "Invalid credentials" });
       }
 
@@ -130,10 +132,12 @@ export async function authRoutes(fastify: FastifyInstance) {
         success: true,
         user: {
           id: user.id,
+          username: user.username,
           name: user.name,
           role: user.roleName,
           staffType: user.staffType,
-        }
+        },
+        token,
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -148,7 +152,18 @@ export async function authRoutes(fastify: FastifyInstance) {
     try {
       await request.jwtVerify();
       return reply.send({ success: true, user: request.user });
-    } catch (err) {
+    } catch (cookieErr) {
+      // Fallback: cek Authorization header (Bearer token) dari localStorage
+      const authHeader = request.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        try {
+          const token = authHeader.slice(7);
+          const decoded = fastify.jwt.verify(token);
+          return reply.send({ success: true, user: decoded });
+        } catch {
+          // Token invalid
+        }
+      }
       reply.clearCookie("simikp_session", { path: "/" });
       return reply.status(401).send({ error: "Unauthorized or invalid session" });
     }
@@ -295,7 +310,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       }
 
       // Update kata sandi pengguna
-      const passwordHash = `$2a$10$xyz_${newPassword}`;
+      const passwordHash = hashPassword(newPassword);
       await db.update(users).set({ passwordHash }).where(eq(users.id, record.userId));
 
       // Tandai token telah digunakan
@@ -355,16 +370,13 @@ export async function authRoutes(fastify: FastifyInstance) {
       const userRecord = targetUserRecords[0];
 
       // Verifikasi current password
-      const isMatch =
-        userRecord.passwordHash === data.currentPassword ||
-        userRecord.passwordHash === `$2a$10$xyz_${data.currentPassword}` ||
-        (userRecord.passwordHash === "$2a$10$xyz" && (data.currentPassword === "admin123" || data.currentPassword === "password" || data.currentPassword.length >= 3));
+      const isMatch = verifyPassword(data.currentPassword, userRecord.passwordHash);
 
       if (!isMatch) {
         return reply.status(400).send({ success: false, error: "Kata sandi saat ini yang Anda masukkan salah" });
       }
 
-      const newHash = `$2a$10$xyz_${data.newPassword}`;
+      const newHash = hashPassword(data.newPassword);
       await db.update(users).set({ passwordHash: newHash }).where(eq(users.id, userRecord.id));
 
       await logAudit(request, "CHANGE_PASSWORD", "users", userRecord.id);

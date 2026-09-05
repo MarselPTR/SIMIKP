@@ -9,6 +9,7 @@ import fs from "fs";
 import path from "path";
 import stream from "stream";
 import { promisify } from "util";
+import { hashPassword } from "../../services/password.service";
 
 const pipeline = promisify(stream.pipeline);
 
@@ -45,7 +46,7 @@ export class UsersController {
       let pasFotoUrl = null;
       let scanKtpUrl = null;
 
-      const uploadDir = path.resolve(process.cwd(), "storage/private/users");
+      const uploadDir = path.resolve(__dirname, "../../storage/private/users");
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
       }
@@ -77,7 +78,7 @@ export class UsersController {
       }
 
       const userId = crypto.randomUUID();
-      const passwordHash = body.password ? `$2a$10$xyz_${body.password}` : "$2a$10$xyz"; // Mock hash using actual password for demo
+      const passwordHash = hashPassword(body.password || crypto.randomUUID());
       const birthDate = body.birthDate ? new Date(body.birthDate) : null;
 
       await db.insert(users).values({

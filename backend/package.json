@@ -26,7 +26,6 @@
     "drizzle-orm": "^0.45.2",
     "exceljs": "^4.4.0",
     "fastify": "^5.12.1",
-    "kominfo-batu-news-monitoring": "file:../../kominfo_batu/kominfo_batu-main",
     "mysql2": "^3.23.3",
     "nodemailer": "^9.1.1",
     "pdfkit": "^0.20.1",

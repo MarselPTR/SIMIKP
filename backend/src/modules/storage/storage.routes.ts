@@ -14,7 +14,7 @@ export interface MediaFileInfo {
 }
 
 export const storageRoutes: FastifyPluginAsync = async (server: FastifyInstance) => {
-  const uploadsDir = path.resolve(process.cwd(), "storage/uploads");
+  const uploadsDir = path.resolve(__dirname, "../../storage/uploads");
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }

@@ -3,6 +3,7 @@ import { roles, users, userRoles, opds, contentTypes, activities, assignments, a
 import { productionItems, productionVersions } from "./schema/production";
 import crypto from "crypto";
 import { sql } from "drizzle-orm";
+import { hashPassword } from "../services/password.service";
 
 async function runSeed() {
   console.log("Menyemai database dengan data presentasi Kominfo...");
@@ -54,7 +55,7 @@ async function runSeed() {
       {
         id: ahliId,
         username: "ahli",
-        passwordHash: "$2a$10$xyz", // Mock hash
+        passwordHash: hashPassword("admin123"),
         name: "Bambang S., S.Kom (Ahli Pertama)",
         staffType: "AHLI_PERTAMA",
         email: "ahli@kominfo.batukota.go.id",
@@ -62,28 +63,28 @@ async function runSeed() {
       {
         id: adminId,
         username: "admin",
-        passwordHash: "$2a$10$xyz", // Mock hash
+        passwordHash: hashPassword("admin123"),
         name: "Admin Diskominfo",
         staffType: null,
       },
       {
         id: userAndiId,
         username: "andi",
-        passwordHash: "$2a$10$xyz",
+        passwordHash: hashPassword("admin123"),
         name: "Andi Prahum",
         staffType: "PRAHUM",
       },
       {
         id: userBudiId,
         username: "budi",
-        passwordHash: "$2a$10$xyz",
+        passwordHash: hashPassword("admin123"),
         name: "Budi Fotografer & Videografer",
         staffType: "FOTO_VIDEO",
       },
       {
         id: userCitraId,
         username: "citra",
-        passwordHash: "$2a$10$xyz",
+        passwordHash: hashPassword("admin123"),
         name: "Citra Desainer",
         staffType: "DESAINER_EDITOR",
       }
