@@ -464,8 +464,7 @@ export default function PengaturanPage() {
                     >
                       <option value="">{language === "en" ? "Not set" : "Belum ditentukan"}</option>
                       <option value="PRAHUM">Pranata Humas (PRAHUM)</option>
-                      <option value="FOTOGRAFER">{language === "en" ? "Photographer" : "Fotografer"}</option>
-                      <option value="VIDEOGRAFER">{language === "en" ? "Videographer" : "Videografer"}</option>
+                      <option value="FOTO_VIDEO">{language === "en" ? "Photographer & Videographer" : "Fotografer & Videografer"}</option>
                       <option value="DESAINER_EDITOR">{language === "en" ? "Designer & Editor" : "Desainer & Editor"}</option>
                     </select>
                     <p className="text-[11px] text-gray-400 mt-1">

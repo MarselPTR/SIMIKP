@@ -3,6 +3,7 @@ import { mysqlTable, char, varchar, double } from "drizzle-orm/mysql-core";
 export const contentTypes = mysqlTable("content_types", {
   id: char("id", { length: 36 }).primaryKey(),
   name: varchar("name", { length: 255 }).notNull().unique(),
+  roleCode: varchar("role_code", { length: 50 }).notNull().default("PRAHUM"),
 });
 
 export const opds = mysqlTable("opds", {

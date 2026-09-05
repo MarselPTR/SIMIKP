@@ -77,8 +77,8 @@ async function runSeed() {
         id: userBudiId,
         username: "budi",
         passwordHash: "$2a$10$xyz",
-        name: "Budi Fotografer",
-        staffType: "FOTOGRAFER",
+        name: "Budi Fotografer & Videografer",
+        staffType: "FOTO_VIDEO",
       },
       {
         id: userCitraId,
@@ -118,10 +118,10 @@ async function runSeed() {
     const ctInfografis = crypto.randomUUID();
 
     await db.insert(contentTypes).values([
-      { id: ctFoto, name: "Foto" },
-      { id: ctVideo, name: "Video" },
-      { id: ctNaskah, name: "Naskah Berita" },
-      { id: ctInfografis, name: "Infografis" },
+      { id: ctFoto, name: "Foto", roleCode: "FOTO_VIDEO" },
+      { id: ctVideo, name: "Video", roleCode: "FOTO_VIDEO" },
+      { id: ctNaskah, name: "Naskah Berita", roleCode: "PRAHUM" },
+      { id: ctInfografis, name: "Infografis", roleCode: "DESAINER_EDITOR" },
     ]);
 
     // 6. Create Kegiatan (Activities)

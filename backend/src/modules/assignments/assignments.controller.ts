@@ -1,7 +1,22 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { db } from "../../db";
-import { assignments, activities, users, contentTypes, activityRequiredContents, locations, opds, userRoles, roles } from "../../db/schema";
-import { eq, and, or, sql } from "drizzle-orm";
+import {
+  assignments,
+  activities,
+  users,
+  contentTypes,
+  activityRequiredContents,
+  locations,
+  opds,
+  userRoles,
+  roles,
+  productionItems,
+  productionVersions,
+  productionFiles,
+  reviews,
+  publications,
+} from "../../db/schema";
+import { eq, and, or, sql, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { createNotification } from "../system/notifications.service";
 import { logAudit } from "../system/audit.service";
@@ -39,21 +54,18 @@ const claimAssignmentSchema = z.object({
 // "Output yang Dibutuhkan" di form Kegiatan.
 const CONTENT_TYPE_TO_STAFF_TYPE: Record<string, string> = {
   "Naskah Berita": "PRAHUM",
-  Foto: "FOTOGRAFER",
-  Video: "VIDEOGRAFER",
-  Reels: "VIDEOGRAFER",
+  Foto: "FOTO_VIDEO",
+  Video: "FOTO_VIDEO",
+  Reels: "FOTO_VIDEO",
   Infografis: "DESAINER_EDITOR",
   Audio: "DESAINER_EDITOR",
 };
 
-// Petugas tanpa jabatan tetap bebas mengklaim role apapun; "FOTO_VIDEO" adalah
-// nilai jabatan lama (sebelum dipecah jadi Fotografer/Videografer) dan tetap boleh keduanya.
 function staffTypeMatchesContentType(staffType: string | null | undefined, contentTypeName: string): boolean {
   if (!staffType) return true;
   const required = CONTENT_TYPE_TO_STAFF_TYPE[contentTypeName];
   if (!required) return true;
   if (staffType === required) return true;
-  if (staffType === "FOTO_VIDEO" && (required === "FOTOGRAFER" || required === "VIDEOGRAFER")) return true;
   return false;
 }
 
@@ -82,13 +94,14 @@ export class AssignmentsController {
       const data = await db
         .select({
           id: assignments.id,
-          activityId: assignments.activityId,
+          activityId: activities.id,
           userId: assignments.userId,
           activityTitle: activities.title,
           activityDate: activities.activityDate,
           picName: users.name,
           staffType: users.staffType,
           contentType: contentTypes.name,
+          contentTypeId: contentTypes.id,
           startTime: assignments.startTime,
           endTime: assignments.endTime,
           status: assignments.status,
@@ -98,13 +111,33 @@ export class AssignmentsController {
           revisionAuthor: assignments.revisionAuthor,
           revisionDate: assignments.revisionDate,
         })
-        .from(assignments)
-        .leftJoin(activities, eq(assignments.activityId, activities.id))
+        .from(activities)
+        .innerJoin(activityRequiredContents, eq(activities.id, activityRequiredContents.activityId))
+        .innerJoin(contentTypes, eq(activityRequiredContents.contentTypeId, contentTypes.id))
+        .leftJoin(
+          assignments,
+          and(
+            eq(assignments.activityId, activities.id),
+            eq(assignments.contentTypeId, contentTypes.id)
+          )
+        )
         .leftJoin(users, eq(assignments.userId, users.id))
-        .leftJoin(contentTypes, eq(assignments.contentTypeId, contentTypes.id))
-        .orderBy(sql`${activities.activityDate} DESC, ${assignments.startTime} ASC`);
+        .orderBy(sql`${activities.activityDate} DESC, ${activities.title} ASC, ${contentTypes.name} ASC`);
 
-      return reply.send({ success: true, data });
+      // Fill in dummy data for unassigned slots
+      const formattedData = data.map(row => {
+        if (!row.id) {
+          return {
+            ...row,
+            id: `vacant-${row.activityId}-${row.contentTypeId}`,
+            status: "UNASSIGNED",
+            picName: "Belum Ada Petugas",
+          };
+        }
+        return row;
+      });
+
+      return reply.send({ success: true, data: formattedData });
     } catch (error) {
       request.log.error(error);
       return reply.status(500).send({ success: false, error: "Gagal mengambil data penugasan" });
@@ -642,9 +675,10 @@ export class AssignmentsController {
     try {
       const { id } = request.params;
 
-      // Ambil data penugasan sebelum dihapus untuk mengirim email pembatalan
+      // Ambil data penugasan sebelum dihapus untuk memeriksa status dan mengirim email pembatalan
       const detail = await db
         .select({
+          status: assignments.status,
           officerName: users.name,
           officerEmail: users.email,
           activityTitle: activities.title,
@@ -655,7 +689,38 @@ export class AssignmentsController {
         .where(eq(assignments.id, id))
         .limit(1);
 
-      await db.delete(assignments).where(eq(assignments.id, id));
+      if (detail.length > 0 && detail[0].status === "COMPLETED") {
+        return reply.status(403).send({ success: false, error: "Tugas yang sudah selesai tidak dapat dihapus." });
+      }
+
+      // Hapus penugasan beserta seluruh data produksi terkait
+      await db.transaction(async (tx) => {
+        const prods = await tx
+          .select({ id: productionItems.id })
+          .from(productionItems)
+          .where(eq(productionItems.assignmentId, id));
+
+        if (prods.length > 0) {
+          const prodIds = prods.map((p) => p.id);
+          const vers = await tx
+            .select({ id: productionVersions.id })
+            .from(productionVersions)
+            .where(inArray(productionVersions.productionItemId, prodIds));
+
+          if (vers.length > 0) {
+            const verIds = vers.map((v) => v.id);
+            await tx.delete(reviews).where(inArray(reviews.productionVersionId, verIds));
+            await tx.delete(publications).where(inArray(publications.productionVersionId, verIds));
+            await tx.delete(productionFiles).where(inArray(productionFiles.productionVersionId, verIds));
+            await tx.delete(productionVersions).where(inArray(productionVersions.id, verIds));
+          }
+
+          await tx.delete(productionItems).where(inArray(productionItems.id, prodIds));
+        }
+
+        await tx.delete(assignments).where(eq(assignments.id, id));
+      });
+
       await logAudit(request, "DELETE_ASSIGNMENT", "assignments", id);
 
       // Kirim email pembatalan jika akun memiliki email

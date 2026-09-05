@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "../lib/api-client";
 import { useLanguage, type Language } from "../lib/LanguageContext";
 import { useToast } from "../contexts/ToastContext";
+import { useConfirm } from "../contexts/ConfirmContext";
 
 interface TopbarProps {
   onMenuClick: () => void;
@@ -42,6 +43,7 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
   const { user, logout } = useAuth();
   const { t, language, setLanguage } = useLanguage();
   const { addToast } = useToast();
+  const confirm = useConfirm();
   const navigate = useNavigate();
 
   // Close dropdowns when clicking outside
@@ -98,6 +100,69 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
     addToast(next === "en" ? "Language switched to English" : "Bahasa diubah ke Bahasa Indonesia", "info");
   };
 
+  const handleNotificationClick = async (n: any) => {
+    if (!n.readAt) {
+      try {
+        await apiFetch(`/system/notifications/${n.id}/read`, {
+          method: "PATCH",
+          body: "{}",
+        });
+        refetchNotifs();
+      } catch (err) {
+        console.error("Gagal menandai notifikasi dibaca:", err);
+      }
+    }
+
+    let meta: any = {};
+    if (n.metadata) {
+      if (typeof n.metadata === "string") {
+        try {
+          meta = JSON.parse(n.metadata);
+        } catch {
+          meta = {};
+        }
+      } else if (typeof n.metadata === "object") {
+        meta = n.metadata;
+      }
+    }
+
+    const taskId = meta.assignmentId || meta.taskId || meta.id;
+    const activityId = meta.activityId;
+    const notifType = (n.type || "").toUpperCase();
+    const notifTitle = (n.title || "").toLowerCase();
+
+    if (isPetugas) {
+      if (notifType === "ACTIVITY" || (!taskId && activityId) || notifTitle.includes("agenda")) {
+        navigate("/petugas/agenda-tersedia");
+      } else {
+        navigate(taskId ? `/petugas/penugasan?taskId=${taskId}` : "/petugas/penugasan", {
+          state: taskId ? { taskId } : undefined,
+        });
+      }
+    } else {
+      if (notifType === "REVIEW" || notifTitle.includes("review") || notifTitle.includes("telaah")) {
+        navigate("/review");
+      } else if (notifType === "ACTIVITY" || (!taskId && activityId) || notifTitle.includes("kegiatan")) {
+        navigate(activityId ? `/kegiatan?id=${activityId}` : "/kegiatan");
+      } else {
+        navigate(taskId ? `/penugasan?id=${taskId}` : "/penugasan", {
+          state: taskId ? { assignmentId: taskId, taskId } : undefined,
+        });
+      }
+    }
+
+    setShowActivity(false);
+  };
+
+  const handleRecentActivityClick = (item: any) => {
+    if (isPetugas) {
+      navigate("/petugas/agenda-tersedia");
+    } else {
+      navigate(`/kegiatan?id=${item.id}`);
+    }
+    setShowActivity(false);
+  };
+
   return (
     <header className="h-16 bg-white dark:bg-[#161b22] border-b border-gray-100 dark:border-gray-800 flex items-center justify-end gap-2 px-6 sticky top-0 z-30 transition-colors">
       {/* Mobile hamburger */}
@@ -144,7 +209,7 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
               <button 
                 type="button" 
                 onClick={async () => {
-                  await apiFetch("/system/notifications/read-all", { method: "PATCH" });
+                  await apiFetch("/system/notifications/read-all", { method: "PATCH", body: "{}" });
                   refetchNotifs();
                 }}
                 className="text-[11px] text-blue-600 hover:underline font-medium cursor-pointer"
@@ -158,11 +223,7 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
                   <div 
                     key={n.id} 
                     className={`px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer ${!n.readAt ? "bg-blue-50/40 dark:bg-blue-950/20" : ""}`}
-                    onClick={() => {
-                      if (n.type === "ASSIGNMENT") navigate("/penugasan");
-                      else navigate("/kegiatan");
-                      setShowActivity(false);
-                    }}
+                    onClick={() => handleNotificationClick(n)}
                   >
                     <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">{n.title}</p>
                     <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{n.message}</p>
@@ -175,7 +236,7 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
                 </div>
               ) : (
                 recentActivities.slice(0, 6).map((item: any) => (
-                  <div key={item.id} className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer" onClick={() => { navigate("/kegiatan"); setShowActivity(false); }}>
+                  <div key={item.id} className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer" onClick={() => handleRecentActivityClick(item)}>
                     <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{item.title}</p>
                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{item.opdPenyelenggara || (language === "en" ? "Batu City Gov" : "Pemkot Batu")} • {item.deadline || (language === "en" ? "Available" : "Tersedia")}</p>
                   </div>
@@ -279,8 +340,17 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
                 type="button"
                 onClick={async () => {
                   setShowProfile(false);
-                  await logout();
-                  navigate("/login", { replace: true, state: {} });
+                  const ok = await confirm({
+                    title: t("logout_confirm_title") || "Konfirmasi Keluar",
+                    message: t("logout_confirm_desc") || "Apakah Anda yakin ingin mengakhiri sesi akun ini?",
+                    confirmText: t("logout") || "Keluar",
+                    cancelText: t("cancel") || "Batal",
+                    variant: "warning",
+                  });
+                  if (ok) {
+                    await logout();
+                    navigate("/login", { replace: true, state: {} });
+                  }
                 }}
                 className="w-full flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
               >

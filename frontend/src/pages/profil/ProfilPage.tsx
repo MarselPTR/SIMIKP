@@ -74,20 +74,6 @@ const BIDANG_CONFIG_ID: Record<
     border: "border-blue-200 dark:border-blue-800",
     desc: "Peliputan kegiatan pimpinan, penulisan siaran pers, dan komunikasi publik",
   },
-  FOTOGRAFER: {
-    label: "Fotografer",
-    bg: "bg-emerald-500/10 dark:bg-emerald-500/20",
-    text: "text-emerald-700 dark:text-emerald-300",
-    border: "border-emerald-200 dark:border-emerald-800",
-    desc: "Dokumentasi foto kegiatan dan highlight agenda",
-  },
-  VIDEOGRAFER: {
-    label: "Videografer",
-    bg: "bg-emerald-500/10 dark:bg-emerald-500/20",
-    text: "text-emerald-700 dark:text-emerald-300",
-    border: "border-emerald-200 dark:border-emerald-800",
-    desc: "Dokumentasi video, liputan multimedia, dan highlight agenda",
-  },
   DESAINER_EDITOR: {
     label: "Desainer & Editor",
     bg: "bg-purple-500/10 dark:bg-purple-500/20",
@@ -95,13 +81,12 @@ const BIDANG_CONFIG_ID: Record<
     border: "border-purple-200 dark:border-purple-800",
     desc: "Perancangan grafis sosial media, infografis publik, dan materi publikasi",
   },
-  // Nilai jabatan lama sebelum dipecah jadi Fotografer/Videografer.
   FOTO_VIDEO: {
-    label: "Foto & Videografi",
+    label: "Fotografer & Videografer",
     bg: "bg-emerald-500/10 dark:bg-emerald-500/20",
     text: "text-emerald-700 dark:text-emerald-300",
     border: "border-emerald-200 dark:border-emerald-800",
-    desc: "Dokumentasi audio-visual, liputan multimedia, dan highlight agenda",
+    desc: "Dokumentasi foto dan video, liputan multimedia, dan highlight agenda",
   },
 };
 
@@ -123,20 +108,6 @@ const BIDANG_CONFIG_EN: Record<
     border: "border-blue-200 dark:border-blue-800",
     desc: "Executive coverage, press release drafting, and public communications",
   },
-  FOTOGRAFER: {
-    label: "Photographer",
-    bg: "bg-emerald-500/10 dark:bg-emerald-500/20",
-    text: "text-emerald-700 dark:text-emerald-300",
-    border: "border-emerald-200 dark:border-emerald-800",
-    desc: "Photo documentation and agenda highlights",
-  },
-  VIDEOGRAFER: {
-    label: "Videographer",
-    bg: "bg-emerald-500/10 dark:bg-emerald-500/20",
-    text: "text-emerald-700 dark:text-emerald-300",
-    border: "border-emerald-200 dark:border-emerald-800",
-    desc: "Video documentation, multimedia coverage, and agenda highlights",
-  },
   DESAINER_EDITOR: {
     label: "Designer & Editor",
     bg: "bg-purple-500/10 dark:bg-purple-500/20",
@@ -144,9 +115,8 @@ const BIDANG_CONFIG_EN: Record<
     border: "border-purple-200 dark:border-purple-800",
     desc: "Social media graphics, public infographics, and publication assets",
   },
-  // Legacy value from before the role was split into Photographer/Videographer.
   FOTO_VIDEO: {
-    label: "Photo & Videography",
+    label: "Photographer & Videographer",
     bg: "bg-emerald-500/10 dark:bg-emerald-500/20",
     text: "text-emerald-700 dark:text-emerald-300",
     border: "border-emerald-200 dark:border-emerald-800",

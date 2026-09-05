@@ -1,9 +1,11 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { db } from "../../db";
 import { activities, activityRequiredContents, assignments } from "../../db/schema/activities";
+import { productionItems, productionVersions, productionFiles } from "../../db/schema/production";
+import { reviews, publications } from "../../db/schema/publications";
 import { opds, contentTypes, locations } from "../../db/schema/master";
 import { users } from "../../db/schema/users";
-import { eq, or, desc } from "drizzle-orm";
+import { eq, or, desc, inArray } from "drizzle-orm";
 import crypto from "crypto";
 import { z } from "zod";
 import { logAudit } from "../system/audit.service";
@@ -18,7 +20,7 @@ const createActivitySchema = z.object({
   locationName: z.string().optional(),
   kecamatan: z.string().optional(),
   desaKelurahan: z.string().optional(),
-  address: z.string().optional(),
+  address: z.string().min(1, "Alamat lengkap wajib diisi"),
   lat: z.number().optional(),
   lng: z.number().optional(),
   opdId: z.string().optional(),
@@ -36,6 +38,7 @@ export class ActivitiesController {
           id: activities.id,
           title: activities.title,
           activityDate: activities.activityDate,
+          activityTime: activities.activityTime,
           priority: activities.priority,
           status: activities.status,
           opdName: opds.name,
@@ -80,6 +83,8 @@ export class ActivitiesController {
         id: r.id,
         title: r.title,
         status: r.status,
+        activityDate: r.activityDate,
+        activityTime: r.activityTime,
         deadline: r.activityDate ? r.activityDate.toISOString().split("T")[0] : "",
         prioritas: r.priority || "Sedang",
         opdPenyelenggara: r.opdName || "Diskominfo",
@@ -151,7 +156,7 @@ export class ActivitiesController {
 
       // Resolve Location with detail
       let finalLocationId: string | null = null;
-      const locKey = data.locationName || data.location || data.locationId;
+      const locKey = data.locationName || data.location || data.locationId || data.address;
       if (locKey && locKey.trim()) {
         const existingLocs = await db
           .select()
@@ -278,7 +283,7 @@ export class ActivitiesController {
 
       // Resolve Location with detail
       let finalLocationId: string | null = null;
-      const locKey = data.locationName || data.location || data.locationId;
+      const locKey = data.locationName || data.location || data.locationId || data.address;
       if (locKey && locKey.trim()) {
         const existingLocs = await db
           .select()
@@ -380,7 +385,49 @@ export class ActivitiesController {
       const { id } = request.params;
 
       await db.transaction(async (tx) => {
-        await tx.delete(assignments).where(eq(assignments.activityId, id));
+        // 1. Ambil semua penugasan yang terkait dengan kegiatan ini
+        const asgns = await tx
+          .select({ id: assignments.id })
+          .from(assignments)
+          .where(eq(assignments.activityId, id));
+
+        if (asgns.length > 0) {
+          const asgnIds = asgns.map((a) => a.id);
+
+          // 2. Ambil item produksi yang terhubung ke penugasan
+          const prods = await tx
+            .select({ id: productionItems.id })
+            .from(productionItems)
+            .where(inArray(productionItems.assignmentId, asgnIds));
+
+          if (prods.length > 0) {
+            const prodIds = prods.map((p) => p.id);
+
+            // 3. Ambil versi produksi
+            const vers = await tx
+              .select({ id: productionVersions.id })
+              .from(productionVersions)
+              .where(inArray(productionVersions.productionItemId, prodIds));
+
+            if (vers.length > 0) {
+              const verIds = vers.map((v) => v.id);
+
+              // 4. Hapus reviews, publikasi, berkas media, dan versi produksi
+              await tx.delete(reviews).where(inArray(reviews.productionVersionId, verIds));
+              await tx.delete(publications).where(inArray(publications.productionVersionId, verIds));
+              await tx.delete(productionFiles).where(inArray(productionFiles.productionVersionId, verIds));
+              await tx.delete(productionVersions).where(inArray(productionVersions.id, verIds));
+            }
+
+            // Hapus item produksi
+            await tx.delete(productionItems).where(inArray(productionItems.id, prodIds));
+          }
+
+          // 5. Hapus penugasan
+          await tx.delete(assignments).where(eq(assignments.activityId, id));
+        }
+
+        // 6. Hapus required contents & kegiatan
         await tx.delete(activityRequiredContents).where(eq(activityRequiredContents.activityId, id));
         await tx.delete(activities).where(eq(activities.id, id));
       });

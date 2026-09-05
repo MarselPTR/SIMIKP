@@ -119,9 +119,8 @@ export default function TambahPetugasPage() {
               >
                 <option value="">{language === "en" ? "Not set" : "Belum ditentukan"}</option>
                 <option value="AHLI_PERTAMA">{language === "en" ? "Pranata Ahli Pertama (Supervisor)" : "Pranata Ahli Pertama (Pengawas / Evaluator)"}</option>
-                <option value="PRAHUM">{language === "en" ? "Public Relations (News)" : "Pranata Humas (Berita)"}</option>
-                <option value="FOTOGRAFER">{language === "en" ? "Photographer" : "Fotografer"}</option>
-                <option value="VIDEOGRAFER">{language === "en" ? "Videographer" : "Videografer"}</option>
+                <option value="PRAHUM">{language === "en" ? "Pranata Humas (News)" : "Pranata Humas (Berita)"}</option>
+                <option value="FOTO_VIDEO">{language === "en" ? "Photographer & Videographer" : "Fotografer & Videografer"}</option>
                 <option value="DESAINER_EDITOR">{language === "en" ? "Designer & Editor" : "Desainer & Editor"}</option>
               </select>
             </div>

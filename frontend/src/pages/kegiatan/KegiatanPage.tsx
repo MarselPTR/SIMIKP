@@ -26,6 +26,7 @@ import Dialog from "../../components/ui/Dialog";
 import Select from "../../components/ui/Select";
 import { LoadingSpinner, ErrorState } from "../../components/shared/StateComponents";
 import { useToast } from "../../contexts/ToastContext";
+import { useConfirm } from "../../contexts/ConfirmContext";
 import { useLanguage } from "../../lib/LanguageContext";
 import EventCalendar from "../../components/shared/EventCalendar";
 import type { CalendarEvent } from "../../components/shared/EventCalendar";
@@ -88,14 +89,9 @@ export const DEFAULT_OUTPUT_BY_JABATAN: OutputJabatanGroup[] = [
     options: ["Naskah Berita"],
   },
   {
-    jabatan: "Fotografer",
-    code: "FOTOGRAFER",
-    options: ["Foto"],
-  },
-  {
-    jabatan: "Videografer",
-    code: "VIDEOGRAFER",
-    options: ["Video", "Reels"],
+    jabatan: "Fotografer & Videografer",
+    code: "FOTO_VIDEO",
+    options: ["Foto", "Video", "Reels"],
   },
   {
     jabatan: "Desainer & Editor",
@@ -152,6 +148,7 @@ const todayStr = () => {
 const emptyForm = {
   title: "",
   deadline: todayStr(),
+  waktu: "08:00",
   lokasi: "",
   kecamatan: "",
   desaKelurahan: "",
@@ -162,6 +159,7 @@ const emptyForm = {
 };
 
 const formatTanggal = (iso: string, lang = "id") => {
+  if (!iso) return "";
   const [y, m, d] = iso.split("-").map(Number);
   if (!y || !m || !d) return iso;
   return new Date(y, m - 1, d).toLocaleDateString(lang === "en" ? "en-US" : "id-ID", {
@@ -172,6 +170,7 @@ const formatTanggal = (iso: string, lang = "id") => {
 };
 
 const formatTanggalPanjang = (iso: string, lang = "id") => {
+  if (!iso) return "";
   const [y, m, d] = iso.split("-").map(Number);
   if (!y || !m || !d) return iso;
   return new Date(y, m - 1, d).toLocaleDateString(lang === "en" ? "en-US" : "id-ID", {
@@ -185,6 +184,7 @@ const formatTanggalPanjang = (iso: string, lang = "id") => {
 const KegiatanPage = () => {
   const navigate = useNavigate();
   const { addToast } = useToast();
+  const confirm = useConfirm();
   const { t, language } = useLanguage();
 
   const getStatusLabel = (st: MockKegiatan["status"]) =>
@@ -244,8 +244,12 @@ const KegiatanPage = () => {
     );
   };
 
-  const items: MockKegiatan[] = useMemo(
-    () => (Array.isArray(rawKegiatanData) ? (rawKegiatanData as MockKegiatan[]) : []),
+  const items: (MockKegiatan & { activityTime?: string; lokasi?: string })[] = useMemo(
+    () => (Array.isArray(rawKegiatanData) ? rawKegiatanData.map((d: any) => ({
+      ...d,
+      deadline: d.activityDate ? (typeof d.activityDate === 'string' ? d.activityDate.split("T")[0] : new Date(d.activityDate).toISOString().split("T")[0]) : "",
+      lokasi: d.lokasi || d.locationName || d.alamat || d.address || "",
+    })) : []),
     [rawKegiatanData]
   );
 
@@ -311,12 +315,13 @@ const KegiatanPage = () => {
     setEditingId(item.id);
     setForm({
       title: item.title,
-      deadline: item.deadline,
+      deadline: item.activityDate ? item.activityDate.split("T")[0] : item.deadline,
+      waktu: item.activityTime || "08:00",
       lokasi: item.lokasi ?? "",
       kecamatan: item.kecamatan ?? "",
       desaKelurahan: item.desaKelurahan ?? "",
-      alamat: item.alamat ?? "",
-      opdPenyelenggara: item.opdPenyelenggara ?? "",
+      alamat: item.address ?? item.alamat ?? "",
+      opdPenyelenggara: item.opdPenyelenggara ?? item.opdName ?? "",
       prioritas: item.prioritas,
       outputDibutuhkan: item.outputDibutuhkan ?? [],
     });
@@ -328,21 +333,30 @@ const KegiatanPage = () => {
     setEditingId(null);
   };
 
-  // Output options by Jabatan with LocalStorage persistence
-  const [outputGroups, setOutputGroups] = useState<OutputJabatanGroup[]>(() => {
-    try {
-      const saved = localStorage.getItem("simikp_output_by_jabatan");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
-        }
+  const { data: contentTypesData = [], refetch: refetchContentTypes } = useQuery({
+    queryKey: ["content-types"],
+    queryFn: async () => {
+      try {
+        const res = await apiFetch<{ success: boolean; data: { id: string; name: string; roleCode: string }[] }>("/master/content-types");
+        return res.data || [];
+      } catch (err) {
+        return [];
       }
-    } catch (e) {
-      console.error("Failed to load output groups from localStorage", e);
-    }
-    return DEFAULT_OUTPUT_BY_JABATAN;
+    },
   });
+
+  const outputGroups = useMemo(() => {
+    const groups: OutputJabatanGroup[] = DEFAULT_OUTPUT_BY_JABATAN.map(g => ({ ...g, options: [] }));
+    contentTypesData.forEach((ct) => {
+      let g = groups.find(x => x.code === ct.roleCode);
+      if (!g) {
+        g = { jabatan: ct.roleCode, code: ct.roleCode, options: [] };
+        groups.push(g);
+      }
+      g.options.push(ct.name);
+    });
+    return groups;
+  }, [contentTypesData]);
 
   // Manage Output Modal states
   const [isManageOutputOpen, setIsManageOutputOpen] = useState(false);
@@ -354,48 +368,41 @@ const KegiatanPage = () => {
     jabatanCode: string;
   } | null>(null);
 
-  const saveOutputGroups = (newGroups: OutputJabatanGroup[]) => {
-    setOutputGroups(newGroups);
-    try {
-      localStorage.setItem("simikp_output_by_jabatan", JSON.stringify(newGroups));
-    } catch (e) {
-      console.error("Failed to save output groups to localStorage", e);
-    }
-  };
-
-  const handleAddOutput = (e: React.FormEvent) => {
+  const handleAddOutput = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = newOutputName.trim();
     if (!trimmed) {
       addToast(language === "en" ? "Output type name cannot be empty" : "Nama tipe output tidak boleh kosong", "error");
       return;
     }
-    const alreadyExists = outputGroups.some((g) =>
-      g.options.some((opt) => opt.toLowerCase() === trimmed.toLowerCase())
-    );
-    if (alreadyExists) {
-      addToast(language === "en" ? `Output type "${trimmed}" already exists` : `Tipe output "${trimmed}" sudah ada`, "warning");
-      return;
+    
+    try {
+      const res = await apiFetch<{ success: boolean; error?: string }>("/master/content-types", {
+        method: "POST",
+        body: JSON.stringify({ name: trimmed, roleCode: newOutputJabatanCode }),
+      });
+      
+      if (!res.success) {
+        addToast(res.error || "Gagal menambahkan tipe output", "error");
+        return;
+      }
+      
+      await refetchContentTypes();
+      setNewOutputName("");
+      const targetJabatan = outputGroups.find((g) => g.code === newOutputJabatanCode)?.jabatan;
+      const targetJabatanDisplay = targetJabatan ? getJabatanDisplayName(targetJabatan, newOutputJabatanCode, language) : "";
+      addToast(
+        language === "en"
+          ? `Output type "${trimmed}" added to ${targetJabatanDisplay}`
+          : `Tipe output "${trimmed}" berhasil ditambahkan ke ${targetJabatanDisplay}`,
+        "success"
+      );
+    } catch (err) {
+      addToast("Gagal menghubungi server", "error");
     }
-
-    const updated = outputGroups.map((g) =>
-      g.code === newOutputJabatanCode
-        ? { ...g, options: [...g.options, trimmed] }
-        : g
-    );
-    saveOutputGroups(updated);
-    setNewOutputName("");
-    const targetJabatan = outputGroups.find((g) => g.code === newOutputJabatanCode)?.jabatan;
-    const targetJabatanDisplay = targetJabatan ? getJabatanDisplayName(targetJabatan, newOutputJabatanCode, language) : "";
-    addToast(
-      language === "en"
-        ? `Output type "${trimmed}" added to ${targetJabatanDisplay}`
-        : `Tipe output "${trimmed}" berhasil ditambahkan ke ${targetJabatanDisplay}`,
-      "success"
-    );
   };
 
-  const handleSaveEditOutput = () => {
+  const handleSaveEditOutput = async () => {
     if (!editingOutput) return;
     const trimmed = editingOutput.name.trim();
     if (!trimmed) {
@@ -403,65 +410,70 @@ const KegiatanPage = () => {
       return;
     }
 
-    if (trimmed.toLowerCase() !== editingOutput.originalName.toLowerCase()) {
-      const alreadyExists = outputGroups.some((g) =>
-        g.options.some((opt) => opt.toLowerCase() === trimmed.toLowerCase())
-      );
-      if (alreadyExists) {
-        addToast(language === "en" ? `Output type "${trimmed}" already exists` : `Tipe output "${trimmed}" sudah ada`, "warning");
+    try {
+      // Find the ID of the output we are editing
+      const ct = contentTypesData.find((c) => c.name === editingOutput.originalName);
+      if (!ct) return;
+
+      const res = await apiFetch<{ success: boolean; error?: string }>(`/master/content-types/${ct.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ name: trimmed, roleCode: editingOutput.jabatanCode }),
+      });
+
+      if (!res.success) {
+        addToast(res.error || "Gagal memperbarui tipe output", "error");
         return;
       }
-    }
 
-    const updated = outputGroups.map((g) => {
-      const withoutOriginal = g.options.filter((opt) => opt !== editingOutput.originalName);
-      if (g.code === editingOutput.jabatanCode) {
-        return { ...g, options: [...withoutOriginal, trimmed] };
+      await refetchContentTypes();
+
+      // Update form if selected
+      setForm((f) => ({
+        ...f,
+        outputDibutuhkan: f.outputDibutuhkan.map((opt) =>
+          opt === editingOutput.originalName ? trimmed : opt
+        ),
+      }));
+
+      addToast(language === "en" ? `Output type "${trimmed}" updated successfully` : `Tipe output "${trimmed}" berhasil diperbarui`, "success");
+      setEditingOutput(null);
+    } catch (err) {
+      addToast("Gagal menghubungi server", "error");
+    }
+  };
+
+  const handleDeleteOutput = async (outputName: string) => {
+    try {
+      const ct = contentTypesData.find((c) => c.name === outputName);
+      if (!ct) return;
+
+      const res = await apiFetch<{ success: boolean; error?: string }>(`/master/content-types/${ct.id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.success) {
+        addToast(res.error || "Gagal menghapus tipe output", "error");
+        return;
       }
-      return { ...g, options: withoutOriginal };
-    });
 
-    saveOutputGroups(updated);
+      await refetchContentTypes();
 
-    // Update form if selected
-    setForm((f) => ({
-      ...f,
-      outputDibutuhkan: f.outputDibutuhkan.map((opt) =>
-        opt === editingOutput.originalName ? trimmed : opt
-      ),
-    }));
+      setForm((f) => ({
+        ...f,
+        outputDibutuhkan: f.outputDibutuhkan.filter((opt) => opt !== outputName),
+      }));
 
-    addToast(language === "en" ? `Output type "${trimmed}" updated successfully` : `Tipe output "${trimmed}" berhasil diperbarui`, "success");
-    setEditingOutput(null);
-  };
-
-  const handleDeleteOutput = (outputName: string) => {
-    const updated = outputGroups.map((g) => ({
-      ...g,
-      options: g.options.filter((opt) => opt !== outputName),
-    }));
-    saveOutputGroups(updated);
-
-    setForm((f) => ({
-      ...f,
-      outputDibutuhkan: f.outputDibutuhkan.filter((opt) => opt !== outputName),
-    }));
-
-    addToast(language === "en" ? `Output type "${outputName}" deleted` : `Tipe output "${outputName}" berhasil dihapus`, "info");
-    if (editingOutput?.originalName === outputName) {
-      setEditingOutput(null);
+      addToast(language === "en" ? `Output type "${outputName}" deleted` : `Tipe output "${outputName}" berhasil dihapus`, "info");
+      if (editingOutput?.originalName === outputName) {
+        setEditingOutput(null);
+      }
+    } catch (err) {
+      addToast("Gagal menghubungi server", "error");
     }
   };
 
-  const handleResetOutputs = () => {
-    const confirmMsg = language === "en"
-      ? "Reset output list to default settings?"
-      : "Kembalikan daftar output ke pengaturan awal Diskominfo?";
-    if (window.confirm(confirmMsg)) {
-      saveOutputGroups(DEFAULT_OUTPUT_BY_JABATAN);
-      setEditingOutput(null);
-      addToast(language === "en" ? "Output list restored to defaults" : "Daftar output dikembalikan ke pengaturan awal", "info");
-    }
+  const handleResetOutputs = async () => {
+    addToast("Fitur reset saat ini dinonaktifkan karena telah terintegrasi dengan database pusat.", "info");
   };
 
   const toggleOutput = (opt: string) => {
@@ -529,16 +541,30 @@ const KegiatanPage = () => {
     },
     onSuccess: () => {
       refetch();
+      addToast(
+        language === "en" ? "Activity successfully deleted." : "Kegiatan berhasil dihapus.",
+        "success"
+      );
+    },
+    onError: (err: any) => {
+      addToast(
+        err?.message || (language === "en" ? "Failed to delete activity." : "Gagal menghapus kegiatan."),
+        "error"
+      );
     },
   });
 
   const handleSave = () => {
-    if (!form.title.trim() || !form.deadline) return;
+    if (!form.title.trim() || !form.deadline || !form.alamat.trim()) {
+      addToast(language === "en" ? "Please fill in all mandatory fields (Title, Date, Full Address)" : "Mohon isi semua field wajib (Nama, Tanggal, Alamat Lengkap)", "error");
+      return;
+    }
 
     const opdId = opds?.find((o: any) => o.name === form.opdPenyelenggara)?.id;
     saveMutation.mutate({
       title: form.title.trim(),
       activityDate: form.deadline,
+      activityTime: form.waktu,
       opdId: opdId || undefined,
       opdPenyelenggara: form.opdPenyelenggara.trim() || undefined,
       location: form.lokasi.trim() || undefined,
@@ -551,10 +577,16 @@ const KegiatanPage = () => {
     });
   };
 
-  const handleDelete = (id: string, e: React.MouseEvent) => {
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const confirmMsg = language === "en" ? t("kegiatan_delete_confirm") : "Hapus kegiatan ini? Tindakan ini tidak bisa dibatalkan.";
-    if (window.confirm(confirmMsg)) {
+    const confirmed = await confirm({
+      title: language === "en" ? "Delete Activity" : "Hapus Kegiatan",
+      message: language === "en" ? t("kegiatan_delete_confirm") : "Hapus kegiatan ini? Tindakan ini tidak bisa dibatalkan.",
+      confirmText: language === "en" ? "Yes, Delete" : "Ya, Hapus",
+      cancelText: language === "en" ? "Cancel" : "Batal",
+      variant: "danger",
+    });
+    if (confirmed) {
       deleteMutation.mutate(id);
     }
   };
@@ -657,7 +689,10 @@ const KegiatanPage = () => {
                 <div className="space-y-1 text-xs text-gray-500 dark:text-gray-400">
                   <div className="flex items-center gap-1.5">
                     <CalendarDays className="w-3.5 h-3.5 flex-shrink-0" />
-                    <span>{formatTanggal(item.deadline, language)}</span>
+                    <span>
+                      {formatTanggal(item.deadline, language)}
+                      {item.activityTime ? ` • ${item.activityTime.slice(0, 5)} WIB` : ""}
+                    </span>
                   </div>
                   {item.lokasi && (
                     <div className="flex items-center gap-1.5">
@@ -732,13 +767,22 @@ const KegiatanPage = () => {
               className="mt-1"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t("kegiatan_form_date")}</label>
               <Input
                 type="date"
                 value={form.deadline}
                 onChange={(e) => setForm((f) => ({ ...f, deadline: e.target.value }))}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Waktu</label>
+              <Input
+                type="time"
+                value={form.waktu}
+                onChange={(e) => setForm((f) => ({ ...f, waktu: e.target.value }))}
                 className="mt-1"
               />
             </div>

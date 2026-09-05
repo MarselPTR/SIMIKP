@@ -42,8 +42,22 @@ const PetugasPenugasanPage = () => {
   const { tasks: userTasks, submitWork: storeSubmitWork } = usePetugasTasksStore(user?.id);
   const userBidang = userTasks[0]?.bidang || "PRAHUM";
 
-  const initialTaskId = (location.state as { taskId?: string } | null)?.taskId ?? null;
+  const searchParams = new URLSearchParams(location.search);
+  const paramTaskId = searchParams.get("taskId") || searchParams.get("id");
+  const stateTaskId = (location.state as { taskId?: string } | null)?.taskId;
+  const initialTaskId = stateTaskId || paramTaskId || null;
   const [selectedId, setSelectedId] = useState<string | null>(initialTaskId);
+
+  // Sync selected task when navigated from notifications or external links
+  useEffect(() => {
+    const sId = (location.state as { taskId?: string } | null)?.taskId;
+    const pId = new URLSearchParams(location.search).get("taskId") || new URLSearchParams(location.search).get("id");
+    const target = sId || pId;
+    if (target) {
+      setSelectedId(target);
+    }
+  }, [location.state, location.search]);
+
   const [uploadLink, setUploadLink] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");

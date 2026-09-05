@@ -6,20 +6,18 @@ import { apiFetch } from "./api-client";
 // Cocok dengan checklist "Output yang Dibutuhkan" di form Kegiatan.
 export const CONTENT_TYPE_TO_BIDANG: Record<string, string> = {
   "Naskah Berita": "PRAHUM",
-  Foto: "FOTOGRAFER",
-  Video: "VIDEOGRAFER",
-  Reels: "VIDEOGRAFER",
+  Foto: "FOTO_VIDEO",
+  Video: "FOTO_VIDEO",
+  Reels: "FOTO_VIDEO",
   Infografis: "DESAINER_EDITOR",
   Audio: "DESAINER_EDITOR",
 };
 
-// Jabatan lama "FOTO_VIDEO" (sebelum dipecah) tetap boleh mengklaim keduanya.
 export const staffTypeMatchesContentType = (staffType: string | null | undefined, contentType: string): boolean => {
-  if (!staffType) return true; // belum ada jabatan tetap = bebas pilih role apapun
+  if (!staffType) return true;
   const bucket = CONTENT_TYPE_TO_BIDANG[contentType];
   if (!bucket) return true;
   if (staffType === bucket) return true;
-  if (staffType === "FOTO_VIDEO" && (bucket === "FOTOGRAFER" || bucket === "VIDEOGRAFER")) return true;
   return false;
 };
 
@@ -186,11 +184,9 @@ export const submitPetugasTaskWork = async (
   const isMediaObj = typeof workLinkOrPayload !== "string";
   const finalWorkLink = isMediaObj ? JSON.stringify(workLinkOrPayload) : workLinkOrPayload;
 
-  // Jika tugas sebelumnya berstatus REVISI, kirim ulang kembali ke workflow telaah (NEED_REVIEW)
   const isFromRevision = target?.status === "REVISI";
-  const nextStatus = isFromRevision
-    ? (target?.bidang === "PRAHUM" ? "MENULIS" : target?.bidang === "DESAINER_EDITOR" ? "DESAIN" : "LIPUTAN")
-    : "SELESAI";
+  // Status tetap berada di tahap in-progress (MENULIS/DESAIN/LIPUTAN) agar bisa dibaca sebagai NEED_REVIEW oleh Ahli Pertama
+  const nextStatus = target?.bidang === "PRAHUM" ? "MENULIS" : target?.bidang === "DESAINER_EDITOR" ? "DESAIN" : "LIPUTAN";
 
   const updated = current.map((t) =>
     t.id === id
@@ -236,7 +232,7 @@ export const usePetugasTasksStore = (userId?: string | null) => {
     // Fetch assignments from real backend
     apiFetch<{ success: boolean; data: any[] }>("/assignments")
       .then((res) => {
-        if (res.data && res.data.length > 0) {
+        if (res.data && Array.isArray(res.data)) {
           const currentStored = getStoredPetugasTasks();
           const currentMap = new Map(currentStored.map((t) => [t.id, t]));
 
@@ -298,13 +294,10 @@ export const usePetugasTasksStore = (userId?: string | null) => {
             };
           });
 
-          // Pertahankan tugas lokal yang belum tersimpan di backend
-          const backendIds = new Set(mapped.map((m) => m.id));
-          const onlyLocal = currentStored.filter((t) => !backendIds.has(t.id));
-          const merged = [...mapped, ...onlyLocal];
-
-          saveStoredPetugasTasks(merged);
-          setTasks(merged);
+          // Backend adalah sumber kebenaran (single source of truth).
+          // Abaikan local tasks yang tidak ada di backend (sudah dihapus Admin).
+          saveStoredPetugasTasks(mapped);
+          setTasks(mapped);
         }
       })
       .catch(() => {

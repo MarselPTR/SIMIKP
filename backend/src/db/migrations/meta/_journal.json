@@ -50,6 +50,20 @@
       "when": 1788436000000,
       "tag": "0006_add_assignments_work_link",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1788586058535,
+      "tag": "0007_silly_gorgon",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1788590601461,
+      "tag": "0008_blushing_boom_boom",
+      "breakpoints": true
     }
   ]
 }

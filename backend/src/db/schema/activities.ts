@@ -1,4 +1,4 @@
-import { mysqlTable, char, varchar, date, datetime, time, text, primaryKey } from "drizzle-orm/mysql-core";
+import { mysqlTable, char, varchar, date, datetime, time, text, primaryKey, index } from "drizzle-orm/mysql-core";
 import { locations, contentTypes, opds } from "./master";
 import { users } from "./users";
 
@@ -17,7 +17,10 @@ export const activities = mysqlTable("activities", {
   status: varchar("status", { length: 50 }).notNull(),
   createdBy: char("created_by", { length: 36 }).notNull().references(() => users.id),
   createdAt: datetime("created_at").default(new Date()),
-});
+}, (t) => ({
+  idxActivityDate: index("idx_activity_date").on(t.activityDate),
+  idxActivityStatus: index("idx_activity_status").on(t.status),
+}));
 
 export const activityRequiredContents = mysqlTable("activity_required_contents", {
   activityId: char("activity_id", { length: 36 }).notNull().references(() => activities.id),
@@ -43,4 +46,6 @@ export const assignments = mysqlTable("assignments", {
   revisionAuthor: varchar("revision_author", { length: 255 }),
   revisionDate: varchar("revision_date", { length: 100 }),
   createdBy: char("created_by", { length: 36 }).notNull().references(() => users.id),
-});
+}, (t) => ({
+  idxAssignmentStatus: index("idx_assignment_status").on(t.status),
+}));

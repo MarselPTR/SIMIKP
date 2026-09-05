@@ -120,10 +120,8 @@ export class UsersController {
       if (body.email) {
         const ROLE_LABEL_MAP: Record<string, string> = {
           PRAHUM: "Pranata Humas (Penulis Naskah)",
-          FOTOGRAFER: "Petugas Fotografer",
-          VIDEOGRAFER: "Petugas Videografer",
+          FOTO_VIDEO: "Petugas Fotografer & Videografer",
           DESAINER_EDITOR: "Desainer & Editor Grafis",
-          FOTO_VIDEO: "Petugas Foto & Video",
           AHLI_PERTAMA: "Pranata Humas Ahli Pertama (Redaktur)",
           ADMIN: "Administrator Sistem",
           MANAGER: "Pimpinan / Manager",

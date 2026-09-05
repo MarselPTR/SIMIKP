@@ -86,7 +86,7 @@ export default function PetugasAgendaTersediaPage() {
       .map((a) => {
         const openTypes = (a.outputDibutuhkan || []).filter(
           (ct) =>
-            !assignments.some((x) => x.activityId === a.id && x.contentType === ct) &&
+            !assignments.some((x) => x.activityId === a.id && x.contentType === ct && x.status !== "UNASSIGNED") &&
             staffTypeMatchesContentType(user?.staffType, ct)
         );
         return { ...a, openTypes };

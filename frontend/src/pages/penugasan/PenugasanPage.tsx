@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { apiFetch } from "../../lib/api-client";
 import type { MockPenugasan } from "../../lib/mock-data";
 import { useToast } from "../../contexts/ToastContext";
+import { useConfirm } from "../../contexts/ConfirmContext";
 import { useLanguage } from "../../lib/LanguageContext";
 import Dialog from "../../components/ui/Dialog";
 import Button from "../../components/ui/Button";
@@ -47,6 +48,7 @@ const STATUS_META: Record<
   done: { labelId: "Selesai", labelEn: "Completed", icon: RiCheckboxCircleFill, badge: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60", accent: "border-l-emerald-400" },
   pending: { labelId: "Menunggu", labelEn: "Pending", icon: RiHourglassLine, badge: "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700", accent: "border-l-slate-300 dark:border-l-slate-600" },
   conflict: { labelId: "Bentrok", labelEn: "Conflict", icon: RiCloseCircleFill, badge: "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/60", accent: "border-l-rose-400" },
+  unassigned: { labelId: "Belum Ditugaskan", labelEn: "Unassigned", icon: RiHourglassLine, badge: "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700", accent: "border-l-gray-300 dark:border-l-gray-600" },
 };
 
 function PenugasanStatusBadge({ status, language }: { status: MockPenugasan["status"]; language: string }) {
@@ -63,9 +65,11 @@ function PenugasanStatusBadge({ status, language }: { status: MockPenugasan["sta
 
 export default function PenugasanPage() {
   const { addToast } = useToast();
+  const confirm = useConfirm();
   const { language } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Query Penugasan Data
   const { data: initialData = [], isLoading, error, refetch } = useQuery({
@@ -87,11 +91,13 @@ export default function PenugasanPage() {
             status:
               a.status === "COMPLETED"
                 ? "done"
-                : a.status === "IN_PROGRESS"
-                  ? "in-progress"
-                  : a.status === "CONFLICT"
-                    ? "conflict"
-                    : "pending",
+                : a.status === "UNASSIGNED"
+                  ? "unassigned"
+                  : a.status === "IN_PROGRESS"
+                    ? "in-progress"
+                    : a.status === "CONFLICT"
+                      ? "conflict"
+                      : "pending",
             lokasi: a.location || "Batu",
             catatan: a.instruction,
           })) as MockPenugasan[];
@@ -145,8 +151,34 @@ export default function PenugasanPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<MockPenugasan | null>(null);
+
+  // Auto-open detail modal if navigated with assignment id from notification or link
+  useEffect(() => {
+    const targetId =
+      searchParams.get("id") ||
+      searchParams.get("taskId") ||
+      (location.state as any)?.assignmentId ||
+      (location.state as any)?.taskId;
+
+    if (targetId && items.length > 0) {
+      const found = items.find((i) => i.id === targetId);
+      if (found) {
+        setSelectedItem(found);
+        setIsDetailOpen(true);
+      }
+    }
+  }, [searchParams, location.state, items]);
+
+  const handleCloseDetail = () => {
+    setIsDetailOpen(false);
+    if (searchParams.has("id") || searchParams.has("taskId")) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("id");
+      next.delete("taskId");
+      setSearchParams(next);
+    }
+  };
 
   // Helper format date for display
   const formatDisplayDate = (dateStr: string) => {
@@ -419,7 +451,14 @@ export default function PenugasanPage() {
     const confirmMsg = language === "en"
       ? `Are you sure you want to delete ${selectedIds.length} selected assignments?`
       : `Yakin ingin menghapus ${selectedIds.length} penugasan terpilih?`;
-    if (!window.confirm(confirmMsg)) return;
+    const confirmed = await confirm({
+      title: language === "en" ? "Delete Selected Assignments" : "Hapus Penugasan Terpilih",
+      message: confirmMsg,
+      confirmText: language === "en" ? "Yes, Delete All" : "Ya, Hapus Semua",
+      cancelText: language === "en" ? "Cancel" : "Batal",
+      variant: "danger",
+    });
+    if (!confirmed) return;
 
     try {
       await Promise.all(
@@ -510,9 +549,34 @@ export default function PenugasanPage() {
   };
 
   // Handler Open Delete
-  const handleOpenDelete = (item: MockPenugasan) => {
-    setSelectedItem(item);
-    setIsDeleteOpen(true);
+  const handleOpenDelete = async (item: MockPenugasan) => {
+    const confirmed = await confirm({
+      title: language === "en" ? "Confirm Delete Assignment" : "Konfirmasi Hapus Penugasan",
+      message: language === "en"
+        ? `Are you sure you want to delete assignment "${item.kegiatanTerkait}" for ${item.pic}?`
+        : `Apakah Anda yakin ingin menghapus penugasan "${item.kegiatanTerkait}" untuk ${item.pic}? Tindakan ini tidak bisa dibatalkan.`,
+      confirmText: language === "en" ? "Yes, Delete" : "Ya, Hapus Penugasan",
+      cancelText: language === "en" ? "Cancel" : "Batal",
+      variant: "danger",
+    });
+
+    if (confirmed) {
+      try {
+        await apiFetch(`/assignments/${item.id}`, { method: "DELETE" });
+        addToast(
+          language === "en"
+            ? `Assignment "${item.kegiatanTerkait}" deleted.`
+            : `Penugasan "${item.kegiatanTerkait}" berhasil dihapus.`,
+          "success"
+        );
+        refetch();
+      } catch {
+        addToast(
+          language === "en" ? "Failed to delete assignment" : "Gagal menghapus penugasan",
+          "error"
+        );
+      }
+    }
   };
 
   // Save Create
@@ -591,24 +655,6 @@ export default function PenugasanPage() {
       setIsEditOpen(false);
     } catch {
       addToast(language === "en" ? "Failed to save assignment" : "Gagal menyimpan penugasan", "error");
-    }
-  };
-
-  // Confirm Delete
-  const handleConfirmDelete = async () => {
-    if (!selectedItem) return;
-    try {
-      await apiFetch(`/assignments/${selectedItem.id}`, { method: "DELETE" });
-      addToast(
-        language === "en"
-          ? `Assignment "${selectedItem.kegiatanTerkait}" deleted.`
-          : `Penugasan "${selectedItem.kegiatanTerkait}" telah dihapus.`,
-        "info"
-      );
-      refetch();
-      setIsDeleteOpen(false);
-    } catch {
-      addToast(language === "en" ? "Failed to delete assignment" : "Gagal menghapus penugasan", "error");
     }
   };
 
@@ -947,6 +993,7 @@ export default function PenugasanPage() {
                     <div className="overflow-x-auto">
                       <div className="divide-y divide-slate-100 dark:divide-gray-800">
                         {group.rows.map((item) => {
+                          const isVacant = item.status === "unassigned" || item.id.startsWith("vacant-");
                           const isSelected = selectedIds.includes(item.id);
                           return (
                             <div
@@ -957,48 +1004,80 @@ export default function PenugasanPage() {
                             >
                               <input
                                 type="checkbox"
+                                disabled={isVacant}
                                 checked={isSelected}
                                 onChange={() => handleSelectRow(item.id)}
-                                className="rounded border-slate-300 text-[#0f1f5c] focus:ring-[#0f1f5c]/30 cursor-pointer"
+                                className="rounded border-slate-300 text-[#0f1f5c] focus:ring-[#0f1f5c]/30 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                               />
                               <div className="flex min-w-0 items-center gap-2.5">
-                                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#0f1f5c]/10 dark:bg-sky-500/20 text-[11px] font-semibold text-[#0f1f5c] dark:text-sky-300">
-                                  {item.picAvatar ?? item.pic.slice(0, 2).toUpperCase()}
+                                <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${isVacant ? "bg-gray-100 dark:bg-gray-800 text-gray-500" : "bg-[#0f1f5c]/10 dark:bg-sky-500/20 text-[#0f1f5c] dark:text-sky-300"}`}>
+                                  {isVacant ? "-" : (item.picAvatar ?? item.pic.slice(0, 2).toUpperCase())}
                                 </span>
-                                <span className="truncate font-medium text-slate-800 dark:text-slate-100">{item.pic}</span>
+                                <span className={`truncate font-medium ${isVacant ? "text-gray-400 dark:text-gray-500 italic" : "text-slate-800 dark:text-slate-100"}`}>{item.pic}</span>
                               </div>
                               <span className="truncate text-slate-600 dark:text-slate-300">{item.jenisKonten}</span>
                               <span className="font-mono text-xs text-slate-600 dark:text-slate-400">
-                                {item.jamMulai}&ndash;{item.jamSelesai}
+                                {isVacant ? "-" : `${item.jamMulai}\u2013${item.jamSelesai}`}
                               </span>
                               <span>
                                 <PenugasanStatusBadge status={item.status} language={language} />
                               </span>
                               <div className="flex items-center justify-end gap-0.5 text-slate-400 dark:text-slate-500">
-                                <button
-                                  onClick={() => handleOpenDetail(item)}
-                                  className="rounded-md p-1.5 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-[#0f1f5c] dark:hover:text-sky-400 cursor-pointer"
-                                  title={language === "en" ? "Detail" : "Detail"}
-                                  aria-label={language === "en" ? "View assignment details" : "Lihat detail penugasan"}
-                                >
-                                  <RiEyeLine className="h-4 w-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleOpenEdit(item)}
-                                  className="rounded-md p-1.5 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer"
-                                  title={language === "en" ? "Edit" : "Edit"}
-                                  aria-label={language === "en" ? "Edit assignment" : "Edit penugasan"}
-                                >
-                                  <RiEditLine className="h-4 w-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleOpenDelete(item)}
-                                  className="rounded-md p-1.5 transition-colors hover:bg-rose-50 hover:text-rose-600 cursor-pointer"
-                                  title={language === "en" ? "Delete" : "Hapus"}
-                                  aria-label={language === "en" ? "Delete assignment" : "Hapus penugasan"}
-                                >
-                                  <RiDeleteBinLine className="h-4 w-4" />
-                                </button>
+                                {isVacant ? (
+                                  <button
+                                    onClick={() => {
+                                      setSelectedItem(null);
+                                      const keg = kegiatanList.find((k) => k.title === item.kegiatanTerkait);
+                                      const firstPic = PIC_OPTIONS.length > 0 ? PIC_OPTIONS[0] : null;
+                                      setFormData({
+                                        kegiatanTerkait: item.kegiatanTerkait,
+                                        tanggalKegiatan: item.tanggalKegiatan ?? (keg ? formatDisplayDate(keg.deadline) : ""),
+                                        jenisKonten: item.jenisKonten,
+                                        pic: firstPic ? firstPic.name : "",
+                                        picAvatar: firstPic ? firstPic.avatar : "PT",
+                                        jamMulai: "08:00",
+                                        jamSelesai: "10:00",
+                                        waktuSubtitle: keg ? formatSubtitleDate(keg.deadline) : "",
+                                        status: "in-progress",
+                                        lokasi: item.lokasi ?? keg?.lokasi ?? "Balaikota Among Tani",
+                                        catatan: `Penugasan untuk kegiatan ${item.kegiatanTerkait}`,
+                                      });
+                                      setIsCreateOpen(true);
+                                    }}
+                                    className="rounded-md px-2 py-1 transition-colors text-xs font-semibold bg-[#0f1f5c] text-white hover:bg-[#0a1540]"
+                                  >
+                                    {language === "en" ? "Assign" : "Tugaskan"}
+                                  </button>
+                                ) : (
+                                  <>
+                                    <button
+                                      onClick={() => handleOpenDetail(item)}
+                                      className="rounded-md p-1.5 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-[#0f1f5c] dark:hover:text-sky-400 cursor-pointer"
+                                      title={language === "en" ? "Detail" : "Detail"}
+                                      aria-label={language === "en" ? "View assignment details" : "Lihat detail penugasan"}
+                                    >
+                                      <RiEyeLine className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleOpenEdit(item)}
+                                      className="rounded-md p-1.5 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer"
+                                      title={language === "en" ? "Edit" : "Edit"}
+                                      aria-label={language === "en" ? "Edit assignment" : "Edit penugasan"}
+                                    >
+                                      <RiEditLine className="h-4 w-4" />
+                                    </button>
+                                    {item.status !== "done" && (
+                                      <button
+                                        onClick={() => handleOpenDelete(item)}
+                                        className="rounded-md p-1.5 transition-colors hover:bg-rose-50 hover:text-rose-600 cursor-pointer"
+                                        title={language === "en" ? "Delete" : "Hapus"}
+                                        aria-label={language === "en" ? "Delete assignment" : "Hapus penugasan"}
+                                      >
+                                        <RiDeleteBinLine className="h-4 w-4" />
+                                      </button>
+                                    )}
+                                  </>
+                                )}
                               </div>
                             </div>
                           );
@@ -1271,7 +1350,7 @@ export default function PenugasanPage() {
       {/* ── Dialog Detail Penugasan ── */}
       <Dialog
         open={isDetailOpen}
-        onClose={() => setIsDetailOpen(false)}
+        onClose={handleCloseDetail}
         title={language === "en" ? "Assignment Details" : "Detail Informasi Penugasan"}
       >
         {selectedItem && (
@@ -1363,52 +1442,12 @@ export default function PenugasanPage() {
             )}
 
             <div className="pt-2 flex justify-end">
-              <Button variant="outline" onClick={() => setIsDetailOpen(false)}>
+              <Button variant="outline" onClick={handleCloseDetail}>
                 {language === "en" ? "Close" : "Tutup"}
               </Button>
             </div>
           </div>
         )}
-      </Dialog>
-
-      {/* ── Dialog Konfirmasi Delete ── */}
-      <Dialog
-        open={isDeleteOpen}
-        onClose={() => setIsDeleteOpen(false)}
-        title={language === "en" ? "Confirm Delete Assignment" : "Konfirmasi Hapus Penugasan"}
-      >
-        <div className="space-y-4 mt-2">
-          <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-            {language === "en" ? (
-              <>
-                Are you sure you want to delete assignment{" "}
-                <span className="font-bold text-gray-900 dark:text-gray-100">
-                  "{selectedItem?.kegiatanTerkait}"
-                </span>{" "}
-                for <span className="font-semibold text-gray-800 dark:text-gray-200">{selectedItem?.pic}</span>?
-              </>
-            ) : (
-              <>
-                Apakah Anda yakin ingin menghapus penugasan{" "}
-                <span className="font-bold text-gray-900 dark:text-gray-100">
-                  "{selectedItem?.kegiatanTerkait}"
-                </span>{" "}
-                untuk <span className="font-semibold text-gray-800 dark:text-gray-200">{selectedItem?.pic}</span>?
-              </>
-            )}
-          </p>
-          <div className="pt-3 flex justify-end gap-2 border-t border-gray-100">
-            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
-              {language === "en" ? "Cancel" : "Batal"}
-            </Button>
-            <button
-              onClick={handleConfirmDelete}
-              className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-sm transition cursor-pointer"
-            >
-              {language === "en" ? "Delete Assignment" : "Hapus Penugasan"}
-            </button>
-          </div>
-        </div>
       </Dialog>
     </div>
   );

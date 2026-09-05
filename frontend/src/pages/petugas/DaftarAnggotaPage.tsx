@@ -20,28 +20,22 @@ interface Petugas {
 const PROGRAM_LABELS_ID: Record<string, string> = {
   AHLI_PERTAMA: "Pranata Ahli Pertama",
   PRAHUM: "Pranata Humas (Berita)",
-  FOTOGRAFER: "Fotografer",
-  VIDEOGRAFER: "Videografer",
   DESAINER_EDITOR: "Desainer & Editor",
-  FOTO_VIDEO: "Foto & Video",
+  FOTO_VIDEO: "Fotografer & Videografer",
   ADMIN: "Admin",
 };
 
 const PROGRAM_LABELS_EN: Record<string, string> = {
   AHLI_PERTAMA: "First Expert Officer",
   PRAHUM: "Public Relations Officer (News)",
-  FOTOGRAFER: "Photographer",
-  VIDEOGRAFER: "Videographer",
   DESAINER_EDITOR: "Designer & Editor",
-  FOTO_VIDEO: "Photo & Video",
+  FOTO_VIDEO: "Photographer & Videographer",
   ADMIN: "Admin",
 };
 
 const PROGRAM_ICONS: Record<string, any> = {
   AHLI_PERTAMA: Sparkles,
   PRAHUM: Edit3,
-  FOTOGRAFER: Camera,
-  VIDEOGRAFER: Video,
   DESAINER_EDITOR: ImageIcon,
   FOTO_VIDEO: Camera,
   ADMIN: ShieldCheck,

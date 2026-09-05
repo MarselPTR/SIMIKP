@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { db } from "../../db";
-import { assignments, activities, contentTypes, users, archiveAssets, userRoles, roles } from "../../db/schema";
+import { assignments, activities, contentTypes, users, userRoles, roles } from "../../db/schema";
 import { productionItems, productionVersions, productionFiles } from "../../db/schema/production";
 import { eq, and, or, desc } from "drizzle-orm";
 import { z } from "zod";
@@ -122,13 +122,7 @@ export class ProductionsController {
           uploadedBy,
         });
 
-        await tx.insert(archiveAssets).values({
-          id: newArchiveId,
-          productionFileId: newFileId,
-          title: filename,
-          description: `Aset arsip file ${filename}`,
-          isPublic: false,
-        });
+
       });
 
       await logAudit(request, "UPLOAD_BANK_KONTEN", "production_files", newFileId);
@@ -660,7 +654,6 @@ export class ProductionsController {
       // Masukkan setiap berkas terkurasi ke productionFiles & archiveAssets
       for (const file of curatedFiles) {
         const fileId = crypto.randomUUID();
-        const archiveId = crypto.randomUUID();
         const origName = file.originalName || file.filename || "file_kurasi";
         const ext = origName.includes(".") ? origName.split(".").pop()?.toLowerCase() : "bin";
 
@@ -676,13 +669,6 @@ export class ProductionsController {
           uploadedBy: asg[0].userId,
         });
 
-        await db.insert(archiveAssets).values({
-          id: archiveId,
-          productionFileId: fileId,
-          title: origName,
-          description: `Aset terkurasi resmi Bank Konten Pemkot Batu`,
-          isPublic: true,
-        });
       }
 
       return reply.send({

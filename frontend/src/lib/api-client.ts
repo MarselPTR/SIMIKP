@@ -15,7 +15,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     ...init?.headers,
   };
 
-  if (!(init?.body instanceof FormData) && !("Content-Type" in headers)) {
+  if (init?.body && !(init.body instanceof FormData) && !("Content-Type" in headers)) {
     (headers as any)["Content-Type"] = "application/json";
   }
 

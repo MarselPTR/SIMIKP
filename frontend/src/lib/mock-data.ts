@@ -37,10 +37,7 @@ export const mockUsers: MockUser[] = [
 // Alur status per bidang kerja petugas lapangan — dipakai di halaman Penugasan Saya.
 export const WORKFLOWS: Record<string, string[]> = {
   PRAHUM: ["BELUM", "LIPUTAN", "MENULIS", "SIAP_TAYANG", "SELESAI"],
-  FOTOGRAFER: ["BELUM", "LIPUTAN", "SIAP_TAYANG", "SELESAI"],
-  VIDEOGRAFER: ["BELUM", "LIPUTAN", "SIAP_TAYANG", "SELESAI"],
   DESAINER_EDITOR: ["BELUM", "DESAIN", "REVISI", "SIAP_TAYANG", "SELESAI"],
-  // Nilai lama sebelum jabatan Foto & Video dipecah — dipertahankan untuk data yang sudah ada.
   FOTO_VIDEO: ["BELUM", "LIPUTAN", "SIAP_TAYANG", "SELESAI"],
 };
 
@@ -60,7 +57,7 @@ export interface MockTugasPetugas {
   waktuPelaksanaan?: string;
 }
 
-export const mockTugasPetugas: MockTugasPetugas[] = [];
+
 
 export interface MockKegiatan {
   id: string;
@@ -88,7 +85,7 @@ export const KEGIATAN_STATUS_LABELS: Record<MockKegiatan["status"], string> = {
   pending: "Pending",
 };
 
-export const mockKegiatan: MockKegiatan[] = [];
+
 
 export interface MockPenugasan {
   id: string;
@@ -101,7 +98,7 @@ export interface MockPenugasan {
   jamMulai: string;
   jamSelesai: string;
   waktuSubtitle?: string;
-  status: "in-progress" | "done" | "pending" | "conflict";
+  status: "in-progress" | "done" | "pending" | "conflict" | "unassigned";
   hasConflict?: boolean;
   conflictMessage?: string;
   lokasi?: string;
@@ -109,7 +106,7 @@ export interface MockPenugasan {
   catatan?: string;
 }
 
-export const mockPenugasan: MockPenugasan[] = [];
+
 
 export interface MockProduksi {
   id: string;
@@ -121,7 +118,7 @@ export interface MockProduksi {
   status: "BELUM" | "LIPUTAN" | "DESAIN" | "REVISI" | "SIAP_TAYANG" | "SELESAI";
 }
 
-export const mockProduksi: MockProduksi[] = [];
+
 
 export interface MockReview {
   id: string;
@@ -132,7 +129,7 @@ export interface MockReview {
   feedback: string;
 }
 
-export const mockReview: MockReview[] = [];
+
 
 export interface MockPublikasi {
   id: string;
@@ -144,7 +141,7 @@ export interface MockPublikasi {
   link?: string;
 }
 
-export const mockPublikasi: MockPublikasi[] = [];
+
 
 export interface MockBankKontenFile {
   id: string;
@@ -166,6 +163,6 @@ export interface MockBankKontenFolder {
   files: MockBankKontenFile[];
 }
 
-export const mockBankKontenFolders: MockBankKontenFolder[] = [];
+
 
 
