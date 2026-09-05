@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, useRef, useEffect } from "react";
 import type { ReactNode } from "react";
-import { AlertTriangle, AlertCircle, Info, Trash2, X } from "lucide-react";
+import { AlertTriangle, Info, Trash2, X } from "lucide-react";
 import { useLanguage } from "../lib/LanguageContext";
 
 export type ConfirmVariant = "danger" | "warning" | "info";

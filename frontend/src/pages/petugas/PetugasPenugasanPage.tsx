@@ -216,9 +216,6 @@ const PetugasPenugasanPage = () => {
       {selectedId && selectedTask ? (
         (() => {
           // Alur kerja ikut role tugas ini sendiri (bidang per-tugas), bukan sektor halaman.
-          const taskWorkflow = WORKFLOWS[selectedTask.bidang || userBidang] || WORKFLOWS.PRAHUM;
-          const stepIndex = taskWorkflow.indexOf(selectedTask.status);
-          const totalSteps = taskWorkflow.length;
           const rawStatus = selectedTask.status.toUpperCase();
           const isRevision = rawStatus === "REVISI";
           const isResubmitted = (rawStatus === "MENULIS" || rawStatus === "DESAIN" || rawStatus === "LIPUTAN" || rawStatus === "IN_PROGRESS" || rawStatus === "KURASI") && selectedTask.revisionNotes;
@@ -226,7 +223,6 @@ const PetugasPenugasanPage = () => {
           const isEditor = selectedTask.bidang === "DESAINER_EDITOR";
           const isFotoVideo = selectedTask.bidang === "FOTOGRAFER" || selectedTask.bidang === "VIDEOGRAFER" || selectedTask.bidang === "FOTO_VIDEO";
           const isCompleted = rawStatus === "SELESAI" || selectedTask.status === "COMPLETED";
-          const progressPercent = isCompleted ? 100 : Math.round(((stepIndex + 1) / totalSteps) * 100);
 
           return (
             <div className="bg-white dark:bg-[#161b22] rounded-3xl border border-gray-200 dark:border-gray-800 p-6 sm:p-8 shadow-xs space-y-6 transition-colors">

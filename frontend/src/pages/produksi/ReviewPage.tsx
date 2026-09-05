@@ -1115,7 +1115,7 @@ const ReviewPage = () => {
             {designReviewTask.mediaData?.files && designReviewTask.mediaData.files.length > 0 ? (
               <div className="space-y-3">
                 {designReviewTask.mediaData.files.map((file, idx) => {
-                  const isImage = file.mimeType.startsWith("image");
+                  const isVideo = file.mimeType.startsWith("video");
 
                   return (
                     <div key={idx} className="p-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 space-y-3">

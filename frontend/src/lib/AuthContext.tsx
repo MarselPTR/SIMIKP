@@ -2,7 +2,6 @@ import { createContext, useContext, useState, useEffect } from "react";
 import type { ReactNode } from "react";
 import { apiFetch } from "./api-client";
 import { Role } from "../types/api.types";
-import type { ApiUser } from "../types/api.types";
 
 export interface AuthUser {
   id: string;
