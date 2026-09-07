@@ -25,6 +25,7 @@ import { usePetugasTasksStore, type MediaFileInfo, type MediaWorkPayload } from 
 import { WORKFLOWS } from "../../lib/constants";
 import { useToast } from "../../contexts/ToastContext";
 import { useLanguage } from "../../lib/LanguageContext";
+import Pagination from "../../components/ui/Pagination";
 
 const CATEGORY_MAP: Record<string, { id: string; en: string }> = {
   upacara: { id: "Upacara", en: "Ceremony" },
@@ -63,6 +64,8 @@ const PetugasPenugasanPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Media upload state
   const [activeMediaTab, setActiveMediaTab] = useState<"foto" | "video">("foto");
@@ -181,6 +184,20 @@ const PetugasPenugasanPage = () => {
       return true;
     });
   }, [userTasks, categoryFilter, statusFilter, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredTasks.length / pageSize));
+  const paginatedTasks = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return filteredTasks.slice(startIndex, startIndex + pageSize);
+  }, [filteredTasks, currentPage, pageSize]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, categoryFilter, statusFilter, pageSize]);
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, totalPages));
+  }, [totalPages]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -1018,7 +1035,7 @@ const PetugasPenugasanPage = () => {
                 {language === "en" ? "No tasks matching filter." : "Tidak ada tugas penugasan yang sesuai filter."}
               </div>
             ) : (
-              filteredTasks.map((tItem) => {
+              paginatedTasks.map((tItem) => {
                 const taskWorkflow = WORKFLOWS[tItem.bidang || userBidang || "PRAHUM"] || WORKFLOWS["PRAHUM"];
                 const rawStatus = tItem.status === "COMPLETED" ? "SELESAI" : tItem.status === "ASSIGNED" ? "BELUM" : tItem.status === "IN_PROGRESS" ? (tItem.bidang === "PRAHUM" ? "MENULIS" : tItem.bidang === "DESAINER_EDITOR" ? "DESAIN" : "LIPUTAN") : tItem.status;
                 const foundIndex = taskWorkflow.indexOf(rawStatus);
@@ -1194,6 +1211,34 @@ const PetugasPenugasanPage = () => {
               })
             )}
           </div>
+
+          {filteredTasks.length > 0 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-gray-200 dark:border-gray-800">
+              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                <label htmlFor="petugas-page-size" className="font-semibold">
+                  {language === "en" ? "Tasks per page" : "Tugas per halaman"}
+                </label>
+                <select
+                  id="petugas-page-size"
+                  value={pageSize}
+                  onChange={(e) => setPageSize(Number(e.target.value))}
+                  className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161b22] px-2.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#0a1647] dark:focus:ring-sky-500"
+                >
+                  {[10, 20, 50, 100].map((size) => (
+                    <option key={size} value={size}>{size}</option>
+                  ))}
+                </select>
+                <span>
+                  {Math.min((currentPage - 1) * pageSize + 1, filteredTasks.length)}-{Math.min(currentPage * pageSize, filteredTasks.length)} {language === "en" ? "of" : "dari"} {filteredTasks.length}
+                </span>
+              </div>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          )}
         </div>
       )}
     </div>
