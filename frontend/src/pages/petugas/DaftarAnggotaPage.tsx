@@ -132,7 +132,11 @@ export default function DaftarAnggotaPage() {
 
   const getProfileImageUrl = (url: string | null) => {
     if (!url) return null;
-    return url.startsWith("http") ? url : `http://localhost:3000/${url}`;
+    if (url.startsWith("http")) return url;
+    
+    // Gunakan path absolut dengan awalan /
+    // Di dev mode akan di-proxy oleh Vite, di production akan dilayani langsung oleh Nginx/Fastify
+    return url.startsWith("/") ? url : `/${url}`;
   };
 
   return (
