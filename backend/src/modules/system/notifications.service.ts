@@ -1,6 +1,6 @@
 import { db } from "../../db";
 import { notifications } from "../../db/schema/system";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, isNull } from "drizzle-orm";
 import crypto from "crypto";
 
 export interface CreateNotificationParams {
@@ -48,12 +48,19 @@ export async function getUserNotifications(userId?: string) {
   }
 }
 
-export async function markNotificationRead(id: string) {
+export async function markNotificationRead(id: string, userId: string) {
   try {
+    const ownedNotification = await db
+      .select({ id: notifications.id })
+      .from(notifications)
+      .where(and(eq(notifications.id, id), eq(notifications.userId, userId)))
+      .limit(1);
+    if (ownedNotification.length === 0) return false;
+
     await db
       .update(notifications)
       .set({ readAt: new Date() })
-      .where(eq(notifications.id, id));
+      .where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
     return true;
   } catch (error) {
     console.error("Gagal menandai notifikasi dibaca:", error);
@@ -61,18 +68,12 @@ export async function markNotificationRead(id: string) {
   }
 }
 
-export async function markAllNotificationsRead(userId?: string) {
+export async function markAllNotificationsRead(userId: string) {
   try {
-    if (userId) {
-      await db
-        .update(notifications)
-        .set({ readAt: new Date() })
-        .where(eq(notifications.userId, userId));
-    } else {
-      await db
-        .update(notifications)
-        .set({ readAt: new Date() });
-    }
+    await db
+      .update(notifications)
+      .set({ readAt: new Date() })
+      .where(and(eq(notifications.userId, userId), isNull(notifications.readAt)));
     return true;
   } catch (error) {
     console.error("Gagal menandai semua notifikasi dibaca:", error);

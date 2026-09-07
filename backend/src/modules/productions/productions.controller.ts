@@ -201,6 +201,8 @@ export class ProductionsController {
         .leftJoin(users, eq(productionFiles.uploadedBy, users.id))
         .leftJoin(contentTypes, eq(assignments.contentTypeId, contentTypes.id));
 
+      const totalStorage = curatedFiles.reduce((total, file) => total + Number(file.fileSize || 0), 0);
+
       // 2. Ambil penugasan berstatus COMPLETED / SIAP_TAYANG untuk menangkap submission berkas yang sudah disetujui
       const completedAssignments = await db
         .select({
@@ -417,7 +419,11 @@ export class ProductionsController {
         petugas: Array.from(f.petugas).join(", ") || "Tim Dokumentasi",
       }));
 
-      return reply.send({ success: true, data: formatted });
+      return reply.send({
+        success: true,
+        data: formatted,
+        totalStorageBytes: totalStorage,
+      });
     } catch (error) {
       request.log.error(error);
       return reply.status(500).send({ success: false, error: "Gagal memuat Bank Konten" });
@@ -569,6 +575,7 @@ export class ProductionsController {
       // Cari tim Reviewer, Ahli Pertama, Admin, dan Manager untuk dikirimi email hasil liputan baru
       const reviewerUsers = await db
         .select({
+          id: users.id,
           name: users.name,
           email: users.email,
         })
@@ -595,6 +602,16 @@ export class ProductionsController {
             contentType: assignmentData[0]?.contentType || "Konten Media",
             workLink,
           }).catch(err => console.error("[ProductionsController] Gagal kirim email alert ke reviewer:", err));
+        }
+
+        if (rev.id) {
+          await createNotification({
+            userId: rev.id,
+            type: "WORK_SUBMITTED",
+            title: "Hasil Liputan Siap Direview",
+            message: `Petugas ${assignmentData[0]?.petugasName || "Lapangan"} telah mengirim hasil untuk kegiatan ${assignmentData[0]?.activityTitle || "Liputan"}.`,
+            metadata: { assignmentId },
+          });
         }
       }
 
@@ -649,6 +666,16 @@ export class ProductionsController {
         .update(assignments)
         .set({ status })
         .where(eq(assignments.id, assignmentId));
+
+      if (asg[0].userId) {
+        await createNotification({
+          userId: asg[0].userId,
+          type: "CONTENT_APPROVED",
+          title: "Konten Disetujui",
+          message: "Hasil pekerjaan Anda telah disetujui dan masuk ke Bank Konten.",
+          metadata: { assignmentId },
+        });
+      }
 
       // Cari atau buat production item & version untuk menampung file di bank konten
       let pItem = await db

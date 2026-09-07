@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { apiFetch } from "../../lib/api-client";
@@ -14,6 +14,7 @@ import Select from "../../components/ui/Select";
 import { useToast } from "../../contexts/ToastContext";
 import { LoadingSpinner, ErrorState } from "../../components/shared/StateComponents";
 import { useLanguage } from "../../lib/LanguageContext";
+import Pagination from "../../components/ui/Pagination";
 
 const PublikasiPage = () => {
   const queryClient = useQueryClient();
@@ -21,6 +22,8 @@ const PublikasiPage = () => {
   const { t, language } = useLanguage();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({ title: "", channel: "Website", url: "", status: "scheduled" });
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const createMutation = useMutation({
     mutationFn: async (payload: any) => {
@@ -45,6 +48,20 @@ const PublikasiPage = () => {
       return res.data;
     },
   });
+
+  const totalPages = Math.max(1, Math.ceil(publikasi.length / pageSize));
+  const paginatedPublikasi = useMemo(
+    () => publikasi.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+    [publikasi, currentPage, pageSize],
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [pageSize]);
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, totalPages));
+  }, [totalPages]);
 
   const getStatusLabel = (val: string) => {
     if (val === "published") return language === "en" ? "Published" : "Diterbitkan";
@@ -108,8 +125,21 @@ const PublikasiPage = () => {
         </Button>
       </div>
       <Card>
-        <Table columns={columns} data={publikasi ?? []} />
+        <Table columns={columns} data={paginatedPublikasi} />
       </Card>
+
+      {publikasi.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-gray-200 dark:border-gray-800">
+          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+            <label htmlFor="publikasi-page-size" className="font-semibold">{language === "en" ? "Publications per page" : "Publikasi per halaman"}</label>
+            <select id="publikasi-page-size" value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))} className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161b22] px-2.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-200">
+              {[10, 20, 50, 100].map((size) => <option key={size} value={size}>{size}</option>)}
+            </select>
+            <span>{Math.min((currentPage - 1) * pageSize + 1, publikasi.length)}-{Math.min(currentPage * pageSize, publikasi.length)} {language === "en" ? "of" : "dari"} {publikasi.length}</span>
+          </div>
+          <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+        </div>
+      )}
 
       <Dialog
         open={isModalOpen}

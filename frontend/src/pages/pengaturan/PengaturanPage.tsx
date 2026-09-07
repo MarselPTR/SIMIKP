@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   KeyRound,
@@ -29,6 +30,7 @@ const NAVY = "#0f1f5c";
 export default function PengaturanPage() {
   const navigate = useNavigate();
   const { user, updateUser } = useAuth();
+  const queryClient = useQueryClient();
   const { addToast } = useToast();
   const { theme, setTheme, isDark } = useTheme();
   const { language, setLanguage, t } = useLanguage();
@@ -55,6 +57,32 @@ export default function PengaturanPage() {
   const [notifEmail, setNotifEmail] = useState(true);
   const [notifBrowser, setNotifBrowser] = useState(true);
   const [notifSound, setNotifSound] = useState(true);
+  const [isLoadingNotifPreferences, setIsLoadingNotifPreferences] = useState(true);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    apiFetch<{ success: boolean; data: { emailEnabled: boolean; browserEnabled: boolean; soundEnabled: boolean } }>("/users/notification-preferences")
+      .then((res) => {
+        setNotifEmail(res.data.emailEnabled);
+        setNotifBrowser(res.data.browserEnabled);
+        setNotifSound(res.data.soundEnabled);
+      })
+      .catch(() => addToast(language === "en" ? "Failed to load notification preferences" : "Preferensi notifikasi gagal dimuat", "error"))
+      .finally(() => setIsLoadingNotifPreferences(false));
+  }, [user?.id]);
+
+  const saveNotificationPreferences = async (next: { emailEnabled: boolean; browserEnabled: boolean; soundEnabled: boolean }) => {
+    try {
+      await apiFetch("/users/notification-preferences", {
+        method: "PATCH",
+        body: JSON.stringify(next),
+      });
+      queryClient.setQueryData(["notification-preferences", user?.id], next);
+      addToast(language === "en" ? "Notification preferences updated" : "Preferensi notifikasi diperbarui", "success");
+    } catch {
+      addToast(language === "en" ? "Failed to save notification preferences" : "Preferensi notifikasi gagal disimpan", "error");
+    }
+  };
 
   const tabs = [
     { id: "keamanan", label: t("tab_security"), icon: KeyRound, desc: t("tab_security_desc") },
@@ -526,9 +554,11 @@ export default function PengaturanPage() {
                   </div>
                   <button
                     type="button"
+                    disabled={isLoadingNotifPreferences}
                     onClick={() => {
-                      setNotifEmail((v) => !v);
-                      addToast(language === "en" ? "Email notification preferences updated" : "Preferensi notifikasi email diperbarui", "info");
+                      const next = !notifEmail;
+                      setNotifEmail(next);
+                      void saveNotificationPreferences({ emailEnabled: next, browserEnabled: notifBrowser, soundEnabled: notifSound });
                     }}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
                       notifEmail ? "bg-[#0f1f5c]" : "bg-gray-200 dark:bg-gray-700"
@@ -554,9 +584,11 @@ export default function PengaturanPage() {
                   </div>
                   <button
                     type="button"
+                    disabled={isLoadingNotifPreferences}
                     onClick={() => {
-                      setNotifBrowser((v) => !v);
-                      addToast(language === "en" ? "Browser notification preferences updated" : "Preferensi notifikasi browser diperbarui", "info");
+                      const next = !notifBrowser;
+                      setNotifBrowser(next);
+                      void saveNotificationPreferences({ emailEnabled: notifEmail, browserEnabled: next, soundEnabled: notifSound });
                     }}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
                       notifBrowser ? "bg-[#0f1f5c]" : "bg-gray-200 dark:bg-gray-700"
@@ -582,9 +614,11 @@ export default function PengaturanPage() {
                   </div>
                   <button
                     type="button"
+                    disabled={isLoadingNotifPreferences}
                     onClick={() => {
-                      setNotifSound((v) => !v);
-                      addToast(language === "en" ? "Sound alert preferences updated" : "Preferensi suara notifikasi diperbarui", "info");
+                      const next = !notifSound;
+                      setNotifSound(next);
+                      void saveNotificationPreferences({ emailEnabled: notifEmail, browserEnabled: notifBrowser, soundEnabled: next });
                     }}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
                       notifSound ? "bg-[#0f1f5c]" : "bg-gray-200 dark:bg-gray-700"

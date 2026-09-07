@@ -1,6 +1,24 @@
 import nodemailer from "nodemailer";
 import path from "path";
 import fs from "fs";
+import { db } from "../db";
+import { users, notificationPreferences } from "../db/schema";
+import { eq } from "drizzle-orm";
+
+async function isEmailNotificationEnabled(recipient: string): Promise<boolean> {
+  try {
+    const rows = await db
+      .select({ enabled: notificationPreferences.emailEnabled })
+      .from(notificationPreferences)
+      .innerJoin(users, eq(notificationPreferences.userId, users.id))
+      .where(eq(users.email, recipient))
+      .limit(1);
+    return rows.length === 0 || rows[0].enabled;
+  } catch (error) {
+    console.error("[MailService] Gagal membaca preferensi email, email tetap dikirim:", error);
+    return true;
+  }
+}
 
 interface BaseTemplateOptions {
   badgeTitle: string;
@@ -246,6 +264,7 @@ export interface AssignmentEmailData {
  * Mengirim email notifikasi penugasan baru kepada staf/petugas
  */
 export async function sendAssignmentNotificationEmail(data: AssignmentEmailData): Promise<boolean> {
+  if (!(await isEmailNotificationEnabled(data.to))) return false;
   const transporter = getMailTransporter();
   if (!transporter) return false;
 
@@ -444,6 +463,7 @@ export interface ReviewRevisionEmailData {
 }
 
 export async function sendReviewRevisionEmail(data: ReviewRevisionEmailData): Promise<boolean> {
+  if (!(await isEmailNotificationEnabled(data.to))) return false;
   const transporter = getMailTransporter();
   if (!transporter) return false;
 
@@ -621,6 +641,7 @@ export interface AssignmentScheduleChangeEmailData {
 }
 
 export async function sendAssignmentScheduleChangeEmail(data: AssignmentScheduleChangeEmailData): Promise<boolean> {
+  if (!(await isEmailNotificationEnabled(data.to))) return false;
   const transporter = getMailTransporter();
   if (!transporter) return false;
 
@@ -788,6 +809,7 @@ export interface WorkSubmissionAlertEmailData {
 }
 
 export async function sendWorkSubmissionAlertEmail(data: WorkSubmissionAlertEmailData): Promise<boolean> {
+  if (!(await isEmailNotificationEnabled(data.to))) return false;
   const transporter = getMailTransporter();
   if (!transporter) return false;
 
@@ -891,6 +913,7 @@ export interface RevisionSubmissionAlertEmailData {
 }
 
 export async function sendRevisionSubmissionAlertEmail(data: RevisionSubmissionAlertEmailData): Promise<boolean> {
+  if (!(await isEmailNotificationEnabled(data.to))) return false;
   const transporter = getMailTransporter();
   if (!transporter) return false;
 

@@ -5,16 +5,24 @@ import { auditLogs, users } from "../../db/schema";
 import { desc, eq } from "drizzle-orm";
 
 export class SystemController {
+  private static getAuthenticatedUserId(request: FastifyRequest): string | null {
+    const authenticatedUser = (request as FastifyRequest & { user?: { id?: string } }).user;
+    if (authenticatedUser?.id) return authenticatedUser.id;
+
+    const cookieSession = request.cookies?.["simikp_session"];
+    if (!cookieSession) return null;
+    try {
+      const session = request.server.jwt.verify(cookieSession) as { id?: string };
+      return session.id || null;
+    } catch {
+      return null;
+    }
+  }
+
   static async getNotifications(request: FastifyRequest, reply: FastifyReply) {
     try {
-      const cookieSession = request.cookies?.["simikp_session"];
-      let userId: string | undefined = undefined;
-      if (cookieSession) {
-        try {
-          const session = request.server.jwt.verify(cookieSession) as any;
-          userId = session.id;
-        } catch {}
-      }
+      const userId = SystemController.getAuthenticatedUserId(request);
+      if (!userId) return reply.status(401).send({ success: false, error: "Unauthorized" });
 
       const notifs = await getUserNotifications(userId);
       return reply.send({ success: true, data: notifs });
@@ -27,7 +35,10 @@ export class SystemController {
   static async markRead(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
     try {
       const { id } = request.params;
-      await markNotificationRead(id);
+      const userId = SystemController.getAuthenticatedUserId(request);
+      if (!userId) return reply.status(401).send({ success: false, error: "Unauthorized" });
+      const updated = await markNotificationRead(id, userId);
+      if (!updated) return reply.status(404).send({ success: false, error: "Notifikasi tidak ditemukan" });
       return reply.send({ success: true, message: "Notifikasi ditandai telah dibaca" });
     } catch (error) {
       request.log.error(error);
@@ -37,14 +48,8 @@ export class SystemController {
 
   static async markAllRead(request: FastifyRequest, reply: FastifyReply) {
     try {
-      const cookieSession = request.cookies?.["simikp_session"];
-      let userId: string | undefined = undefined;
-      if (cookieSession) {
-        try {
-          const session = request.server.jwt.verify(cookieSession) as any;
-          userId = session.id;
-        } catch {}
-      }
+      const userId = SystemController.getAuthenticatedUserId(request);
+      if (!userId) return reply.status(401).send({ success: false, error: "Unauthorized" });
 
       await markAllNotificationsRead(userId);
       return reply.send({ success: true, message: "Semua notifikasi ditandai telah dibaca" });

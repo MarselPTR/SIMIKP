@@ -78,6 +78,13 @@
       "when": 1788598130221,
       "tag": "0010_quick_odin",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1788680000000,
+      "tag": "0011_add_notification_preferences",
+      "breakpoints": true
     }
   ]
 }

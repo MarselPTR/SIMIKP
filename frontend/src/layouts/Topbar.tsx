@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { HelpCircle, Bell, ChevronDown, Globe, User, Settings, LogOut } from "lucide-react";
 import { useAuth } from "../lib/AuthContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "../lib/api-client";
 import { useLanguage, type Language } from "../lib/LanguageContext";
 import { useToast } from "../contexts/ToastContext";
@@ -41,6 +41,7 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
   const notifRef = useRef<HTMLDivElement>(null);
 
   const { user, logout } = useAuth();
+  const queryClient = useQueryClient();
   const { t, language, setLanguage } = useLanguage();
   const { addToast } = useToast();
   const confirm = useConfirm();
@@ -61,7 +62,7 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
   }, []);
 
   const { data: notifications = [], refetch: refetchNotifs } = useQuery({
-    queryKey: ["topbar-notifications"],
+    queryKey: ["topbar-notifications", user?.id],
     queryFn: async () => {
       try {
         const res = await apiFetch<{ success: boolean; data: any[] }>("/system/notifications");
@@ -71,24 +72,70 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
       }
     },
     refetchInterval: 30000,
+    enabled: Boolean(user?.id),
   });
 
-  const { data: recentActivities = [] } = useQuery({
-    queryKey: ["topbar-activities"],
+  const { data: notificationPreferences } = useQuery({
+    queryKey: ["notification-preferences", user?.id],
     queryFn: async () => {
-      try {
-        const res = await apiFetch<{ success: boolean; data: any[] }>("/activities");
-        return res.data || [];
-      } catch {
-        return [];
-      }
+      const res = await apiFetch<{ success: boolean; data: { emailEnabled: boolean; browserEnabled: boolean; soundEnabled: boolean } }>("/users/notification-preferences");
+      return res.data;
     },
-    enabled: showActivity && notifications.length === 0,
+    enabled: Boolean(user?.id),
+    staleTime: 30000,
   });
+
+  const knownNotificationIds = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    if (!user?.id) {
+      knownNotificationIds.current = null;
+      return;
+    }
+    const currentIds = new Set(notifications.map((notification: any) => notification.id));
+    if (!knownNotificationIds.current) {
+      knownNotificationIds.current = currentIds;
+      return;
+    }
+
+    const newUnread = notifications.filter((notification: any) =>
+      !notification.readAt && !knownNotificationIds.current?.has(notification.id),
+    );
+    knownNotificationIds.current = currentIds;
+    if (newUnread.length === 0) return;
+
+    if (notificationPreferences?.browserEnabled && typeof window !== "undefined" && "Notification" in window) {
+      if (Notification.permission === "default") void Notification.requestPermission();
+      if (Notification.permission === "granted") {
+        new Notification(newUnread[0].title, { body: newUnread[0].message, tag: newUnread[0].id });
+      }
+    }
+
+    if (notificationPreferences?.soundEnabled && typeof window !== "undefined") {
+      try {
+        const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (AudioContextClass) {
+          const context = new AudioContextClass();
+          const oscillator = context.createOscillator();
+          const gain = context.createGain();
+          oscillator.frequency.value = 880;
+          gain.gain.setValueAtTime(0.0001, context.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.08, context.currentTime + 0.01);
+          gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.18);
+          oscillator.connect(gain).connect(context.destination);
+          oscillator.start();
+          oscillator.stop(context.currentTime + 0.2);
+          oscillator.addEventListener("ended", () => void context.close());
+        }
+      } catch {
+        // Browser autoplay policy may block audio until user interaction.
+      }
+    }
+  }, [notifications, notificationPreferences, user?.id]);
 
   const unreadCount = notifications.filter((n: any) => !n.readAt).length;
 
   const isPetugas = user?.role?.toLowerCase() === "petugas";
+  const isAhliPertama = user?.role?.toLowerCase() === "ahli_pertama" || user?.staffType === "AHLI_PERTAMA";
   const roleKey = user?.role?.toLowerCase() ?? "";
   const roleMap = language === "en" ? ROLE_LABELS_EN : ROLE_LABELS_ID;
   const roleLabel = roleMap[roleKey] ?? roleMap[user?.role ?? ""] ?? user?.role ?? (language === "en" ? "Field Officer" : "Petugas Lapangan");
@@ -107,9 +154,12 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
           method: "PATCH",
           body: "{}",
         });
-        refetchNotifs();
+        queryClient.setQueryData(["topbar-notifications", user?.id], (current: any[] | undefined) =>
+          (current || []).map((item) => item.id === n.id ? { ...item, readAt: new Date().toISOString() } : item),
+        );
       } catch (err) {
         console.error("Gagal menandai notifikasi dibaca:", err);
+        addToast(language === "en" ? "Failed to mark notification as read" : "Notifikasi gagal ditandai dibaca", "error");
       }
     }
 
@@ -140,7 +190,12 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
         });
       }
     } else {
-      if (user?.role?.toLowerCase() === "ahli_pertama" && (notifType === "REVIEW" || notifTitle.includes("review") || notifTitle.includes("telaah"))) {
+      const isReviewNotification = ["REVIEW", "REVISION_SUBMITTED", "WORK_SUBMITTED"].includes(notifType)
+        || notifTitle.includes("review")
+        || notifTitle.includes("telaah")
+        || notifTitle.includes("revisi")
+        || notifTitle.includes("draf siap");
+      if (isAhliPertama && isReviewNotification) {
         navigate("/review");
       } else if (notifType === "ACTIVITY" || (!taskId && activityId) || notifTitle.includes("kegiatan")) {
         navigate(activityId ? `/kegiatan?id=${activityId}` : "/kegiatan");
@@ -151,15 +206,6 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
       }
     }
 
-    setShowActivity(false);
-  };
-
-  const handleRecentActivityClick = (item: any) => {
-    if (isPetugas) {
-      navigate("/petugas/agenda-tersedia");
-    } else {
-      navigate(`/kegiatan?id=${item.id}`);
-    }
     setShowActivity(false);
   };
 
@@ -192,7 +238,7 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
       <div className="relative" ref={notifRef}>
         <button type="button" onClick={() => { setShowActivity((v) => !v); setShowProfile(false); }} className="relative w-9 h-9 rounded-full flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition" aria-label={t("notifications")}>
           <Bell className="w-5 h-5" strokeWidth={1.8} />
-          {(unreadCount > 0 || recentActivities.length > 0) && (
+          {unreadCount > 0 && (
             <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-[#161b22]" />
           )}
         </button>
@@ -209,8 +255,12 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
               <button 
                 type="button" 
                 onClick={async () => {
-                  await apiFetch("/system/notifications/read-all", { method: "PATCH", body: "{}" });
-                  refetchNotifs();
+                  try {
+                    await apiFetch("/system/notifications/read-all", { method: "PATCH", body: "{}" });
+                    await refetchNotifs();
+                  } catch {
+                    addToast(language === "en" ? "Failed to mark notifications as read" : "Notifikasi gagal ditandai dibaca", "error");
+                  }
                 }}
                 className="text-[11px] text-blue-600 hover:underline font-medium cursor-pointer"
               >
@@ -230,17 +280,10 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
                     <p className="text-[10px] text-gray-400 mt-1">{new Date(n.createdAt).toLocaleDateString(language === 'en' ? 'en-US' : 'id-ID', { hour: '2-digit', minute: '2-digit' })}</p>
                   </div>
                 ))
-              ) : recentActivities.length === 0 ? (
+              ) : (
                 <div className="px-4 py-6 text-center text-xs text-gray-400">
                   {language === "en" ? "No new notifications or activity." : "Belum ada notifikasi atau aktivitas baru."}
                 </div>
-              ) : (
-                recentActivities.slice(0, 6).map((item: any) => (
-                  <div key={item.id} className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer" onClick={() => handleRecentActivityClick(item)}>
-                    <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{item.title}</p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{item.opdPenyelenggara || (language === "en" ? "Batu City Gov" : "Pemkot Batu")} • {item.deadline || (language === "en" ? "Available" : "Tersedia")}</p>
-                  </div>
-                ))
               )}
             </div>
           </div>

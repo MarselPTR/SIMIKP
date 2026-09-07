@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../../lib/api-client";
@@ -11,10 +11,13 @@ import Button from "../../components/ui/Button";
 import { LoadingSpinner, ErrorState } from "../../components/shared/StateComponents";
 import { useLanguage } from "../../lib/LanguageContext";
 import { Calendar, MapPin, Clock } from "lucide-react";
+import Pagination from "../../components/ui/Pagination";
 
 const ProduksiPage = () => {
   const navigate = useNavigate();
   const { t, language } = useLanguage();
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
   const { data: produksi = [], isLoading, error, refetch } = useQuery({
     queryKey: ["produksi"],
     queryFn: async () => (await apiFetch<{ data: any[] }>("/productions")).data,
@@ -99,6 +102,17 @@ const ProduksiPage = () => {
     return Array.from(map.values());
   }, [produksi]);
 
+  const totalPages = Math.max(1, Math.ceil(groups.length / pageSize));
+  const paginatedGroups = groups.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [pageSize]);
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, totalPages));
+  }, [totalPages]);
+
   if (isLoading) return <LoadingSpinner text={t("loading")} />;
   if (error) return <ErrorState message={error.message} onRetry={refetch} />;
 
@@ -119,7 +133,7 @@ const ProduksiPage = () => {
             {language === "en" ? "No productions found." : "Belum ada data produksi konten."}
           </Card>
         ) : (
-          groups.map((group: any, idx: number) => {
+          paginatedGroups.map((group: any, idx: number) => {
             const dateStr = group.tanggalKegiatan 
               ? new Date(group.tanggalKegiatan).toLocaleDateString(language === "en" ? "en-US" : "id-ID", { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
               : (language === "en" ? "Date Not Set" : "Tanggal Belum Ditentukan");
@@ -155,6 +169,19 @@ const ProduksiPage = () => {
           })
         )}
       </div>
+
+      {groups.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-gray-200 dark:border-gray-800">
+          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+            <label htmlFor="produksi-page-size" className="font-semibold">{language === "en" ? "Activities per page" : "Kegiatan per halaman"}</label>
+            <select id="produksi-page-size" value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))} className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161b22] px-2.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-200">
+              {[10, 20, 50, 100].map((size) => <option key={size} value={size}>{size}</option>)}
+            </select>
+            <span>{Math.min((currentPage - 1) * pageSize + 1, groups.length)}-{Math.min(currentPage * pageSize, groups.length)} {language === "en" ? "of" : "dari"} {groups.length}</span>
+          </div>
+          <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+        </div>
+      )}
     </div>
   );
 };

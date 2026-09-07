@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { db } from "../../db";
-import { users, userRoles, roles } from "../../db/schema";
+import { users, userRoles, roles, notificationPreferences } from "../../db/schema";
 import { eq } from "drizzle-orm";
 import { logAudit } from "../system/audit.service";
 import { sendWelcomeNewUserEmail } from "../../services/mail.service";
@@ -14,6 +14,50 @@ import { hashPassword } from "../../services/password.service";
 const pipeline = promisify(stream.pipeline);
 
 export class UsersController {
+  static async getNotificationPreferences(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const userId = (request.user as { id?: string } | undefined)?.id;
+      if (!userId) return reply.status(401).send({ success: false, error: "Unauthorized" });
+
+      const existing = await db.select().from(notificationPreferences).where(eq(notificationPreferences.userId, userId)).limit(1);
+      if (existing.length > 0) {
+        return reply.send({ success: true, data: existing[0] });
+      }
+
+      const defaults = {
+        userId,
+        emailEnabled: true,
+        browserEnabled: true,
+        soundEnabled: true,
+      };
+      await db.insert(notificationPreferences).values(defaults);
+      return reply.send({ success: true, data: defaults });
+    } catch (error) {
+      request.log.error(error);
+      return reply.status(500).send({ success: false, error: "Gagal memuat preferensi notifikasi" });
+    }
+  }
+
+  static async updateNotificationPreferences(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const userId = (request.user as { id?: string } | undefined)?.id;
+      if (!userId) return reply.status(401).send({ success: false, error: "Unauthorized" });
+      const body = request.body as Partial<{ emailEnabled: boolean; browserEnabled: boolean; soundEnabled: boolean }>;
+      const values = {
+        emailEnabled: body.emailEnabled !== undefined ? Boolean(body.emailEnabled) : true,
+        browserEnabled: body.browserEnabled !== undefined ? Boolean(body.browserEnabled) : true,
+        soundEnabled: body.soundEnabled !== undefined ? Boolean(body.soundEnabled) : true,
+        updatedAt: new Date(),
+      };
+
+      await db.insert(notificationPreferences).values({ userId, ...values }).onDuplicateKeyUpdate({ set: values });
+      const [updated] = await db.select().from(notificationPreferences).where(eq(notificationPreferences.userId, userId)).limit(1);
+      return reply.send({ success: true, data: updated });
+    } catch (error) {
+      request.log.error(error);
+      return reply.status(500).send({ success: false, error: "Gagal menyimpan preferensi notifikasi" });
+    }
+  }
   static async getPetugas(request: FastifyRequest, reply: FastifyReply) {
     try {
       const data = await db

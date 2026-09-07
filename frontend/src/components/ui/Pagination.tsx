@@ -15,33 +15,35 @@ const Pagination = ({ currentPage, totalPages, onPageChange, className = "" }: P
   for (let i = start; i <= end; i++) pages.push(i);
 
   return (
-    <div className={`flex items-center justify-center gap-1 ${className}`}>
+    <div className={`flex items-center justify-center gap-1.5 ${className}`}>
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
         aria-label="Previous page"
-        className="px-3 py-2 rounded-lg text-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+        className="px-3.5 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161b22] text-gray-600 dark:text-gray-300 hover:bg-blue-50 hover:text-[#0f1f5c] dark:hover:bg-blue-950/40 dark:hover:text-sky-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-gray-600 dark:disabled:hover:bg-[#161b22] dark:disabled:hover:text-gray-300 transition"
       >
         Previous
       </button>
-      {start > 1 && <span className="px-3 py-2 text-sm text-gray-500">…</span>}
+      {start > 1 && <span className="px-2 py-2 text-sm text-gray-500 dark:text-gray-400">…</span>}
       {pages.map((p) => (
         <button
           key={p}
           onClick={() => onPageChange(p)}
-          className={`px-3.5 py-2 rounded-lg text-sm transition ${
-            p === currentPage ? "bg-indigo-600 text-white" : "hover:bg-gray-100 text-gray-700"
+          className={`px-3.5 py-2 rounded-lg text-sm font-semibold transition ${
+            p === currentPage
+              ? "bg-[#0f1f5c] dark:bg-blue-600 text-white shadow-sm"
+              : "bg-white dark:bg-[#161b22] text-gray-600 dark:text-gray-300 border border-transparent hover:bg-blue-50 hover:text-[#0f1f5c] dark:hover:bg-blue-950/40 dark:hover:text-sky-300"
           }`}
         >
           {p}
         </button>
       ))}
-      {end < totalPages && <span className="px-3 py-2 text-sm text-gray-500">…</span>}
+      {end < totalPages && <span className="px-2 py-2 text-sm text-gray-500 dark:text-gray-400">…</span>}
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
         aria-label="Next page"
-        className="px-3 py-2 rounded-lg text-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+        className="px-3.5 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161b22] text-gray-600 dark:text-gray-300 hover:bg-blue-50 hover:text-[#0f1f5c] dark:hover:bg-blue-950/40 dark:hover:text-sky-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-gray-600 dark:disabled:hover:bg-[#161b22] dark:disabled:hover:text-gray-300 transition"
       >
         Next
       </button>

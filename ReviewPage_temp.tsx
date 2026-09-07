@@ -23,14 +23,13 @@ import {
 } from "lucide-react";
 import { usePetugasTasksStore } from "../../lib/petugas-store";
 import type { PetugasTaskItem } from "../../lib/petugas-store";
-import { WORKFLOWS } from "../../lib/constants";
+import { WORKFLOWS } from "../../lib/mock-data";
 import { apiFetch } from "../../lib/api-client";
 import Dialog from "../../components/ui/Dialog";
 import Button from "../../components/ui/Button";
 import { useToast } from "../../contexts/ToastContext";
 import { useLanguage } from "../../lib/LanguageContext";
 import { useAuth } from "../../lib/AuthContext";
-import Pagination from "../../components/ui/Pagination";
 
 const CATEGORY_MAP: Record<string, { id: string; en: string }> = {
   upacara: { id: "Upacara", en: "Ceremony" },
@@ -48,14 +47,12 @@ const ReviewPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "NEED_REVIEW" | "REVISI" | "APPROVED">("ALL");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
-  const [pageSize, setPageSize] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
 
   const hasNotifiedResubmissions = useRef(false);
   useEffect(() => {
     if (allTasks.length > 0 && !hasNotifiedResubmissions.current) {
       const resubmittedTasks = allTasks.filter(
-        i => (i.status === "MENULIS" || i.status === "DESAIN" || i.status === "LIPUTAN" || i.status === "IN_PROGRESS" || i.status === "KURASI") && i.revisionNotes
+        i => (i.status === "IN_PROGRESS" || i.status === "KURASI") && i.revisionNotes
       );
       if (resubmittedTasks.length > 0) {
         addToast(
@@ -81,7 +78,7 @@ const ReviewPage = () => {
   const [curationTask, setCurationTask] = useState<PetugasTaskItem | null>(null);
   const [selectedFileUrls, setSelectedFileUrls] = useState<Set<string>>(new Set());
   const [isSubmittingCuration, setIsSubmittingCuration] = useState(false);
-
+  
   // State for Full Screen Preview Slider
   const [previewMediaList, setPreviewMediaList] = useState<{ url: string; type: "video" | "image"; name: string }[]>([]);
   const [previewMediaIndex, setPreviewMediaIndex] = useState<number | null>(null);
@@ -207,43 +204,25 @@ const ReviewPage = () => {
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchTitle = t.kegiatan.toLowerCase().includes(q);
-        const matchBidang = t.bidang.toLowerCase().includes(q);
-        const matchJob = t.jenisPekerjaan.toLowerCase().includes(q);
-        const matchLocation = t.lokasi.toLowerCase().includes(q);
+        const matchBidang = (t.bidang || "").toLowerCase().includes(q);
+        const matchJob = (t.jenisPekerjaan || "").toLowerCase().includes(q);
+        const matchLocation = (t.lokasi || "").toLowerCase().includes(q);
         if (!matchTitle && !matchBidang && !matchJob && !matchLocation) return false;
       }
 
-      const rawStatus = t.status.toUpperCase();
-      const isApproved = rawStatus === "SIAP_TAYANG" || rawStatus === "SELESAI" || rawStatus === "COMPLETED";
-      const isRevision = rawStatus.includes("REVISI");
-
       if (statusFilter === "NEED_REVIEW") {
-        return !isApproved && !isRevision && rawStatus !== "BELUM";
+        return ["NEED_REVIEW", "MENULIS", "DESAIN", "LIPUTAN", "IN_PROGRESS"].includes(t.status) && t.mediaData;
       }
       if (statusFilter === "REVISI") {
-        return isRevision;
+        return t.status === "REVISI";
       }
       if (statusFilter === "APPROVED") {
-        return t.status === "SIAP_TAYANG" || t.status === "SELESAI";
+        return ["APPROVED", "SIAP_TAYANG", "SELESAI", "COMPLETED"].includes(t.status);
       }
-
-      return true;
+      
+      return ["NEED_REVIEW", "MENULIS", "DESAIN", "LIPUTAN", "IN_PROGRESS", "REVISI", "APPROVED", "SIAP_TAYANG", "SELESAI", "COMPLETED"].includes(t.status) && (t.status !== "IN_PROGRESS" || !!t.mediaData);
     });
-  }, [allTasks, searchQuery, statusFilter, categoryFilter]);
-
-  const totalPages = Math.max(1, Math.ceil(reviewableTasks.length / pageSize));
-  const paginatedTasks = useMemo(() => {
-    const startIndex = (currentPage - 1) * pageSize;
-    return reviewableTasks.slice(startIndex, startIndex + pageSize);
-  }, [reviewableTasks, currentPage, pageSize]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, statusFilter, categoryFilter, pageSize]);
-
-  useEffect(() => {
-    setCurrentPage((page) => Math.min(page, totalPages));
-  }, [totalPages]);
+  }, [allTasks, categoryFilter, statusFilter, searchQuery]);
 
   const handleApprove = async (task: PetugasTaskItem) => {
     try {
@@ -388,346 +367,108 @@ const ReviewPage = () => {
       {/* 3. Review Cards List */}
       <div className="space-y-4 pt-1">
         {reviewableTasks.length === 0 ? (
-          <div className="text-center py-16 bg-white dark:bg-[#161b22] rounded-3xl border border-dashed border-gray-200 dark:border-gray-800 text-xs text-gray-400 dark:text-gray-500 shadow-xs">
+          <div className="text-center py-14 text-gray-400 bg-white dark:bg-[#161b22] rounded-3xl border border-dashed border-gray-200 dark:border-gray-800 text-xs shadow-xs">
             {t("review_no_tasks")}
           </div>
         ) : (
-          paginatedTasks.map((tItem) => {
+          reviewableTasks.map((tItem) => {
             const taskWorkflow = WORKFLOWS[tItem.bidang || "PRAHUM"] || WORKFLOWS["PRAHUM"];
-            const rawStatus = tItem.status === "COMPLETED" ? "SELESAI" : tItem.status === "ASSIGNED" ? "BELUM" : tItem.status;
-            const foundIndex = taskWorkflow.indexOf(rawStatus);
-            const stepIndex = foundIndex >= 0 ? foundIndex : rawStatus === "SELESAI" ? taskWorkflow.length - 1 : 0;
-            const totalSteps = taskWorkflow.length;
-            const isCompleted = rawStatus === "SELESAI" || tItem.status === "COMPLETED";
-            const isApproved = tItem.status === "SIAP_TAYANG" || isCompleted;
-            const isRevision = tItem.status === "REVISI";
-            const isResubmitted = (rawStatus === "MENULIS" || rawStatus === "DESAIN" || rawStatus === "LIPUTAN" || rawStatus === "IN_PROGRESS" || rawStatus === "KURASI") && tItem.revisionNotes;
+              const rawStatus = tItem.status === "COMPLETED" ? "SELESAI" : tItem.status === "ASSIGNED" ? "BELUM" : tItem.status === "IN_PROGRESS" ? (tItem.bidang === "PRAHUM" ? "MENULIS" : tItem.bidang === "DESAINER_EDITOR" ? "DESAIN" : "LIPUTAN") : tItem.status;
+              const foundIndex = taskWorkflow.indexOf(rawStatus);
+              const stepIndex = foundIndex >= 0 ? foundIndex : rawStatus === "SELESAI" ? taskWorkflow.length - 1 : 0;
+              const totalSteps = taskWorkflow.length;
+              const isCompleted = rawStatus === "SELESAI" || tItem.status === "COMPLETED";
+              const isApproved = tItem.status === "SIAP_TAYANG" || isCompleted;
+              const isRevision = tItem.status === "REVISI";
+              const isResubmitted = (rawStatus === "MENULIS" || rawStatus === "DESAIN" || rawStatus === "LIPUTAN" || rawStatus === "IN_PROGRESS" || rawStatus === "KURASI") && tItem.revisionNotes;
 
-            return (
-              <div
-                key={tItem.id}
-                className="relative overflow-hidden rounded-3xl p-5 sm:p-6 border border-gray-200 dark:border-gray-800 hover:border-blue-300 dark:hover:border-sky-500 hover:shadow-md transition-all duration-200 flex flex-col justify-between gap-4 bg-white dark:bg-[#161b22]"
-              >
-                {/* Header Information and Action Buttons Row */}
-                <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-                  <div className="space-y-2.5 flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="px-3 py-1 text-xs font-bold rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200">
-                        {getCategoryLabel(tItem.kategori)}
-                      </span>
-                      <span className="px-3 py-1 text-xs font-bold rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200">
-                        {tItem.bidang}
-                      </span>
+              return (
+                <div
+                  key={tItem.id}
+                  className="relative overflow-hidden rounded-3xl p-5 sm:p-6 border border-gray-200 dark:border-gray-800 hover:border-blue-300 dark:hover:border-sky-500 hover:shadow-md transition-all duration-200 flex flex-col justify-between gap-4 bg-white dark:bg-[#161b22]"
+                >
+                  <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                    <div className="space-y-2.5 flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="px-3 py-1 text-xs font-bold rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200">
+                          {getCategoryLabel(tItem.kategori)}
+                        </span>
+                        <span className="px-3 py-1 text-xs font-bold rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200">
+                          {tItem.bidang}
+                        </span>
 
-                      <span
-                        className={`px-3 py-1 text-xs font-bold rounded-lg border flex items-center gap-1.5 ${
-                          isApproved
-                            ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
-                            : isResubmitted
-                            ? "bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-400 border-orange-400 dark:border-orange-500 shadow-xs animate-pulse font-extrabold"
-                            : isRevision
-                            ? "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800"
-                            : rawStatus === "BELUM"
-                            ? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700"
-                            : "bg-blue-50 dark:bg-blue-950/50 text-[#0f1f5c] dark:text-sky-300 border-blue-200 dark:border-blue-800"
-                        }`}
+                        <span
+                          className={`px-3 py-1 text-xs font-bold rounded-lg border flex items-center gap-1.5 ${
+                            isApproved
+                              ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                              : isResubmitted
+                              ? "bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-400 border-orange-400 dark:border-orange-500 shadow-xs animate-pulse font-extrabold"
+                              : isRevision
+                              ? "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800"
+                              : rawStatus === "BELUM"
+                              ? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700"
+                              : "bg-blue-50 dark:bg-blue-950/50 text-[#0f1f5c] dark:text-sky-300 border-blue-200 dark:border-blue-800"
+                          }`}
+                        >
+                          {isApproved ? (
+                            <>
+                              <CheckCircle2 size={13} className="text-emerald-600 dark:text-emerald-400" />
+                              <span>{isCompleted ? (language === "en" ? "COMPLETED (100%)" : "SELESAI (100%)") : (language === "en" ? "Approved (Ready to Publish)" : "Disetujui (Siap Tayang)")}</span>
+                            </>
+                          ) : isResubmitted ? (
+                            <>
+                              <AlertTriangle size={13} className="text-orange-600 dark:text-orange-400" />
+                              <span>{language === "en" ? "Status: Needs Re-Review" : "Status: Perlu Review Ulang"}</span>
+                            </>
+                          ) : isRevision ? (
+                            <>
+                              <AlertTriangle size={13} className="text-amber-600 dark:text-amber-400" />
+                              <span>{language === "en" ? "Status: Needs Revision" : "Status: Perlu Revisi"}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Clock size={13} className="text-[#0f1f5c] dark:text-sky-400" />
+                              <span>{rawStatus.replace("_", " ")}</span>
+                            </>
+                          )}
+                        </span>
+                      </div>
+
+                      <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100 leading-snug">
+                        {tItem.kegiatan}
+                      </h3>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 self-start lg:self-auto shrink-0">
+                      <button
+                        onClick={() => handleOpenRevisionModal(tItem)}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
                       >
-                        {isApproved ? (
-                          <>
-                            <CheckCircle2 size={13} className="text-emerald-600 dark:text-emerald-400" />
-                            <span>{isCompleted ? (language === "en" ? "COMPLETED (100%)" : "SELESAI (100%)") : (language === "en" ? "Approved (Ready to Publish)" : "Disetujui (Siap Tayang)")}</span>
-                          </>
-                        ) : isResubmitted ? (
-                          <>
-                            <AlertTriangle size={13} className="text-orange-600 dark:text-orange-400" />
-                            <span>{language === "en" ? "Status: Needs Re-Review" : "Status: Perlu Review Ulang"}</span>
-                          </>
-                        ) : isRevision ? (
-                          <>
-                            <AlertTriangle size={13} className="text-amber-600 dark:text-amber-400" />
-                            <span>{language === "en" ? "Status: Needs Revision" : "Status: Perlu Revisi"}</span>
-                          </>
-                        ) : (
-                          <>
-                            <Clock size={13} className="text-[#0f1f5c] dark:text-sky-400" />
-                            <span>{rawStatus.replace("_", " ")}</span>
-                          </>
-                        )}
-                      </span>
-
-                      <span className="px-3 py-1 text-xs font-semibold rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300">
-                        {tItem.jenisPekerjaan}
-                      </span>
-
-                      {tItem.hasConflict && (
-                        <span className="px-3 py-1 text-xs font-bold rounded-lg bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 flex items-center gap-1.5">
-                          <AlertTriangle size={13} className="text-rose-600 dark:text-rose-400" />
-                          {t("conflict")}
-                        </span>
-                      )}
-
-                      {tItem.workLink && (
-                        <span className="px-3 py-1 text-xs font-bold rounded-lg bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
-                          <Upload size={12} className="text-emerald-600 dark:text-emerald-400" />
-                          {language === "en" ? "Deliverables Attached" : "Luaran Tersimpan"}
-                        </span>
-                      )}
-                    </div>
-
-                    <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100 leading-snug">
-                      {tItem.kegiatan}
-                    </h3>
-
-                    <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500 dark:text-gray-400 pt-0.5">
-                      <span className="flex items-center gap-1.5">
-                        <MapPin size={13} className="text-[#0f1f5c] dark:text-sky-400" /> {tItem.lokasi}
-                      </span>
-                      <span className="flex items-center gap-1.5 font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2.5 py-0.5 rounded-md">
-                        <Clock size={12} className="text-[#0f1f5c] dark:text-sky-400" /> {t("deadline")}: {tItem.deadline}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Review Action Buttons based on Role & Data */}
-                  <div className="flex flex-wrap items-center gap-2 self-start lg:self-auto shrink-0">
-                    {/* Review Action Buttons based on Role & Data */}
-                    {tItem.workLink ? (
-                      tItem.bidang === "PRAHUM" ? (
-                        <button
-                          type="button"
-                          onClick={() => setPreviewNaskahTask(tItem)}
-                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-[#0f1f5c] dark:text-sky-300 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800 transition cursor-pointer shadow-xs"
-                        >
-                          <BookOpen size={14} className="text-blue-600 dark:text-sky-400" />
-                          <span>{language === "en" ? "Read & Review Script" : "Baca & Telaah Naskah"}</span>
-                        </button>
-                      ) : tItem.bidang === "DESAINER_EDITOR" ? (
-                        <button
-                          type="button"
-                          onClick={() => setDesignReviewTask(tItem)}
-                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-purple-800 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50 hover:bg-purple-100 dark:hover:bg-purple-900/50 border border-purple-200 dark:border-purple-800 transition cursor-pointer shadow-xs"
-                        >
-                          <Layers size={14} className="text-purple-600 dark:text-purple-400" />
-                          <span>{language === "en" ? "Review Design Output" : "Telaah Hasil Desain"}</span>
-                        </button>
-                      ) : (tItem.bidang === "FOTOGRAFER" || tItem.bidang === "VIDEOGRAFER" || tItem.bidang === "FOTO_VIDEO") && tItem.mediaData?.files ? (
-                        <button
-                          type="button"
-                          onClick={() => openCurationModal(tItem)}
-                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-blue-900 dark:text-blue-200 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/70 border border-blue-300 dark:border-blue-700 transition cursor-pointer shadow-xs"
-                        >
-                          <Sparkles size={14} className="text-amber-500" />
-                          <span>
-                            {language === "en"
-                              ? `Photo & Video Curation Desk (${tItem.mediaData.files.length})`
-                              : `Meja Kurasi Foto & Video (${tItem.mediaData.files.length})`}
-                          </span>
-                        </button>
-                      ) : (
-                        <a
-                          href={tItem.workLink}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 transition cursor-pointer"
-                        >
-                          <Eye size={14} />
-                          <span>{t("review_btn_preview")}</span>
-                          <ExternalLink size={12} className="opacity-70" />
-                        </a>
-                      )
-                    ) : (
-                      // Jika berkas belum diunggah petugas
+                        <MessageSquare size={14} />
+                        <span>{t("review_btn_request_revision")}</span>
+                      </button>
 
                       <button
-                        type="button"
-                        onClick={() => {
-                          if (tItem.bidang === "PRAHUM") setPreviewNaskahTask(tItem);
-                          else if (tItem.bidang === "DESAINER_EDITOR") setDesignReviewTask(tItem);
-                          else openCurationModal(tItem);
-                        }}
-                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/70 border border-dashed border-gray-300 dark:border-gray-700 hover:border-blue-400 hover:text-blue-700 transition cursor-pointer"
-                        title={language === "en" ? "Click to view task status" : "Klik untuk melihat status penugasan"}
+                        onClick={() => handleApprove(tItem)}
+                        disabled={isApproved}
+                        className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer shadow-xs ${
+                          isApproved
+                            ? "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 cursor-default opacity-80"
+                            : "bg-[#0f1f5c] dark:bg-blue-600 hover:bg-[#122368] dark:hover:bg-blue-700 text-white"
+                        }`}
                       >
-                        {tItem.bidang === "PRAHUM" ? (
-                          <>
-                            <BookOpen size={13} className="text-gray-400" />
-                            <span>{language === "en" ? "Script Pending" : "Naskah Belum Masuk"}</span>
-                          </>
-                        ) : tItem.bidang === "DESAINER_EDITOR" ? (
-                          <>
-                            <Layers size={13} className="text-purple-400" />
-                            <span>{language === "en" ? "Design Pending" : "Desain Belum Diunggah"}</span>
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles size={13} className="text-amber-400" />
-                            <span>{language === "en" ? "Photo/Video Pending" : "Foto/Video Belum Masuk"}</span>
-                          </>
-                        )}
+                        <CheckCircle2 size={14} />
+                        <span>{isApproved ? t("review_btn_approved_done") : t("review_btn_approve")}</span>
                       </button>
-                    )}
-
-                    <button
-                      onClick={() => handleOpenRevisionModal(tItem)}
-                      className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                        isRevision
-                          ? "bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700"
-                          : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
-                      }`}
-                    >
-                      <MessageSquare size={14} />
-                      <span>{isRevision ? t("review_btn_edit_revision") : t("review_btn_request_revision")}</span>
-                    </button>
-
-                    <button
-                      onClick={() => handleApprove(tItem)}
-                      disabled={isApproved}
-                      className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer shadow-xs ${
-                        isApproved
-                          ? "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 cursor-default opacity-80"
-                          : "bg-[#0f1f5c] dark:bg-blue-600 hover:bg-[#122368] dark:hover:bg-blue-700 text-white"
-                      }`}
-                    >
-                      <CheckCircle2 size={14} />
-                      <span>{isApproved ? t("review_btn_approved_done") : t("review_btn_approve")}</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Revision Notes Callout */}
-                {(tItem.revisionNotes || (tItem.revisionHistory && tItem.revisionHistory.length > 0)) && (
-                  <div className="bg-amber-50/90 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/80 rounded-2xl p-4 space-y-2 text-xs shadow-xs">
-                    <div className="flex items-center justify-between gap-2 text-amber-900 dark:text-amber-200 font-bold border-b border-amber-200/80 dark:border-amber-800/60 pb-1.5">
-                      <span className="flex items-center gap-1.5">
-                        <AlertTriangle size={14} className="text-amber-600 dark:text-amber-400" />
-                        {t("review_notes_title")} ({tItem.revisionAuthor || (language === "en" ? "First Expert Officer" : "Pranata Ahli Pertama")})
-                      </span>
-                      {tItem.revisionDate && (
-                        <span className="text-[11px] font-normal text-amber-700 dark:text-amber-400">
-                          {tItem.revisionDate}
-                        </span>
-                      )}
                     </div>
-                    {tItem.revisionNotes && (
-                      <p className="text-amber-900 dark:text-amber-300 leading-relaxed pl-1 sm:pl-5 font-medium">
-                        "{tItem.revisionNotes}"
-                      </p>
-                    )}
-
-                    {/* Historical entries log */}
-                    {tItem.revisionHistory && tItem.revisionHistory.length > 1 && (
-                      <div className="pt-2 border-t border-amber-200/70 dark:border-amber-800/60 space-y-1.5">
-                        <span className="text-[10px] font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1">
-                          <History size={12} className="text-amber-600" />
-                          <span>{language === "en" ? "Revision History" : "Riwayat Catatan"} ({tItem.revisionHistory.length} {language === "en" ? "rounds" : "putaran"})</span>
-                        </span>
-                        <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
-                          {tItem.revisionHistory.map((h, hIdx) => (
-                            <div key={h.id || hIdx} className="bg-white/70 dark:bg-gray-900/50 rounded-lg p-2 border border-amber-200/50 dark:border-amber-800/40 text-[11px]">
-                              <div className="flex items-center justify-between text-gray-500 dark:text-gray-400 text-[10px]">
-                                <span className="font-bold text-amber-900 dark:text-amber-200">#{hIdx + 1} • {h.author}</span>
-                                <span>{h.date}</span>
-                              </div>
-                              <p className="text-gray-800 dark:text-gray-200 mt-0.5">"{h.notes}"</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Stepper Timeline */}
-                <div className="pt-3 border-t border-gray-100 dark:border-gray-800 mt-1">
-                  <div className="relative flex items-center justify-between px-2 sm:px-4">
-                    <div className="absolute left-4 right-4 top-3 h-0.5 bg-gray-200 dark:bg-gray-700 z-0" />
-                    <div
-                      className={`absolute left-4 top-3 h-0.5 transition-all duration-500 z-0 ${
-                        isCompleted ? "bg-emerald-500" : isRevision ? "bg-amber-500" : "bg-[#0f1f5c] dark:bg-blue-500"
-                      }`}
-                      style={{
-                        width: `calc(${totalSteps > 1 ? (Math.max(0, stepIndex) / (totalSteps - 1)) * 100 : 100}% - 2rem)`,
-                      }}
-                    />
-
-                    {taskWorkflow.map((step, idx) => {
-                      const isDone = isCompleted || idx < stepIndex;
-                      const isCurrent = !isCompleted && idx === stepIndex;
-                      const isRevisionNode = step === "REVISI";
-
-                      return (
-                        <div key={step} className="relative z-10 flex flex-col items-center">
-                          <div
-                            className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all duration-200 ${
-                              isDone
-                                ? "bg-emerald-600 text-white shadow-2xs"
-                                : isCurrent
-                                ? isRevisionNode
-                                   ? "bg-amber-600 text-white ring-4 ring-amber-500/25 shadow-xs scale-110"
-                                  : "bg-[#0f1f5c] dark:bg-blue-600 text-white ring-4 ring-[#0f1f5c]/20 dark:ring-blue-400/25 shadow-xs scale-110"
-                                : "bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-500"
-                            }`}
-                          >
-                            {isDone ? (
-                              <CheckCircle2 size={13} className="text-white stroke-[2.5]" />
-                            ) : (
-                              idx + 1
-                            )}
-                          </div>
-
-                          <span
-                            className={`mt-1.5 text-[10px] font-semibold tracking-tight transition-colors select-none text-center whitespace-nowrap ${
-                              isDone
-                                ? "text-emerald-700 dark:text-emerald-400 font-bold"
-                                : isCurrent
-                                ? isRevisionNode
-                                  ? "text-amber-700 dark:text-amber-400 font-extrabold"
-                                  : "text-[#0f1f5c] dark:text-sky-400 font-extrabold"
-                                : "text-gray-400 dark:text-gray-500"
-                            }`}
-                          >
-                            {step.replace("_", " ")}
-                          </span>
-                        </div>
-                      );
-                    })}
                   </div>
                 </div>
-              </div>
-            );
-          })
-        )}
-      </div>
-
-      {reviewableTasks.length > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-gray-200 dark:border-gray-800">
-          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-            <label htmlFor="review-page-size" className="font-semibold">
-              {language === "en" ? "Tasks per page" : "Tugas per halaman"}
-            </label>
-            <select
-              id="review-page-size"
-              value={pageSize}
-              onChange={(e) => setPageSize(Number(e.target.value))}
-              className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161b22] px-2.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#0f1f5c] dark:focus:ring-sky-500"
-            >
-              {[10, 20, 50, 100].map((size) => (
-                <option key={size} value={size}>{size}</option>
-              ))}
-            </select>
-            <span>
-              {Math.min((currentPage - 1) * pageSize + 1, reviewableTasks.length)}-{Math.min(currentPage * pageSize, reviewableTasks.length)} {language === "en" ? "of" : "dari"} {reviewableTasks.length}
-            </span>
-          </div>
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-          />
+              );
+            })
+          )}
         </div>
-      )}
 
-      {/* Revision Modal Dialog */}
+        {/* Revision Modal Dialog */}
       <Dialog
         open={!!selectedTaskForRevision}
         onClose={() => setSelectedTaskForRevision(null)}
@@ -1029,13 +770,17 @@ const ReviewPage = () => {
                         {/* Preview Content */}
                         {isVideo ? (
                           <div 
-                            className="bg-black aspect-square flex items-center justify-center cursor-pointer relative group"
+                            className="aspect-video bg-black flex items-center justify-center relative cursor-pointer group"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleOpenPreview(curationTask.mediaData.files, fIdx);
                             }}
                           >
-                            <video src={file.url} className="w-full h-full object-cover opacity-70" preload="metadata" />
+                            <video
+                              src={file.url}
+                              className="w-full h-full object-cover opacity-70"
+                              preload="metadata"
+                            />
                             <div className="absolute inset-0 bg-gray-900/40 flex items-center justify-center group-hover:bg-gray-800/20 transition-all duration-300">
                               <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-md group-hover:scale-110 transition-transform duration-300 shadow-lg border border-white/30">
                                 <Play className="w-5 h-5 text-white ml-1" fill="currentColor" />
@@ -1050,7 +795,11 @@ const ReviewPage = () => {
                               handleOpenPreview(curationTask.mediaData.files, fIdx);
                             }}
                           >
-                            <img src={file.url} alt={file.originalName} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+                            <img
+                              src={file.url}
+                              alt={file.originalName}
+                              className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                            />
                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
                               <Eye className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 drop-shadow-md" />
                             </div>
@@ -1161,7 +910,7 @@ const ReviewPage = () => {
             {designReviewTask.mediaData?.files && designReviewTask.mediaData.files.length > 0 ? (
               <div className="space-y-3">
                 {designReviewTask.mediaData.files.map((file, idx) => {
-                  const isVideo = file.mimeType.startsWith("video");
+                  const isImage = file.mimeType.startsWith("image");
 
                   return (
                     <div key={idx} className="p-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 space-y-3">

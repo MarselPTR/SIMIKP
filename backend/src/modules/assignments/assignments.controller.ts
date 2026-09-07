@@ -654,6 +654,7 @@ export class AssignmentsController {
 
           const targetAhliReviewers = await db
             .select({
+              id: users.id,
               name: users.name,
               email: users.email,
             })
@@ -680,6 +681,14 @@ export class AssignmentsController {
                 workLink: body.workLink,
               }).catch((err) => console.error("[AssignmentsController] Gagal kirim email draf masuk ke Ahli Pertama/Reviewer:", err));
             }
+
+            createNotification({
+              userId: reviewer.id,
+              type: "WORK_SUBMITTED",
+              title: "Draf Siap Direview",
+              message: `Petugas ${initSubmitDetail[0]?.officerName || "Lapangan"} telah mengirim hasil untuk kegiatan ${initSubmitDetail[0]?.activityTitle || "Liputan"}. Mohon segera ditelaah.`,
+              metadata: { assignmentId: id, activityId: existing[0]?.activityId },
+            }).catch((err) => console.error("[AssignmentsController] Gagal membuat notifikasi draf masuk:", err));
           }
         }
       }

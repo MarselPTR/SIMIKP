@@ -2,6 +2,8 @@ import { FastifyInstance } from "fastify";
 import { UsersController } from "./users.controller";
 
 export default async function usersRoutes(server: FastifyInstance) {
+  server.get("/notification-preferences", UsersController.getNotificationPreferences);
+  server.patch("/notification-preferences", UsersController.updateNotificationPreferences);
   server.get("/petugas", UsersController.getPetugas);
   server.post("/petugas", UsersController.createPetugas);
   server.delete("/petugas/:id", UsersController.deletePetugas);

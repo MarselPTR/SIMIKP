@@ -1,0 +1,1 @@
+import { db } from "./src/db"; import { activities } from "./src/db/schema/activities"; async function run() { const res = await db.select({ title: activities.title, date: activities.activityDate, time: activities.activityTime }).from(activities); console.log(JSON.stringify(res, null, 2)); process.exit(0); } run();

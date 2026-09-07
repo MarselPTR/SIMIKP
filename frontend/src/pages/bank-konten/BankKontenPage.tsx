@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 
@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useToast } from "../../contexts/ToastContext";
 import { useLanguage } from "../../lib/LanguageContext";
+import Pagination from "../../components/ui/Pagination";
 
 const formatTanggal = (iso: string, language: string) =>
   new Date(iso).toLocaleDateString(language === "en" ? "en-US" : "id-ID", { day: "numeric", month: "short", year: "numeric" });
@@ -46,17 +47,19 @@ const BankKontenPage = () => {
   const { addToast } = useToast();
   const { language } = useLanguage();
 
-  const { data: folders = [], isLoading, error, refetch } = useQuery({
+  const { data: bankResponse, isLoading, error, refetch } = useQuery({
     queryKey: ["bank-konten"],
     queryFn: async () => {
       try {
-        const res = await apiFetch<{ success: boolean; data: ApiBankKontenFolder[] }>("/productions/bank-konten");
-        return res.data || [];
+        return await apiFetch<{ success: boolean; data: ApiBankKontenFolder[]; totalStorageBytes?: number }>("/productions/bank-konten");
       } catch {
-        return [];
+        return { data: [], totalStorageBytes: 0 };
       }
     },
   });
+
+  const folders = bankResponse?.data || [];
+  const totalStorageBytes = bankResponse?.totalStorageBytes || 0;
 
   const navigate = useNavigate();
 
@@ -64,6 +67,8 @@ const BankKontenPage = () => {
   const [tahun, setTahun] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [urutan, setUrutan] = useState("terbaru");
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const openFolder = (folder: ApiBankKontenFolder) => {
     navigate(folder.id);
@@ -95,6 +100,13 @@ const BankKontenPage = () => {
     };
   }, [folders]);
 
+  const formatStorage = (bytes: number) => {
+    if (bytes === 0) return "0 B";
+    const units = ["B", "KB", "MB", "GB", "TB"];
+    const unitIndex = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+    return `${(bytes / 1024 ** unitIndex).toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+  };
+
   const filtered = useMemo(() => {
     if (!folders) return [];
     let result = folders;
@@ -119,6 +131,17 @@ const BankKontenPage = () => {
       return urutan === "terbaru" ? diff : -diff;
     });
   }, [folders, search, selectedCategory, tahun, urutan]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const paginatedFolders = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, selectedCategory, tahun, urutan, pageSize]);
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, totalPages));
+  }, [totalPages]);
 
 
 
@@ -194,7 +217,7 @@ const BankKontenPage = () => {
         <div className="bg-white dark:bg-[#161b22] rounded-2xl border border-gray-200/80 dark:border-gray-800 p-4 shadow-xs flex items-center justify-between">
           <div>
             <p className="text-xs font-medium text-gray-400">{language === "en" ? "Storage Used" : "Kapasitas Terpakai"}</p>
-            <p className="text-2xl font-black text-gray-900 dark:text-white mt-0.5">1.2 TB</p>
+            <p className="text-2xl font-black text-gray-900 dark:text-white mt-0.5">{formatStorage(totalStorageBytes)}</p>
           </div>
           <div className="w-10 h-10 rounded-xl bg-violet-50 dark:bg-violet-950/50 text-violet-600 dark:text-violet-400 flex items-center justify-center">
             <HardDrive className="w-5 h-5" />
@@ -263,7 +286,7 @@ const BankKontenPage = () => {
         />
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-5">
-          {filtered.map((folder) => {
+          {paginatedFolders.map((folder) => {
             const summary = summarizeJenis(folder);
             const initial = folder.petugas.slice(0, 2).toUpperCase();
             const coverGradient = getCoverGradient(folder);
@@ -372,6 +395,19 @@ const BankKontenPage = () => {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {filtered.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-gray-200 dark:border-gray-800">
+          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+            <label htmlFor="bank-page-size" className="font-semibold">{language === "en" ? "Folders per page" : "Folder per halaman"}</label>
+            <select id="bank-page-size" value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))} className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161b22] px-2.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-200">
+              {[10, 20, 50, 100].map((size) => <option key={size} value={size}>{size}</option>)}
+            </select>
+            <span>{Math.min((currentPage - 1) * pageSize + 1, filtered.length)}-{Math.min(currentPage * pageSize, filtered.length)} {language === "en" ? "of" : "dari"} {filtered.length}</span>
+          </div>
+          <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
         </div>
       )}
 

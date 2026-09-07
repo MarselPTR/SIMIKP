@@ -683,6 +683,7 @@ interface DashboardStats {
   produksiRunning: number;
   reviewPending: number;
   publikasiPublished: number;
+  totalFilesBank: number;
   opdProduction: Array<{ name: string; singkatan: string; count: number }>;
   pegawaiProduction: Array<{ id: string; name: string; staffType: string; count: number }>;
 }
@@ -840,7 +841,7 @@ const DashboardPage = () => {
       },
       {
         label: language === "en" ? "Total Files in Content Bank" : "Total File di Bank Konten",
-        value: language === "en" ? "0 Files" : "0 File",
+        value: language === "en" ? `${stats?.totalFilesBank ?? 0} Files` : `${stats?.totalFilesBank ?? 0} File`,
         icon: FolderOpen,
         path: "/bank-konten",
         accentColor: "purple",
