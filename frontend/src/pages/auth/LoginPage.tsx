@@ -17,6 +17,7 @@ import {
   Mail,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   Loader2
 } from "lucide-react";
 
@@ -31,6 +32,7 @@ const LoginPage = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [shakeKey, setShakeKey] = useState(0);
   const [showForgotModal, setShowForgotModal] = useState(false);
 
   // State untuk Lupa Password
@@ -86,6 +88,7 @@ const LoginPage = () => {
     const result = await login(username, password);
     if (!result.success) {
       setError(result.error ?? t("login_failed"));
+      setShakeKey((prev) => prev + 1);
       return;
     }
     navigate(getDestinationForUser(result.user?.role, from), { replace: true });
@@ -160,7 +163,7 @@ const LoginPage = () => {
         </div>
 
         {/* Form Title */}
-        <div className="mb-8">
+        <div className="mb-6">
           <span className="text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-sky-400">
             {t("login_welcome")}
           </span>
@@ -173,7 +176,31 @@ const LoginPage = () => {
         </div>
 
         {/* Form Element */}
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Error Alert Box */}
+          {error && (
+            <div
+              key={shakeKey}
+              className="p-4 bg-rose-50/90 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/80 rounded-2xl text-rose-800 dark:text-rose-200 flex items-start gap-3 shadow-xs animate-shake"
+              role="alert"
+            >
+              <div className="p-1.5 bg-rose-100 dark:bg-rose-900/50 rounded-lg text-rose-600 dark:text-rose-400 shrink-0 mt-0.5">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="space-y-1 flex-1">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-rose-900 dark:text-rose-300">
+                  {t("login_failed_title")}
+                </h4>
+                <p className="text-xs leading-relaxed font-medium">
+                  {error}
+                </p>
+                <p className="text-[11px] text-rose-600 dark:text-rose-400/90 pt-0.5">
+                  💡 {t("login_caps_hint")}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Username / Email */}
           <div>
             <label className="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1.5">
@@ -186,10 +213,17 @@ const LoginPage = () => {
               <input
                 type="text"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  if (error) setError("");
+                }}
                 placeholder={t("login_username_placeholder")}
                 required
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-700 bg-gray-50/50 dark:bg-[#0d1117] text-gray-900 dark:text-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0f1f5c] dark:focus:ring-sky-500 focus:bg-white dark:focus:bg-[#0d1117] transition"
+                className={`w-full pl-10 pr-4 py-3 border ${
+                  error ? "border-rose-300 dark:border-rose-700 bg-rose-50/10" : "border-gray-300 dark:border-gray-700 bg-gray-50/50 dark:bg-[#0d1117]"
+                } text-gray-900 dark:text-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 ${
+                  error ? "focus:ring-rose-500" : "focus:ring-[#0f1f5c] dark:focus:ring-sky-500"
+                } focus:bg-white dark:focus:bg-[#0d1117] transition`}
               />
             </div>
           </div>
@@ -206,10 +240,17 @@ const LoginPage = () => {
               <input
                 type={showPassword ? "text" : "password"}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (error) setError("");
+                }}
                 placeholder={t("login_password_placeholder")}
                 required
-                className="w-full pl-10 pr-11 py-3 border border-gray-300 dark:border-gray-700 bg-gray-50/50 dark:bg-[#0d1117] text-gray-900 dark:text-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0f1f5c] dark:focus:ring-sky-500 focus:bg-white dark:focus:bg-[#0d1117] transition"
+                className={`w-full pl-10 pr-11 py-3 border ${
+                  error ? "border-rose-400 dark:border-rose-600 ring-2 ring-rose-500/20 bg-rose-50/20 dark:bg-rose-950/20" : "border-gray-300 dark:border-gray-700 bg-gray-50/50 dark:bg-[#0d1117]"
+                } text-gray-900 dark:text-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 ${
+                  error ? "focus:ring-rose-500" : "focus:ring-[#0f1f5c] dark:focus:ring-sky-500"
+                } focus:bg-white dark:focus:bg-[#0d1117] transition`}
               />
               <button
                 type="button"
@@ -221,14 +262,6 @@ const LoginPage = () => {
               </button>
             </div>
           </div>
-
-          {/* Error message */}
-          {error && (
-            <div className="p-3.5 bg-red-50 dark:bg-rose-950/40 border border-red-200 dark:border-red-800/60 rounded-xl text-sm text-red-700 dark:text-red-300 flex items-start gap-2">
-              <span className="font-bold">⚠️</span>
-              <span>{error}</span>
-            </div>
-          )}
 
           {/* Forgot password */}
           <div className="flex items-center justify-end -mt-1">
@@ -252,31 +285,62 @@ const LoginPage = () => {
           </button>
         </form>
 
-        <div className="mt-5 p-3.5 rounded-xl bg-gray-50 dark:bg-[#0d1117] border border-gray-200 dark:border-gray-700 text-xs text-gray-600 dark:text-gray-400 space-y-2">
-          <p className="font-semibold text-gray-900 dark:text-gray-200">
-            {language === "en" ? "Testing / Demo Accounts:" : "Akun Pengujian / Demo:"}
-          </p>
-          <div className="grid grid-cols-3 gap-2 pt-1">
-            <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/50">
-              <p className="font-bold text-indigo-700 dark:text-indigo-300">
+        <div className="mt-5 p-3.5 rounded-xl bg-gray-50 dark:bg-[#0d1117] border border-gray-200 dark:border-gray-700 text-xs text-gray-600 dark:text-gray-400 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <p className="font-semibold text-gray-900 dark:text-gray-200">
+              {t("login_demo_title")}
+            </p>
+            <span className="text-[10px] text-blue-600 dark:text-sky-400 font-medium">Klik untuk isi otomatis</span>
+          </div>
+          <div className="grid grid-cols-3 gap-2 pt-0.5">
+            <button
+              type="button"
+              onClick={() => {
+                setUsername("ahli");
+                setPassword("admin123");
+                setError("");
+              }}
+              className="p-2.5 rounded-lg bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/50 text-left hover:border-indigo-400 dark:hover:border-indigo-600 hover:shadow-xs transition cursor-pointer group"
+              title="Isi otomatis akun Ahli Pertama"
+            >
+              <p className="font-bold text-indigo-700 dark:text-indigo-300 group-hover:underline">
                 {language === "en" ? "First Expert" : "Ahli Pertama"}
               </p>
               <p className="text-[10px] text-gray-500 mt-0.5">User: <code className="font-bold text-gray-800 dark:text-gray-200">ahli</code></p>
-            </div>
-            <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/50">
-              <p className="font-bold text-blue-700 dark:text-blue-300">Admin IKP</p>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setUsername("admin");
+                setPassword("admin123");
+                setError("");
+              }}
+              className="p-2.5 rounded-lg bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/50 text-left hover:border-blue-400 dark:hover:border-blue-600 hover:shadow-xs transition cursor-pointer group"
+              title="Isi otomatis akun Admin IKP"
+            >
+              <p className="font-bold text-blue-700 dark:text-blue-300 group-hover:underline">Admin IKP</p>
               <p className="text-[10px] text-gray-500 mt-0.5">User: <code className="font-bold text-gray-800 dark:text-gray-200">admin</code></p>
-            </div>
-            <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50">
-              <p className="font-bold text-emerald-700 dark:text-emerald-300">
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setUsername("andi");
+                setPassword("admin123");
+                setError("");
+              }}
+              className="p-2.5 rounded-lg bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 text-left hover:border-emerald-400 dark:hover:border-emerald-600 hover:shadow-xs transition cursor-pointer group"
+              title="Isi otomatis akun Petugas Lapangan"
+            >
+              <p className="font-bold text-emerald-700 dark:text-emerald-300 group-hover:underline">
                 {language === "en" ? "Officer" : "Petugas"}
               </p>
               <p className="text-[10px] text-gray-500 mt-0.5">User: <code className="font-bold text-gray-800 dark:text-gray-200">andi</code></p>
-            </div>
+            </button>
           </div>
-          <p className="text-[11px] text-gray-400 pt-1">
-            {language === "en" ? "Demo password can be anything." : "Password demo dapat diisi apa saja."}
-          </p>
+          <div className="flex items-center gap-1.5 text-[11px] text-amber-800 dark:text-amber-300/90 pt-0.5 font-medium">
+            <span>🔒</span>
+            <span>{t("login_demo_hint")}</span>
+          </div>
         </div>
       </div>
 

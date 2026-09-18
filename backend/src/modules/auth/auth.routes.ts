@@ -93,17 +93,23 @@ export async function authRoutes(fastify: FastifyInstance) {
       }
 
       if (foundUsers.length === 0) {
-        return reply.status(401).send({ error: "Invalid credentials" });
+        return reply.status(401).send({ success: false, message: "Username atau email tidak terdaftar" });
       }
 
       const user = foundUsers[0];
 
       if (!user.active) {
-        return reply.status(401).send({ error: "Account disabled" });
+        return reply.status(401).send({ success: false, message: "Akun Anda telah dinonaktifkan. Silakan hubungi Administrator." });
       }
 
-      if (!data.password.trim()) {
-         return reply.status(401).send({ error: "Invalid credentials" });
+      if (!data.password || !data.password.trim()) {
+        return reply.status(401).send({ success: false, message: "Kata sandi wajib diisi" });
+      }
+
+      // Validasi kata sandi dengan hash terenkripsi
+      const isPasswordValid = verifyPassword(data.password, user.passwordHash);
+      if (!isPasswordValid) {
+        return reply.status(401).send({ success: false, message: "Kata sandi yang Anda masukkan salah. Silakan coba lagi." });
       }
 
       // Generate a session token with JWT

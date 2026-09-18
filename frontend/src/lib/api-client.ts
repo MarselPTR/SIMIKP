@@ -32,7 +32,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ message: res.statusText }));
-    throw new ApiError(res.status, body.message ?? "Request gagal");
+    throw new ApiError(res.status, body.message || body.error || res.statusText || "Request gagal");
   }
 
   if (res.status === 204) {
