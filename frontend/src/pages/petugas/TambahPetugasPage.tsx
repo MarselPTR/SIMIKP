@@ -18,7 +18,6 @@ export default function TambahPetugasPage() {
     email: "",
     password: "",
     jenisKelamin: "",
-    pic: "",
     tempatLahir: "",
     tanggalLahir: "",
   });
@@ -43,7 +42,6 @@ export default function TambahPetugasPage() {
       formData.append("email", form.email);
       formData.append("password", form.password);
       formData.append("gender", form.jenisKelamin);
-      formData.append("nik", form.pic);
       formData.append("birthPlace", form.tempatLahir);
       formData.append("birthDate", form.tanggalLahir);
 
@@ -62,7 +60,6 @@ export default function TambahPetugasPage() {
           email: "",
           password: "",
           jenisKelamin: "",
-          pic: "",
           tempatLahir: "",
           tanggalLahir: "",
         });
@@ -244,23 +241,7 @@ export default function TambahPetugasPage() {
             </div>
           </div>
 
-          {/* Row: PIC */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 items-center">
-            <label className="md:col-span-4 text-sm font-bold text-gray-800 dark:text-gray-200">
-              Person In Charge (PIC) <span className="text-red-500">*</span>
-            </label>
-            <div className="md:col-span-8">
-              <input
-                type="text"
-                name="pic"
-                value={form.pic}
-                onChange={handleInputChange}
-                required
-                placeholder={language === "en" ? "Enter PIC identifier" : "Masukkan PIC"}
-                className="w-full md:w-80 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm bg-white dark:bg-[#0d1117] text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1"
-              />
-            </div>
-          </div>
+
 
           {/* Row: Tempat Lahir */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 items-center">

@@ -268,7 +268,7 @@ export async function sendAssignmentNotificationEmail(data: AssignmentEmailData)
   const transporter = getMailTransporter();
   if (!transporter) return false;
 
-  const appUrl = process.env.APP_URL || "http://localhost:5173";
+  const appUrl = process.env.APP_URL || "https://simikp.batu.go.id";
   const formattedDate = data.activityDate ? new Date(data.activityDate).toLocaleDateString("id-ID", {
     weekday: "long",
     day: "numeric",
@@ -467,7 +467,7 @@ export async function sendReviewRevisionEmail(data: ReviewRevisionEmailData): Pr
   const transporter = getMailTransporter();
   if (!transporter) return false;
 
-  const appUrl = process.env.APP_URL || "http://localhost:5173";
+  const appUrl = process.env.APP_URL || "https://simikp.batu.go.id";
   const revisionUrl = data.revisionUrl || `${appUrl}/petugas/penugasan`;
 
   const isPrahum = data.contentType && (data.contentType.toLowerCase().includes("naskah") || data.contentType.toLowerCase().includes("prahum"));
@@ -549,7 +549,7 @@ export async function sendWelcomeNewUserEmail(data: WelcomeNewUserEmailData): Pr
   const transporter = getMailTransporter();
   if (!transporter) return false;
 
-  const appUrl = process.env.APP_URL || "http://localhost:5173";
+  const appUrl = process.env.APP_URL || "https://simikp.batu.go.id";
   const loginUrl = data.loginUrl || `${appUrl}/login`;
 
   const contentHtml = `
@@ -645,7 +645,7 @@ export async function sendAssignmentScheduleChangeEmail(data: AssignmentSchedule
   const transporter = getMailTransporter();
   if (!transporter) return false;
 
-  const appUrl = process.env.APP_URL || "http://localhost:5173";
+  const appUrl = process.env.APP_URL || "https://simikp.batu.go.id";
   const targetUrl = data.targetUrl || `${appUrl}/petugas/penugasan`;
 
   const formattedDate = data.activityDate ? new Date(data.activityDate).toLocaleDateString("id-ID", {
@@ -813,7 +813,7 @@ export async function sendWorkSubmissionAlertEmail(data: WorkSubmissionAlertEmai
   const transporter = getMailTransporter();
   if (!transporter) return false;
 
-  const appUrl = process.env.APP_URL || "http://localhost:5173";
+  const appUrl = process.env.APP_URL || "https://simikp.batu.go.id";
   const reviewUrl = data.reviewUrl || `${appUrl}/review`;
 
   const contentHtml = `
@@ -917,7 +917,7 @@ export async function sendRevisionSubmissionAlertEmail(data: RevisionSubmissionA
   const transporter = getMailTransporter();
   if (!transporter) return false;
 
-  const appUrl = process.env.APP_URL || "http://localhost:5173";
+  const appUrl = process.env.APP_URL || "https://simikp.batu.go.id";
   const reviewUrl = data.reviewUrl || `${appUrl}/review`;
 
   const isPrahum = data.contentType && (data.contentType.toLowerCase().includes("naskah") || data.contentType.toLowerCase().includes("prahum"));

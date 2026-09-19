@@ -14,46 +14,20 @@ const loginSchema = z.object({
 });
 
 export async function authRoutes(fastify: FastifyInstance) {
-  fastify.post("/login", async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.post("/login", { 
+    config: { 
+      rateLimit: { 
+        max: 10, 
+        timeWindow: '15 minutes' 
+      } 
+    } 
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const data = loginSchema.parse(request.body);
       const rawUser = data.username.trim();
       const lowerUser = rawUser.toLowerCase();
 
-      // Ensure AHLI_PERTAMA exists in DB if login matches ahli
-      if (lowerUser === "ahli" || lowerUser === "ahli_pertama" || lowerUser.includes("ahli")) {
-        try {
-          let roleAhli = await db.select().from(roles).where(eq(roles.name, "AHLI_PERTAMA")).limit(1);
-          let roleAhliId = roleAhli[0]?.id;
-          if (!roleAhliId) {
-            roleAhliId = crypto.randomUUID();
-            await db.insert(roles).values({ id: roleAhliId, name: "AHLI_PERTAMA" });
-          }
 
-          let existingUser = await db.select().from(users).where(eq(users.username, "ahli")).limit(1);
-          let ahliId = existingUser[0]?.id;
-          if (!ahliId) {
-            ahliId = crypto.randomUUID();
-            await db.insert(users).values({
-              id: ahliId,
-              username: "ahli",
-              passwordHash: hashPassword("admin123"),
-              name: "Bambang S., S.Kom",
-              staffType: "AHLI_PERTAMA",
-              email: "ahli@kominfo.batukota.go.id",
-              active: true,
-            });
-          }
-
-          const existingUserRole = await db.select().from(userRoles).where(eq(userRoles.userId, ahliId)).limit(1);
-          if (existingUserRole.length === 0) {
-            await db.insert(userRoles).values({ userId: ahliId, roleId: roleAhliId });
-          }
-        } catch (dbErr) {
-          fastify.log.warn(dbErr, "Auto-provisioning Ahli Pertama in DB encountered error, proceeding...");
-        }
-      }
-      
       // Find user in DB (match username or email)
       let foundUsers = await db.select({
         id: users.id,
@@ -75,22 +49,6 @@ export async function authRoutes(fastify: FastifyInstance) {
       ))
       .limit(1);
 
-      if (foundUsers.length === 0 && (lowerUser === "ahli" || lowerUser === "ahli_pertama")) {
-        foundUsers = await db.select({
-          id: users.id,
-          username: users.username,
-          name: users.name,
-          staffType: users.staffType,
-          active: users.active,
-          passwordHash: users.passwordHash,
-          roleName: roles.name,
-        })
-        .from(users)
-        .innerJoin(userRoles, eq(users.id, userRoles.userId))
-        .innerJoin(roles, eq(userRoles.roleId, roles.id))
-        .where(eq(users.username, "ahli"))
-        .limit(1);
-      }
 
       if (foundUsers.length === 0) {
         return reply.status(401).send({ success: false, message: "Username atau email tidak terdaftar" });
@@ -156,20 +114,54 @@ export async function authRoutes(fastify: FastifyInstance) {
 
   fastify.get("/me", async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      await request.jwtVerify();
-      return reply.send({ success: true, user: request.user });
-    } catch (cookieErr) {
-      // Fallback: cek Authorization header (Bearer token) dari localStorage
-      const authHeader = request.headers.authorization;
-      if (authHeader && authHeader.startsWith("Bearer ")) {
-        try {
+      let decoded: any = null;
+      try {
+        await request.jwtVerify();
+        decoded = request.user;
+      } catch (cookieErr) {
+        const authHeader = request.headers.authorization;
+        if (authHeader && authHeader.startsWith("Bearer ")) {
           const token = authHeader.slice(7);
-          const decoded = fastify.jwt.verify(token);
-          return reply.send({ success: true, user: decoded });
-        } catch {
-          // Token invalid
+          decoded = fastify.jwt.verify(token);
+        } else {
+          throw new Error("Unauthorized");
         }
       }
+
+      if (!decoded || !decoded.id) throw new Error("Invalid Token");
+
+      // Verify user against database to prevent deactivated users from using old tokens
+      const foundUsers = await db.select({
+        id: users.id,
+        username: users.username,
+        name: users.name,
+        staffType: users.staffType,
+        active: users.active,
+        roleName: roles.name,
+      })
+      .from(users)
+      .innerJoin(userRoles, eq(users.id, userRoles.userId))
+      .innerJoin(roles, eq(userRoles.roleId, roles.id))
+      .where(eq(users.id, decoded.id))
+      .limit(1);
+
+      if (foundUsers.length === 0 || !foundUsers[0].active) {
+        reply.clearCookie("simikp_session", { path: "/" });
+        return reply.status(401).send({ error: "Akun Anda telah dinonaktifkan atau tidak ditemukan." });
+      }
+
+      const freshUser = foundUsers[0];
+      return reply.send({ 
+        success: true, 
+        user: {
+          id: freshUser.id,
+          username: freshUser.username,
+          name: freshUser.name,
+          role: freshUser.roleName,
+          staffType: freshUser.staffType
+        }
+      });
+    } catch (err) {
       reply.clearCookie("simikp_session", { path: "/" });
       return reply.status(401).send({ error: "Unauthorized or invalid session" });
     }
@@ -213,7 +205,7 @@ export async function authRoutes(fastify: FastifyInstance) {
         expiresAt,
       });
 
-      const appUrl = process.env.APP_URL || "http://localhost:5173";
+      const appUrl = process.env.APP_URL || "https://simikp.batu.go.id";
       const resetUrl = `${appUrl}/reset-password?token=${token}`;
 
       // Kirim email reset password di background

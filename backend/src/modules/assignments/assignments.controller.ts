@@ -303,7 +303,7 @@ export class AssignmentsController {
           .limit(1) : [];
 
         if (targetUser.length > 0 && targetUser[0].email) {
-          const appUrl = process.env.APP_URL || "http://localhost:5173";
+          const appUrl = process.env.APP_URL || "https://simikp.batu.go.id";
           const isPetugas = targetUser[0].roleName?.toUpperCase() === "PETUGAS";
           const targetUrl = isPetugas ? `${appUrl}/petugas/penugasan` : `${appUrl}/penugasan`;
 
@@ -428,7 +428,7 @@ export class AssignmentsController {
         .limit(1);
 
       if (claimDetail.length > 0 && claimDetail[0].email) {
-        const appUrl = process.env.APP_URL || "http://localhost:5173";
+        const appUrl = process.env.APP_URL || "https://simikp.batu.go.id";
         sendAssignmentNotificationEmail({
           to: claimDetail[0].email,
           officerName: claimDetail[0].name || "Petugas",

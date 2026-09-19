@@ -11,6 +11,8 @@ import { logAudit } from "../system/audit.service";
 import { createNotification } from "../system/notifications.service";
 import { sendReviewRevisionEmail } from "../../services/mail.service";
 
+import { requireRole } from "../../middlewares/role.middleware";
+
 export async function reviewsRoutes(fastify: FastifyInstance) {
   fastify.get("/", async (request, reply) => {
     try {
@@ -35,7 +37,7 @@ export async function reviewsRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.post("/", async (request, reply) => {
+  fastify.post("/", { preHandler: [requireRole(["SUPER_ADMIN", "ADMIN", "AHLI_PERTAMA"])] }, async (request, reply) => {
     try {
       const body = request.body as any;
       const { reviewerId, status, feedback } = body;

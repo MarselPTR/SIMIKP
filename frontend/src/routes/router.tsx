@@ -56,13 +56,20 @@ export const router = createBrowserRouter([
                 children: [
                   { path: "kegiatan", element: <KegiatanPage /> },
                   { path: "penugasan", element: <PenugasanPage /> },
-                  { path: "produksi", element: <ProduksiPage /> },
-                  { path: "publikasi", element: <PublikasiPage /> },
                   { path: "bank-konten", element: <BankKontenPage /> },
                   { path: "bank-konten/:id", element: <BankKontenDetailPage /> },
                   { path: "laporan", element: <LaporanPage /> },
                   { path: "daftar-anggota", element: <DaftarAnggotaPage /> },
                   { path: "tambah-petugas", element: <TambahPetugasPage /> },
+                ],
+              },
+
+              // Rute Produksi dan Publikasi (Diakses Admin dan Ahli Pertama)
+              {
+                element: <RoleRoute allow={[Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER, Role.STAFF, Role.AHLI_PERTAMA]} />,
+                children: [
+                  { path: "produksi", element: <ProduksiPage /> },
+                  { path: "publikasi", element: <PublikasiPage /> },
                 ],
               },
             ],

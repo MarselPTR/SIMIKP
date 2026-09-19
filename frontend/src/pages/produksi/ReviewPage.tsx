@@ -83,13 +83,13 @@ const ReviewPage = () => {
   const [isSubmittingCuration, setIsSubmittingCuration] = useState(false);
 
   // State for Full Screen Preview Slider
-  const [previewMediaList, setPreviewMediaList] = useState<{ url: string; type: "video" | "image"; name: string }[]>([]);
+  const [previewMediaList, setPreviewMediaList] = useState<{ url: string; type: "video" | "image" | "pdf"; name: string }[]>([]);
   const [previewMediaIndex, setPreviewMediaIndex] = useState<number | null>(null);
 
   const handleOpenPreview = (files: any[], startIndex: number) => {
     const mapped = files.map(f => ({
       url: f.url,
-      type: (f.mimeType || (f.jenisKonten === "video" ? "video" : "image")).startsWith("video") ? "video" as const : "image" as const,
+      type: (f.mimeType || (f.jenisKonten === "video" ? "video" : "image")).startsWith("video") ? "video" as const : ((f.mimeType === "application/pdf" || (f.originalName && f.originalName.toLowerCase().endsWith(".pdf"))) ? "pdf" as const : "image" as const),
       name: f.originalName || f.name || "Media",
     }));
     setPreviewMediaList(mapped);
@@ -1162,6 +1162,7 @@ const ReviewPage = () => {
               <div className="space-y-3">
                 {designReviewTask.mediaData.files.map((file, idx) => {
                   const isVideo = file.mimeType.startsWith("video");
+                  const isPdf = file.mimeType === "application/pdf" || file.originalName.toLowerCase().endsWith(".pdf");
 
                   return (
                     <div key={idx} className="p-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 space-y-3">
@@ -1196,6 +1197,22 @@ const ReviewPage = () => {
                               <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-md transition-transform duration-300 shadow-lg border border-white/30 group-hover:scale-110">
                                 <Play className="w-5 h-5 text-white ml-1" fill="currentColor" />
                               </div>
+                            </div>
+                          </div>
+                        ) : isPdf ? (
+                          <div 
+                            className="bg-gray-100 dark:bg-gray-900 flex flex-col items-center justify-center min-h-[150px] p-4 cursor-pointer relative group rounded-lg"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenPreview(designReviewTask.mediaData!.files, idx);
+                            }}
+                          >
+                            <div className="flex flex-col items-center justify-center text-red-500">
+                              <BookOpen size={48} className="mb-2" />
+                              <span className="font-semibold text-sm text-gray-700 dark:text-gray-300">PDF Document</span>
+                            </div>
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 flex items-center justify-center rounded-lg">
+                              <ExternalLink className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 drop-shadow-md" />
                             </div>
                           </div>
                         ) : (
@@ -1261,6 +1278,13 @@ const ReviewPage = () => {
                 controlsList="nodownload"
                 autoPlay
                 className="w-full max-h-[70vh] object-contain rounded-lg shadow-2xl"
+              />
+            ) : previewMediaList[previewMediaIndex].type === "pdf" ? (
+              <iframe
+                key={previewMediaList[previewMediaIndex].url}
+                src={previewMediaList[previewMediaIndex].url}
+                title={previewMediaList[previewMediaIndex].name}
+                className="w-full h-[75vh] min-w-[60vw] rounded-lg shadow-2xl bg-white"
               />
             ) : (
               <img

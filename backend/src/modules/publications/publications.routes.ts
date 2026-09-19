@@ -4,6 +4,7 @@ import { db } from "../../db";
 import { publications } from "../../db/schema/publications";
 import { productionVersions, productionItems } from "../../db/schema/production";
 import { eq } from "drizzle-orm";
+import { requireRole } from "../../middlewares/role.middleware";
 
 export async function publicationsRoutes(fastify: FastifyInstance) {
   fastify.get("/", async (request, reply) => {
@@ -13,20 +14,21 @@ export async function publicationsRoutes(fastify: FastifyInstance) {
         .select({
           id: publications.id,
           title: productionItems.title,
-          channel: publications.channel,
+          url: publications.url,
           status: publications.status,
           publishDate: publications.publicationDate,
+          channel: publications.channel,
           views: publications.notes,
-          link: publications.url,
         })
         .from(publications)
         .leftJoin(productionVersions, eq(publications.productionVersionId, productionVersions.id))
         .leftJoin(productionItems, eq(productionVersions.productionItemId, productionItems.id));
-      
-      // Parse "Views: 1250" to integer 1250, default to 0 if not parsable
+
       const mappedResults = results.map((r) => {
         let parsedViews = 0;
-        if (r.views && typeof r.views === 'string') {
+        if (typeof r.views === 'number') {
+          parsedViews = r.views;
+        } else if (typeof r.views === 'string') {
           const match = r.views.match(/\d+/);
           if (match) parsedViews = parseInt(match[0], 10);
         }
@@ -43,7 +45,7 @@ export async function publicationsRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.post("/", async (request, reply) => {
+  fastify.post("/", { preHandler: [requireRole(["SUPER_ADMIN", "ADMIN", "AHLI_PERTAMA"])] }, async (request, reply) => {
     try {
       const body = request.body as any;
       const { title, channel, status, url } = body;

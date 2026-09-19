@@ -58,15 +58,15 @@ export class UsersController {
       return reply.status(500).send({ success: false, error: "Gagal menyimpan preferensi notifikasi" });
     }
   }
-  static async getPetugas(request: FastifyRequest, reply: FastifyReply) {
+  static async getPetugas(request: FastifyRequest<{ Querystring: { active?: string } }>, reply: FastifyReply) {
     try {
+      const { active } = request.query;
       const data = await db
         .select({
           id: users.id,
           name: users.name,
           staffType: users.staffType,
           email: users.email,
-          nik: users.nik,
           gender: users.gender,
           pasFotoUrl: users.pasFotoUrl,
           active: users.active,
@@ -76,7 +76,14 @@ export class UsersController {
         .innerJoin(roles, eq(roles.id, userRoles.roleId))
         .where(eq(roles.name, "PETUGAS"));
 
-      return reply.send({ success: true, data });
+      let filteredData = data;
+      if (active === "true") {
+        filteredData = data.filter(u => u.active === true);
+      } else if (active === "false") {
+        filteredData = data.filter(u => u.active === false);
+      }
+
+      return reply.send({ success: true, data: filteredData });
     } catch (error) {
       request.log.error(error);
       return reply.status(500).send({ success: false, error: "Gagal mengambil data petugas" });
@@ -88,9 +95,9 @@ export class UsersController {
       const parts = request.parts();
       const body: any = {};
       let pasFotoUrl = null;
-      let scanKtpUrl = null;
 
-      const uploadDir = path.resolve(__dirname, "../../storage/private/users");
+      const baseStorageDir = process.env.STORAGE_PATH ? path.resolve(process.cwd(), process.env.STORAGE_PATH) : path.resolve(__dirname, "../../../storage");
+      const uploadDir = path.join(baseStorageDir, "private/users");
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
       }
@@ -107,8 +114,6 @@ export class UsersController {
           const url = `/api/v1/users/assets/${uniqueFilename}`; // virtual path
           if (part.fieldname === 'pasFoto') {
             pasFotoUrl = url;
-          } else if (part.fieldname === 'scanKtp') {
-            scanKtpUrl = url;
           }
         } else {
           body[part.fieldname] = part.value;
@@ -132,7 +137,6 @@ export class UsersController {
         name: body.name,
         staffType: body.program || null,
         email: body.email,
-        nik: body.nik,
         gender: body.gender,
         birthPlace: body.birthPlace,
         birthDate: birthDate,
@@ -197,16 +201,33 @@ export class UsersController {
     try {
       const { id } = request.params;
       
-      // Delete user_roles first to prevent foreign key constraint fails
-      await db.delete(userRoles).where(eq(userRoles.userId, id));
+      const { assignments, reviews, productionFiles, publications, auditLogs, notifications, passwordResetTokens } = require("../../db/schema");
       
-      // Delete the user
-      await db.delete(users).where(eq(users.id, id));
-      
-      return reply.send({ success: true, message: "Petugas berhasil dihapus" });
+      const hasAssignments = await db.select().from(assignments).where(eq(assignments.petugasId, id)).limit(1);
+      const hasReviews = await db.select().from(reviews).where(eq(reviews.reviewerId, id)).limit(1);
+      const hasFiles = await db.select().from(productionFiles).where(eq(productionFiles.uploadedBy, id)).limit(1);
+      const hasPublications = await db.select().from(publications).where(eq(publications.recordedBy, id)).limit(1);
+
+      if (hasAssignments.length || hasReviews.length || hasFiles.length || hasPublications.length) {
+        // Soft delete
+        await db.update(users).set({ active: false }).where(eq(users.id, id));
+        return reply.send({ success: true, message: "Petugas dinonaktifkan karena memiliki riwayat aktivitas", status: "deactivated" });
+      } else {
+        // Hard delete
+        await db.transaction(async (tx) => {
+          await tx.delete(userRoles).where(eq(userRoles.userId, id));
+          await tx.delete(notifications).where(eq(notifications.userId, id));
+          await tx.delete(notificationPreferences).where(eq(notificationPreferences.userId, id));
+          await tx.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, id));
+          await tx.delete(auditLogs).where(eq(auditLogs.actorUserId, id));
+          await tx.delete(users).where(eq(users.id, id));
+        });
+        
+        return reply.send({ success: true, message: "Petugas berhasil dihapus permanen", status: "deleted" });
+      }
     } catch (error) {
       request.log.error(error);
-      return reply.status(500).send({ success: false, error: "Gagal menghapus petugas" });
+      return reply.status(500).send({ success: false, error: "Gagal memproses penghapusan petugas" });
     }
   }
 
@@ -261,7 +282,6 @@ export class UsersController {
           email: users.email,
           phone: users.phone,
           bio: users.bio,
-          nik: users.nik,
           staffType: users.staffType,
           pasFotoUrl: users.pasFotoUrl,
         })

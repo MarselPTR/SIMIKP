@@ -1,1 +1,0 @@
-import { db } from "./src/db"; import { activities } from "./src/db/schema/activities"; import { eq } from "drizzle-orm"; async function run() { const res = await db.select({ date: activities.activityDate }).from(activities).limit(2); console.log("Types:", res.map(r => typeof r.date + " " + r.date.constructor.name)); console.log("Values:", res); process.exit(0); } run();

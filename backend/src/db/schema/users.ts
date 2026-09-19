@@ -7,15 +7,12 @@ export const users = mysqlTable("users", {
   passwordHash: varchar("password_hash", { length: 255 }).notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   staffType: varchar("staff_type", { length: 50 }),
-  email: varchar("email", { length: 255 }),
+  email: varchar("email", { length: 255 }).unique(),
   phone: varchar("phone", { length: 30 }),
   bio: text("bio"),
-  nik: varchar("nik", { length: 20 }),
   gender: varchar("gender", { length: 15 }),
   birthPlace: varchar("birth_place", { length: 100 }),
   birthDate: date("birth_date"),
-  religion: varchar("religion", { length: 50 }),
-  education: varchar("education", { length: 100 }),
   pasFotoUrl: text("pas_foto_url"),
   active: boolean("active").default(true),
   createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`),
@@ -27,15 +24,15 @@ export const roles = mysqlTable("roles", {
 });
 
 export const userRoles = mysqlTable("user_roles", {
-  userId: char("user_id", { length: 36 }).notNull().references(() => users.id),
-  roleId: char("role_id", { length: 36 }).notNull().references(() => roles.id),
+  userId: char("user_id", { length: 36 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  roleId: char("role_id", { length: 36 }).notNull().references(() => roles.id, { onDelete: "cascade" }),
 }, (t) => ({
   pk: primaryKey({ columns: [t.userId, t.roleId] }),
 }));
 
 export const passwordResetTokens = mysqlTable("password_reset_tokens", {
   id: char("id", { length: 36 }).primaryKey(),
-  userId: char("user_id", { length: 36 }).notNull().references(() => users.id),
+  userId: char("user_id", { length: 36 }).notNull().references(() => users.id, { onDelete: "cascade" }),
   token: varchar("token", { length: 255 }).notNull().unique(),
   expiresAt: datetime("expires_at").notNull(),
   usedAt: datetime("used_at"),

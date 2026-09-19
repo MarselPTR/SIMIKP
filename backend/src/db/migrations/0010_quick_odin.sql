@@ -1,1 +1,0 @@
-ALTER TABLE `audit_logs` MODIFY COLUMN `created_at` datetime DEFAULT '2026-09-05 08:48:50.192';

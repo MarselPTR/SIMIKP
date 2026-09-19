@@ -1,0 +1,1378 @@
+{
+  "timestamp": "2026-09-19T05:19:05.578Z",
+  "orphanNotifications": [
+    {
+      "id": "09096c70-ca61-4ef4-aecd-5bf4a17a7364",
+      "user_id": "bed558be-79b0-4a95-8a8a-b3c267d6599a",
+      "type": "ASSIGNMENT",
+      "title": "Penugasan Baru",
+      "message": "Anda ditugaskan pada agenda \"uhuyyyy\"",
+      "read_at": null,
+      "metadata": {
+        "activityId": "ac528147-939f-43ef-a905-09388e7c6bce",
+        "assignmentId": "82f027c3-93cb-4553-b7a0-dd7256d15e8b"
+      },
+      "created_at": "2026-09-01T00:18:45.000Z"
+    },
+    {
+      "id": "2e54974f-53be-44fd-98b9-3741989a4ac8",
+      "user_id": "2c43ad65-50d1-4b95-9176-d30410f1fa61",
+      "type": "ASSIGNMENT",
+      "title": "Penugasan Baru",
+      "message": "Anda ditugaskan pada agenda \"Lomba Mancing\"",
+      "read_at": "2026-09-04T22:32:28.000Z",
+      "metadata": {
+        "activityId": "eb55fdce-1ce4-41a5-a830-c91191752a84",
+        "assignmentId": "4a76eeec-ce06-4efa-a271-ee35e6b79d14"
+      },
+      "created_at": "2026-09-04T00:08:17.000Z"
+    },
+    {
+      "id": "4b467301-da4f-4f41-9c30-c22c983c92cf",
+      "user_id": "17da0d2d-19c3-413a-8370-951a817578e4",
+      "type": "ASSIGNMENT",
+      "title": "Penugasan Baru",
+      "message": "Anda ditugaskan pada agenda \"uhuyyyy\"",
+      "read_at": null,
+      "metadata": {
+        "activityId": "ac528147-939f-43ef-a905-09388e7c6bce",
+        "assignmentId": "888690c7-11e7-4b5a-a94e-b69f93e5a5b3"
+      },
+      "created_at": "2026-09-01T00:18:37.000Z"
+    },
+    {
+      "id": "82f6b505-14d6-4339-9f7d-a28c6ce91363",
+      "user_id": "b43cfd92-f442-409a-a2c0-48600db62b35",
+      "type": "ASSIGNMENT",
+      "title": "Penugasan Baru",
+      "message": "Anda ditugaskan pada agenda \"Rapat Koordinasi\"",
+      "read_at": null,
+      "metadata": {
+        "activityId": "e29616fd-810d-4481-9cef-db90ab365810",
+        "assignmentId": "a0897788-9ab8-4aa6-8dc2-3edc6df42f8b"
+      },
+      "created_at": "2026-09-02T20:48:51.000Z"
+    },
+    {
+      "id": "8fb68b32-9bbd-4666-9c10-b9689e6bcdd3",
+      "user_id": "17da0d2d-19c3-413a-8370-951a817578e4",
+      "type": "ASSIGNMENT",
+      "title": "Penugasan Baru",
+      "message": "Anda ditugaskan pada agenda \"Rapat Koordinasi\"",
+      "read_at": null,
+      "metadata": {
+        "activityId": "e29616fd-810d-4481-9cef-db90ab365810",
+        "assignmentId": "8f8bee58-bdf7-4ced-8e76-455676701c11"
+      },
+      "created_at": "2026-08-31T23:57:35.000Z"
+    },
+    {
+      "id": "a913614f-d177-4ded-8bd1-b05cef5953f0",
+      "user_id": "17da0d2d-19c3-413a-8370-951a817578e4",
+      "type": "ASSIGNMENT",
+      "title": "Penugasan Baru",
+      "message": "Anda ditugaskan pada agenda \"Tes\"",
+      "read_at": null,
+      "metadata": {
+        "activityId": "22c2af3e-2fec-4756-b0eb-772fc5c94ebf",
+        "assignmentId": "a142b411-a4f3-467c-ace0-13051bf8d0bf"
+      },
+      "created_at": "2026-09-03T00:54:52.000Z"
+    },
+    {
+      "id": "bc04bc3a-6f1b-47e5-8092-829efc81cf07",
+      "user_id": "bed558be-79b0-4a95-8a8a-b3c267d6599a",
+      "type": "ASSIGNMENT",
+      "title": "Penugasan Baru",
+      "message": "Anda ditugaskan pada agenda \"ahok prabowo 2029\"",
+      "read_at": null,
+      "metadata": {
+        "activityId": "f872a8c3-2a67-40a3-8061-3d632c943291",
+        "assignmentId": "7d64d1ce-a854-4578-b468-8f34ab22b13b"
+      },
+      "created_at": "2026-09-01T08:57:08.000Z"
+    },
+    {
+      "id": "bf087098-5704-4430-afcd-f427c4517330",
+      "user_id": "bec922f4-c0f5-4f4e-8a71-e089ef1e9900",
+      "type": "ASSIGNMENT",
+      "title": "Penugasan Baru",
+      "message": "Anda ditugaskan pada agenda \"Gibran ke alun alun\"",
+      "read_at": null,
+      "metadata": {
+        "activityId": "07be261e-ef7c-481d-8120-9ab8b392c113",
+        "assignmentId": "3661db67-e67e-418f-9405-7d421b6aa209"
+      },
+      "created_at": "2026-09-01T00:47:07.000Z"
+    },
+    {
+      "id": "d6ab567f-3c9f-4af5-b5ed-c3f406f0bacc",
+      "user_id": "17da0d2d-19c3-413a-8370-951a817578e4",
+      "type": "ASSIGNMENT",
+      "title": "Penugasan Baru",
+      "message": "Anda ditugaskan pada agenda \"ahokkkk\"",
+      "read_at": null,
+      "metadata": {
+        "activityId": "f32f6393-35b1-4a23-9513-1e839dd74880",
+        "assignmentId": "4f9ed864-20b7-46fb-a0db-cec4f982c8b5"
+      },
+      "created_at": "2026-09-01T00:26:38.000Z"
+    }
+  ],
+  "orphanReviews": [
+    {
+      "id": "30147fd2-7e05-4d45-93ad-7c2868a61ad6",
+      "production_version_id": "29ce9e7f-27e0-4b95-aa00-323bdfcc1ded",
+      "reviewer_id": "078c3eb7-e6b4-444b-87ba-6c50443a18a5",
+      "status": "pending",
+      "comment": "",
+      "reviewed_at": "2026-08-28T17:00:00.000Z"
+    },
+    {
+      "id": "3496d658-3c4a-4967-87cc-a9ee51afb9fc",
+      "production_version_id": "d0854037-5511-4718-b5fb-883206a9940e",
+      "reviewer_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "status": "approved",
+      "comment": "Bagus, hanya perbaiki meta deskripsi.",
+      "reviewed_at": "2026-08-27T17:00:00.000Z"
+    },
+    {
+      "id": "5d4cb049-9ffb-47a9-9f32-4a07872ea6ac",
+      "production_version_id": "8f0774cc-3a52-4922-a0c8-92cef8f7a970",
+      "reviewer_id": "078c3eb7-e6b4-444b-87ba-6c50443a18a5",
+      "status": "revision",
+      "comment": "Perbaiki heading dan CTA.",
+      "reviewed_at": "2026-08-26T17:00:00.000Z"
+    },
+    {
+      "id": "c174f4f0-b248-48bb-be1f-b5b3c4b1d8b7",
+      "production_version_id": "87e1f000-6eb0-49de-b742-a2e621e9a4d5",
+      "reviewer_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "status": "pending",
+      "comment": "",
+      "reviewed_at": "2026-08-28T17:00:00.000Z"
+    },
+    {
+      "id": "ecca77df-7d03-4774-bb37-7354573ded75",
+      "production_version_id": "5c81d5f5-6e30-441f-827b-a4cb66bb85a6",
+      "reviewer_id": "078c3eb7-e6b4-444b-87ba-6c50443a18a5",
+      "status": "approved",
+      "comment": "Bagus, hanya perbaiki meta deskripsi.",
+      "reviewed_at": "2026-08-27T17:00:00.000Z"
+    },
+    {
+      "id": "ff30c024-65e1-4915-b1a6-ff085f3289dd",
+      "production_version_id": "ecedb4cb-9a7b-41ca-9d60-cae027211ead",
+      "reviewer_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "status": "revision",
+      "comment": "Perbaiki heading dan CTA.",
+      "reviewed_at": "2026-08-26T17:00:00.000Z"
+    }
+  ],
+  "orphanPublications": [
+    {
+      "id": "0b70b527-89dc-4a18-92ca-329860710844",
+      "production_version_id": "29ce9e7f-27e0-4b95-aa00-323bdfcc1ded",
+      "status": "draft",
+      "channel": "YouTube",
+      "url": "",
+      "notes": "Views: 0",
+      "recorded_by": "078c3eb7-e6b4-444b-87ba-6c50443a18a5",
+      "publication_date": null
+    },
+    {
+      "id": "3fe9c06e-5346-4e5e-8090-57b476bf3c54",
+      "production_version_id": "5c81d5f5-6e30-441f-827b-a4cb66bb85a6",
+      "status": "published",
+      "channel": "Website",
+      "url": "https://batu.go.id/1",
+      "notes": "Views: 1250",
+      "recorded_by": "078c3eb7-e6b4-444b-87ba-6c50443a18a5",
+      "publication_date": "2026-08-24T17:00:00.000Z"
+    },
+    {
+      "id": "7407da9d-ce58-46e0-9229-603d842a7a06",
+      "production_version_id": "d0854037-5511-4718-b5fb-883206a9940e",
+      "status": "published",
+      "channel": "Website",
+      "url": "https://batu.go.id/1",
+      "notes": "Views: 1250",
+      "recorded_by": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "publication_date": "2026-08-24T17:00:00.000Z"
+    },
+    {
+      "id": "b95543f5-705b-4eb9-ac39-f39e95f28194",
+      "production_version_id": "87e1f000-6eb0-49de-b742-a2e621e9a4d5",
+      "status": "draft",
+      "channel": "YouTube",
+      "url": "",
+      "notes": "Views: 0",
+      "recorded_by": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "publication_date": null
+    },
+    {
+      "id": "de74ad65-6b72-46ca-8a2b-5bb18e2199aa",
+      "production_version_id": "ecedb4cb-9a7b-41ca-9d60-cae027211ead",
+      "status": "scheduled",
+      "channel": "Instagram",
+      "url": "",
+      "notes": "Views: 0",
+      "recorded_by": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "publication_date": "2026-09-04T17:00:00.000Z"
+    },
+    {
+      "id": "fdca7742-61c2-4a57-832d-761eaaced8db",
+      "production_version_id": "8f0774cc-3a52-4922-a0c8-92cef8f7a970",
+      "status": "scheduled",
+      "channel": "Instagram",
+      "url": "",
+      "notes": "Views: 0",
+      "recorded_by": "078c3eb7-e6b4-444b-87ba-6c50443a18a5",
+      "publication_date": "2026-09-04T17:00:00.000Z"
+    }
+  ],
+  "orphanFiles": [
+    {
+      "id": "6bbee376-75cb-4dae-a0d7-3164b8961bd6",
+      "production_version_id": "63893a1a-4ffb-4934-9552-0fb04f135de5",
+      "original_filename": "foto_audit.jpg",
+      "stored_filename": "bk_1787815152622_foto_audit.jpg",
+      "storage_path": "/storage/bank-konten/2026",
+      "mime_type": "image/jpeg",
+      "file_extension": "jpg",
+      "file_size": 512000,
+      "uploaded_by": "078c3eb7-e6b4-444b-87ba-6c50443a18a5",
+      "uploaded_at": "2026-08-19T20:58:27.000Z"
+    }
+  ],
+  "orphanUploaders": [
+    {
+      "id": "6bbee376-75cb-4dae-a0d7-3164b8961bd6",
+      "production_version_id": "63893a1a-4ffb-4934-9552-0fb04f135de5",
+      "original_filename": "foto_audit.jpg",
+      "stored_filename": "bk_1787815152622_foto_audit.jpg",
+      "storage_path": "/storage/bank-konten/2026",
+      "mime_type": "image/jpeg",
+      "file_extension": "jpg",
+      "file_size": 512000,
+      "uploaded_by": "078c3eb7-e6b4-444b-87ba-6c50443a18a5",
+      "uploaded_at": "2026-08-19T20:58:27.000Z"
+    }
+  ],
+  "orphanLogs": [
+    {
+      "id": "01ee2267-de34-47a6-9cad-8acfd81a47d7",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "DELETE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "f49756fb-a3c0-41cc-9189-715747a54e4d",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:02:15.000Z"
+    },
+    {
+      "id": "079e4fcf-eefd-49ea-898b-1cac7145897e",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "DELETE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "037ae9ed-13ac-4bdd-8ac7-6180ab0677cd",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:04:25.000Z"
+    },
+    {
+      "id": "0f98e891-6949-486d-9c3d-dbc07fbf9ed2",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "UPDATE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "3661db67-e67e-418f-9405-7d421b6aa209",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-01T01:01:37.000Z"
+    },
+    {
+      "id": "15d380eb-599f-4a02-86d3-e2bda3146291",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "DELETE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "6b96960b-f122-4cf2-8f68-88dbd07c2ca7",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:13:39.000Z"
+    },
+    {
+      "id": "165c63fc-1e6d-426d-b3ee-a8a58e27c7ea",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "CREATE_USER",
+      "entity_type": "users",
+      "entity_id": "8b02fbd5-2d46-4c7c-bd54-2bfee65105ba",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T11:55:07.000Z"
+    },
+    {
+      "id": "16fa015a-2e7a-4034-86ae-3c86ba42286c",
+      "actor_user_id": "bec922f4-c0f5-4f4e-8a71-e089ef1e9900",
+      "action": "CLAIM_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "501729a7-0153-408f-9e97-5c4575473561",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-03T01:35:20.000Z"
+    },
+    {
+      "id": "18e804eb-f937-43bc-890a-7c0a6ab3ecb0",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "CREATE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "f872a8c3-2a67-40a3-8061-3d632c943291",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6.1 Mobile/15E148 Safari/604.1",
+      "created_at": "2026-09-01T08:55:59.000Z"
+    },
+    {
+      "id": "19188fc9-9286-4a7a-8384-57fddf45d182",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "CREATE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "07be261e-ef7c-481d-8120-9ab8b392c113",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "created_at": "2026-09-01T00:46:34.000Z"
+    },
+    {
+      "id": "1a7cb466-280f-4d2a-bb5a-276a4c597d86",
+      "actor_user_id": "2c43ad65-50d1-4b95-9176-d30410f1fa61",
+      "action": "CLAIM_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "adc6dadd-5909-4850-ad8c-9bb168f8495b",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:09:56.000Z"
+    },
+    {
+      "id": "1b012eec-bc53-4c0a-868b-280de814ae79",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "DELETE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "3f4e085f-73cf-4538-bed2-553fd3d967fc",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:13:44.000Z"
+    },
+    {
+      "id": "1e748e9c-499c-41e1-812d-cef2c68fa3f8",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "DELETE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "95525478-35f7-4202-82bb-3f665d5560a6",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:03:37.000Z"
+    },
+    {
+      "id": "23a4cb59-ad2f-401f-8d7d-ca521b7ad7f2",
+      "actor_user_id": "54a2d06b-2a6f-4161-9b44-fb8ec93cacc2",
+      "action": "UPDATE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "af24a3e3-b0b7-478b-8c59-76fa8ab995fa",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-03T06:20:39.000Z"
+    },
+    {
+      "id": "261202f1-9ae9-4bf5-8b8d-25b591ee9346",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "DELETE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "030c656e-f914-4cb6-8910-652ddaaf919e",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:12:51.000Z"
+    },
+    {
+      "id": "2b29a3de-612f-40ba-886c-d82eb46ded43",
+      "actor_user_id": "54a2d06b-2a6f-4161-9b44-fb8ec93cacc2",
+      "action": "UPDATE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "af24a3e3-b0b7-478b-8c59-76fa8ab995fa",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-03T03:07:42.000Z"
+    },
+    {
+      "id": "2d87f849-a7bb-4c39-9500-38e8270a713b",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "CREATE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "888690c7-11e7-4b5a-a94e-b69f93e5a5b3",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-01T00:18:37.000Z"
+    },
+    {
+      "id": "2e21273a-56d1-4eaf-94c4-b32d4d5cfe85",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "DELETE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "adc6dadd-5909-4850-ad8c-9bb168f8495b",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:13:17.000Z"
+    },
+    {
+      "id": "30f00a2f-706e-43b8-9b4a-96e796f068d3",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "CREATE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "ac528147-939f-43ef-a905-09388e7c6bce",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-01T00:18:14.000Z"
+    },
+    {
+      "id": "420e35d6-80a3-44f7-9d48-1026e58be722",
+      "actor_user_id": "2c43ad65-50d1-4b95-9176-d30410f1fa61",
+      "action": "LOGIN",
+      "entity_type": "users",
+      "entity_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T22:47:09.000Z"
+    },
+    {
+      "id": "44f44960-3cd5-492a-bf82-f31b51d2aceb",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "DELETE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "22c2af3e-2fec-4756-b0eb-772fc5c94ebf",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:03:10.000Z"
+    },
+    {
+      "id": "4674a2a9-9b70-48c0-b5e8-a72ce82d3dfe",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "CREATE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "d94914fd-ab5c-4830-99ed-6b8fafbbfd6e",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "curl/8.16.0",
+      "created_at": "2026-09-01T00:12:04.000Z"
+    },
+    {
+      "id": "4770bf91-6b0f-427d-95b1-5da26dc96716",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "CREATE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "eb55fdce-1ce4-41a5-a830-c91191752a84",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T00:07:36.000Z"
+    },
+    {
+      "id": "4844b834-1a41-431d-bf6f-8fb6c67f0260",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "DELETE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "ac528147-939f-43ef-a905-09388e7c6bce",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:03:42.000Z"
+    },
+    {
+      "id": "49855cd2-1c75-4abc-8aac-6c347a2fb0e0",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "CREATE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "f32f6393-35b1-4a23-9513-1e839dd74880",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-01T00:26:01.000Z"
+    },
+    {
+      "id": "4ceaffad-5d61-432b-af46-71aea04a969a",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "CREATE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "7d64d1ce-a854-4578-b468-8f34ab22b13b",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6.1 Mobile/15E148 Safari/604.1",
+      "created_at": "2026-09-01T08:57:08.000Z"
+    },
+    {
+      "id": "4df40adc-a941-4baf-9630-5b1a36355f16",
+      "actor_user_id": "bec922f4-c0f5-4f4e-8a71-e089ef1e9900",
+      "action": "UPDATE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "434befc1-8ca2-4498-a44d-9b0f2f1f6729",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-03T01:57:49.000Z"
+    },
+    {
+      "id": "5152e6f8-9659-4c2c-8d61-f80afa96ace7",
+      "actor_user_id": "2c43ad65-50d1-4b95-9176-d30410f1fa61",
+      "action": "UPDATE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "4a76eeec-ce06-4efa-a271-ee35e6b79d14",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T00:09:12.000Z"
+    },
+    {
+      "id": "518211a0-95f7-423b-a945-d713f2ce737e",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "DELETE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "f32f6393-35b1-4a23-9513-1e839dd74880",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:04:17.000Z"
+    },
+    {
+      "id": "51ce7875-3220-4ec6-a3b2-3387d80517f8",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "CREATE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "ed8c9cf5-bdc0-4d7d-b8b1-b05d8b4625f6",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-03T05:13:05.000Z"
+    },
+    {
+      "id": "53315e57-df84-4280-8b37-f515a2e47ff2",
+      "actor_user_id": "bec922f4-c0f5-4f4e-8a71-e089ef1e9900",
+      "action": "UPDATE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "501729a7-0153-408f-9e97-5c4575473561",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T00:04:49.000Z"
+    },
+    {
+      "id": "5556b861-d33c-4a59-bf88-4660a5e00891",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "DELETE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "65dcb1b4-3cae-4ffb-beb9-6820c70e7fbf",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:13:34.000Z"
+    },
+    {
+      "id": "55979dda-8214-485a-bb36-7a3c7a7d5d94",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "DELETE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "b0e5fb52-2a9a-42ca-82bb-217b1a58b0f8",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:03:44.000Z"
+    },
+    {
+      "id": "5806d03e-540e-4435-b862-f36bfd4046dd",
+      "actor_user_id": "bec922f4-c0f5-4f4e-8a71-e089ef1e9900",
+      "action": "CREATE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "2e0dfe62-3863-4059-8d8a-15029814bc51",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-03T02:03:26.000Z"
+    },
+    {
+      "id": "5b9ac214-3ca8-4c93-a56a-7adb34254bab",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "CREATE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "4f9ed864-20b7-46fb-a0db-cec4f982c8b5",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-01T00:26:38.000Z"
+    },
+    {
+      "id": "5e2fb307-cee8-4685-8b54-554dea048ef2",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "DELETE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "a3d98a38-12f5-4cff-8223-80a5be243c81",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:03:40.000Z"
+    },
+    {
+      "id": "6272eaa1-78c4-4c50-83b4-e398bde032b6",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "UPDATE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "f49756fb-a3c0-41cc-9189-715747a54e4d",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T22:55:31.000Z"
+    },
+    {
+      "id": "63026843-ab70-42ce-9734-c94817b25295",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "UPDATE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "e29616fd-810d-4481-9cef-db90ab365810",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "created_at": "2026-08-31T23:39:22.000Z"
+    },
+    {
+      "id": "65c0b13e-2b0d-499d-9b81-4470e9247069",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "DELETE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "30599f6a-162c-4dd4-95f7-b69070684f4b",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:13:41.000Z"
+    },
+    {
+      "id": "66260986-383c-40e1-906a-8cd56da3c690",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "CREATE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "82f027c3-93cb-4553-b7a0-dd7256d15e8b",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-01T00:18:45.000Z"
+    },
+    {
+      "id": "689cf264-c401-48a1-87df-68fcac31c10a",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "UPDATE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "7d64d1ce-a854-4578-b468-8f34ab22b13b",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.7.3 Mobile/15E148 Safari/604.1",
+      "created_at": "2026-09-01T20:45:05.000Z"
+    },
+    {
+      "id": "6a1efcc7-6e59-4d06-b9ce-3ce01002f0b3",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "DELETE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "a0897788-9ab8-4aa6-8dc2-3edc6df42f8b",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:13:25.000Z"
+    },
+    {
+      "id": "6b9c0293-1418-4cd5-892d-2f54415758df",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "UPDATE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "f32f6393-35b1-4a23-9513-1e839dd74880",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6.1 Mobile/15E148 Safari/604.1",
+      "created_at": "2026-09-01T20:12:40.000Z"
+    },
+    {
+      "id": "6e229879-8888-46ba-9610-619623c81f37",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "DELETE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "0b00192c-e466-40f3-bc95-7e89fde6dc63",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:13:37.000Z"
+    },
+    {
+      "id": "6fb0b8f3-876d-48e9-8e68-7c3c7fd27980",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "UPDATE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "af24a3e3-b0b7-478b-8c59-76fa8ab995fa",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-03T03:04:39.000Z"
+    },
+    {
+      "id": "73fa1f72-f94d-45da-a8ae-6dcf5e9adced",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "CREATE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "037ae9ed-13ac-4bdd-8ac7-6180ab0677cd",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "curl/8.16.0",
+      "created_at": "2026-09-01T00:14:27.000Z"
+    },
+    {
+      "id": "76c6259d-5549-48bc-9a1f-0341bc84caf4",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "DELETE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "4e35440a-1de9-4241-bf55-38bc19d3ffe0",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:03:19.000Z"
+    },
+    {
+      "id": "7a046714-9d31-4828-89a9-1df541cc220a",
+      "actor_user_id": "bec922f4-c0f5-4f4e-8a71-e089ef1e9900",
+      "action": "CLAIM_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "af24a3e3-b0b7-478b-8c59-76fa8ab995fa",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-03T02:04:44.000Z"
+    },
+    {
+      "id": "7a617d6b-175e-45af-8456-2d7b0a16c340",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "CREATE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "a0897788-9ab8-4aa6-8dc2-3edc6df42f8b",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6.1 Safari/605.1.15",
+      "created_at": "2026-09-02T20:48:52.000Z"
+    },
+    {
+      "id": "7b807405-6ce7-480d-a3aa-7293285b84f9",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "CREATE_USER",
+      "entity_type": "users",
+      "entity_id": "b43cfd92-f442-409a-a2c0-48600db62b35",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-01T20:53:13.000Z"
+    },
+    {
+      "id": "7e3511f7-8235-48e8-9ad2-14ee81d69672",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "UPDATE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "f49756fb-a3c0-41cc-9189-715747a54e4d",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T22:48:15.000Z"
+    },
+    {
+      "id": "806eb70b-099e-405d-8dbd-be55b967bfcc",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "DELETE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "e98e901a-9db0-4420-b262-ef178a27c07e",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:12:56.000Z"
+    },
+    {
+      "id": "81ab7749-6f58-417b-a139-ef749e2d7765",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "CREATE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "943fa705-a3d9-42a1-8d73-89cb372ce016",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6.1 Safari/605.1.15",
+      "created_at": "2026-09-02T20:46:45.000Z"
+    },
+    {
+      "id": "83c577ca-7092-420d-81b6-817b525c84a0",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "CREATE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "d1963db3-4044-436d-8129-2169ffd3fa25",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-03T00:50:52.000Z"
+    },
+    {
+      "id": "84a64ab0-39ec-48e7-af36-7bfa00c6e3fd",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "CREATE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "f49756fb-a3c0-41cc-9189-715747a54e4d",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-03T02:24:47.000Z"
+    },
+    {
+      "id": "93b2e4d5-cbdf-4029-bb7a-695310f4e684",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "DELETE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "d1963db3-4044-436d-8129-2169ffd3fa25",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:04:04.000Z"
+    },
+    {
+      "id": "945ed19b-dda7-4e28-86e7-d0e97e2919e1",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "CREATE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "4a76eeec-ce06-4efa-a271-ee35e6b79d14",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T00:08:17.000Z"
+    },
+    {
+      "id": "9988ae56-fa3e-4abc-944f-68282fd66101",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "DELETE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "eb55fdce-1ce4-41a5-a830-c91191752a84",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:03:28.000Z"
+    },
+    {
+      "id": "9a7234ca-66ad-454b-9d27-0b76690f0047",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "UPDATE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "7d64d1ce-a854-4578-b468-8f34ab22b13b",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6.1 Safari/605.1.15",
+      "created_at": "2026-09-02T20:50:20.000Z"
+    },
+    {
+      "id": "a0ff011b-1669-4492-a4dc-ef3710e6b2bc",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "DELETE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "ed8c9cf5-bdc0-4d7d-b8b1-b05d8b4625f6",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:03:32.000Z"
+    },
+    {
+      "id": "a1bafad8-5349-4f66-a1f8-baa342ab9f37",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "DELETE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "d93f7c7b-8288-4930-93fb-0a68101416d7",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:13:32.000Z"
+    },
+    {
+      "id": "a2b25734-d343-4ccf-a35a-29306c59d6dc",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "CREATE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "3661db67-e67e-418f-9405-7d421b6aa209",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "created_at": "2026-09-01T00:47:07.000Z"
+    },
+    {
+      "id": "a30fdcc5-1152-4390-b686-b23bfb8c4e6c",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "UPDATE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "07be261e-ef7c-481d-8120-9ab8b392c113",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6.1 Mobile/15E148 Safari/604.1",
+      "created_at": "2026-09-01T20:12:24.000Z"
+    },
+    {
+      "id": "a45900c1-30ed-427a-a7b6-354fa470ec5c",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "DELETE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "bc333977-d72e-44e0-aad9-c131110035d7",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:13:01.000Z"
+    },
+    {
+      "id": "a47dd72a-a702-4e80-a9f9-3cb0ff273b70",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "UPDATE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "a142b411-a4f3-467c-ace0-13051bf8d0bf",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-03T00:59:47.000Z"
+    },
+    {
+      "id": "a54107ec-f33d-4eaa-a13c-dbadb0db40d8",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "UPDATE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "82f027c3-93cb-4553-b7a0-dd7256d15e8b",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-01T00:18:51.000Z"
+    },
+    {
+      "id": "a6492db6-52e3-4fce-b498-0180cb699460",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "CREATE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "95525478-35f7-4202-82bb-3f665d5560a6",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6.2 Safari/605.1.15",
+      "created_at": "2026-09-01T20:43:26.000Z"
+    },
+    {
+      "id": "a82ee55f-de06-4883-acae-f499556c1f74",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "CREATE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "4e35440a-1de9-4241-bf55-38bc19d3ffe0",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "curl/8.16.0",
+      "created_at": "2026-09-01T01:11:12.000Z"
+    },
+    {
+      "id": "aa38724d-94fc-40e9-aae1-f1f7dbb00070",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "CREATE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "523d448d-47dd-4c52-a016-f5dcb949f6eb",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:08:48.000Z"
+    },
+    {
+      "id": "afb66046-683b-4882-a6c6-763bea8240e0",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "DELETE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "8f8bee58-bdf7-4ced-8e76-455676701c11",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:13:22.000Z"
+    },
+    {
+      "id": "b234948e-c2bf-4cbd-97f0-c214a392347b",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "UPDATE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "3661db67-e67e-418f-9405-7d421b6aa209",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6.1 Safari/605.1.15",
+      "created_at": "2026-09-02T20:48:09.000Z"
+    },
+    {
+      "id": "b2599380-ce68-47b3-9d35-f5b9f0e52168",
+      "actor_user_id": "54a2d06b-2a6f-4161-9b44-fb8ec93cacc2",
+      "action": "UPDATE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "0f19c164-388b-4d8f-b2a4-a6f31c6144e0",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-03T07:29:35.000Z"
+    },
+    {
+      "id": "b8169c2e-3a4f-4180-8f09-5899af6b4e48",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "DELETE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "7502cecb-6ac4-46cf-b462-11f229bf48ee",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:03:24.000Z"
+    },
+    {
+      "id": "ba4f8c1b-daee-40a3-af3c-5189e278e60a",
+      "actor_user_id": "bec922f4-c0f5-4f4e-8a71-e089ef1e9900",
+      "action": "UPDATE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "501729a7-0153-408f-9e97-5c4575473561",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-03T01:58:11.000Z"
+    },
+    {
+      "id": "bb4bce25-da98-4366-b240-068b0c8b2b12",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "CREATE_USER",
+      "entity_type": "users",
+      "entity_id": "37a53cf7-32ab-44cf-8348-4836970df15c",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T11:50:02.000Z"
+    },
+    {
+      "id": "bebfd301-b196-4164-955f-c1fa6860d9be",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "DELETE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "0178df62-3f1e-4a3a-939a-0976c55bc52c",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:13:20.000Z"
+    },
+    {
+      "id": "bffbe490-dc0f-425e-8abb-0f3f2f7c303f",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "CREATE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "7502cecb-6ac4-46cf-b462-11f229bf48ee",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-01T20:41:58.000Z"
+    },
+    {
+      "id": "c218257f-5f84-45e4-88bf-a87aca6da258",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "CREATE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "3a52aecd-503b-42f3-a694-78fb2dda51c7",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-03T01:26:33.000Z"
+    },
+    {
+      "id": "c5b9969f-61c9-480c-9a01-02ed96829b2a",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "UPDATE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "0178df62-3f1e-4a3a-939a-0976c55bc52c",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "created_at": "2026-09-01T00:19:16.000Z"
+    },
+    {
+      "id": "c80a4d8d-7d79-4056-97fb-94c9be618df9",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "DELETE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "2e0dfe62-3863-4059-8d8a-15029814bc51",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:03:13.000Z"
+    },
+    {
+      "id": "c864af35-938c-4718-82ab-88c3e7e77f40",
+      "actor_user_id": "2c43ad65-50d1-4b95-9176-d30410f1fa61",
+      "action": "CLAIM_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "0f19c164-388b-4d8f-b2a4-a6f31c6144e0",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-03T07:26:00.000Z"
+    },
+    {
+      "id": "c8a7e8ad-a895-47ba-858d-db75a634770e",
+      "actor_user_id": "bec922f4-c0f5-4f4e-8a71-e089ef1e9900",
+      "action": "CLAIM_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "1e35e4f6-8831-4541-a70e-f4c082031873",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-03T01:59:19.000Z"
+    },
+    {
+      "id": "c94235c9-2fce-47db-8c60-af972073a7ee",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "DELETE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "07be261e-ef7c-481d-8120-9ab8b392c113",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:02:55.000Z"
+    },
+    {
+      "id": "cae2021e-4716-495f-84b6-6cddad1985e5",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "UPDATE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "4f9ed864-20b7-46fb-a0db-cec4f982c8b5",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "created_at": "2026-09-01T00:27:02.000Z"
+    },
+    {
+      "id": "ceb80072-4d26-45b1-b157-a434607c103f",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "CREATE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "a3d98a38-12f5-4cff-8223-80a5be243c81",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-03T02:13:21.000Z"
+    },
+    {
+      "id": "d1134577-48d0-469e-9f3a-f50df1bf59c3",
+      "actor_user_id": "bec922f4-c0f5-4f4e-8a71-e089ef1e9900",
+      "action": "UPDATE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "1e35e4f6-8831-4541-a70e-f4c082031873",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-03T23:53:48.000Z"
+    },
+    {
+      "id": "d2b63fe7-9202-4b3b-b91c-94bee4b0340b",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "DELETE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "3a52aecd-503b-42f3-a694-78fb2dda51c7",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:03:17.000Z"
+    },
+    {
+      "id": "d314feb6-8a59-45a1-895d-57f8512c3ed5",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "DELETE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "d94914fd-ab5c-4830-99ed-6b8fafbbfd6e",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:04:06.000Z"
+    },
+    {
+      "id": "d8d7a7db-fcc5-49f2-86a1-b0124ea391a2",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "UPDATE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "888690c7-11e7-4b5a-a94e-b69f93e5a5b3",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-01T00:18:51.000Z"
+    },
+    {
+      "id": "dda54510-7be6-4a15-99e7-55c346399d08",
+      "actor_user_id": "2c43ad65-50d1-4b95-9176-d30410f1fa61",
+      "action": "UPDATE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "0f19c164-388b-4d8f-b2a4-a6f31c6144e0",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-03T07:26:35.000Z"
+    },
+    {
+      "id": "e0c80075-cdd0-4753-875a-e9059023d046",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "DELETE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "3781b147-2975-42c6-ba69-c0ee3738aac8",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:12:59.000Z"
+    },
+    {
+      "id": "e85497ce-495e-4e13-8e67-f44b718b71ff",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "UPDATE_CONTENT_TYPE",
+      "entity_type": "content_types",
+      "entity_id": "ac13d1ce-f210-46a9-944f-7ed5273bf15c",
+      "metadata": {
+        "name": "podcast",
+        "jabatanCode": "FOTOGRAFER"
+      },
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-03T05:25:58.000Z"
+    },
+    {
+      "id": "e97c70a5-8548-470f-85ce-f97adfe480dd",
+      "actor_user_id": "bec922f4-c0f5-4f4e-8a71-e089ef1e9900",
+      "action": "UPDATE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "1e35e4f6-8831-4541-a70e-f4c082031873",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-03T03:50:52.000Z"
+    },
+    {
+      "id": "ec2308a0-46ef-45d3-be04-5c3f07cfdbee",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "CREATE_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "a142b411-a4f3-467c-ace0-13051bf8d0bf",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-03T00:54:52.000Z"
+    },
+    {
+      "id": "ece09fa2-29ad-4086-8435-d6542f429686",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "CREATE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "22c2af3e-2fec-4756-b0eb-772fc5c94ebf",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-03T00:54:34.000Z"
+    },
+    {
+      "id": "ed84519d-8598-49f8-a97a-3e2edbd38c2e",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "UPDATE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "f49756fb-a3c0-41cc-9189-715747a54e4d",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T22:48:29.000Z"
+    },
+    {
+      "id": "ee44f409-1951-4b56-83fe-7755558fcbb3",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "UPDATE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "f872a8c3-2a67-40a3-8061-3d632c943291",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6.1 Mobile/15E148 Safari/604.1",
+      "created_at": "2026-09-01T20:12:56.000Z"
+    },
+    {
+      "id": "f0f1c1f8-6298-4a8b-bcde-a27a2df25634",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "CREATE_USER",
+      "entity_type": "users",
+      "entity_id": "2c43ad65-50d1-4b95-9176-d30410f1fa61",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-03T02:44:00.000Z"
+    },
+    {
+      "id": "f17dbeff-e336-4a81-8cf8-18f3b5a8c509",
+      "actor_user_id": "bec922f4-c0f5-4f4e-8a71-e089ef1e9900",
+      "action": "CLAIM_ASSIGNMENT",
+      "entity_type": "assignments",
+      "entity_id": "434befc1-8ca2-4498-a44d-9b0f2f1f6729",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-03T01:27:49.000Z"
+    },
+    {
+      "id": "f6c19be2-67aa-4ee5-a096-2e18f657dd7e",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "CREATE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "b0e5fb52-2a9a-42ca-82bb-217b1a58b0f8",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-03T00:57:32.000Z"
+    },
+    {
+      "id": "fa0880b6-0755-412c-b9fe-28f2c0cdcba7",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "DELETE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "f872a8c3-2a67-40a3-8061-3d632c943291",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-04T23:04:22.000Z"
+    },
+    {
+      "id": "fe467433-978a-4cf1-9717-642e4f6351ab",
+      "actor_user_id": "0a92df99-d601-460a-b6e8-605aedc48419",
+      "action": "CREATE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "91d78f8c-e99e-4d24-856a-d6fbf392d3b0",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "created_at": "2026-09-05T00:05:58.000Z"
+    },
+    {
+      "id": "ff3a616d-429a-477b-9314-c82a77eee9e8",
+      "actor_user_id": "c4d01dd8-75ec-4bcd-9f5f-02590433cc04",
+      "action": "UPDATE_ACTIVITY",
+      "entity_type": "activities",
+      "entity_id": "f872a8c3-2a67-40a3-8061-3d632c943291",
+      "metadata": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6.1 Mobile/15E148 Safari/604.1",
+      "created_at": "2026-09-01T20:12:56.000Z"
+    }
+  ]
+}

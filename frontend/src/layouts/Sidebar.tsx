@@ -30,6 +30,8 @@ export const adminNavConfig: NavItemConfig[] = [
 export const ahliPertamaNavConfig: NavItemConfig[] = [
   { path: "/dashboard", key: "dashboard", icon: Home },
   { path: "/review", key: "review_approval", icon: CheckSquare },
+  { path: "/produksi", key: "production", icon: Video },
+  { path: "/publikasi", key: "media_pub", icon: Megaphone },
 ];
 
 export const navConfig = adminNavConfig;

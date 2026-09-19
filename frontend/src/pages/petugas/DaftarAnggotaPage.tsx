@@ -1,7 +1,7 @@
 import { createPortal } from "react-dom";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Search, Plus, Mail, Shield, User, Filter, ShieldCheck, Camera, Edit3, Image as ImageIcon, X, Trash2, Sparkles } from "lucide-react";
+import { Search, Plus, Mail, User, Filter, ShieldCheck, Camera, Edit3, Image as ImageIcon, X, Trash2, Sparkles } from "lucide-react";
 import { apiFetch } from "../../lib/api-client";
 import { useToast } from "../../contexts/ToastContext";
 import { useLanguage } from "../../lib/LanguageContext";
@@ -115,8 +115,7 @@ export default function DaftarAnggotaPage() {
   const jabatanOptions = [...new Set(anggota.map((p) => p.staffType).filter(Boolean))].sort();
 
   const filteredAnggota = anggota.filter((p) => {
-    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) || 
-                        (p.nik && p.nik.toLowerCase().includes(search.toLowerCase()));
+    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
     const matchType = filterType === "ALL" || p.staffType === filterType;
     return matchSearch && matchType;
   });
@@ -168,7 +167,7 @@ export default function DaftarAnggotaPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            placeholder={language === "en" ? "Search by name or PIC..." : "Cari berdasarkan nama atau PIC..."}
+            placeholder={language === "en" ? "Search by name..." : "Cari berdasarkan nama..."}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-gray-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white dark:bg-[#161b22] text-gray-900 dark:text-gray-100 shadow-sm placeholder:text-gray-400 dark:placeholder:text-gray-500"
@@ -225,7 +224,7 @@ export default function DaftarAnggotaPage() {
                   <button 
                     onClick={() => openDeleteModal(petugas)}
                     className="absolute top-4 right-4 text-gray-300 hover:text-red-500 transition cursor-pointer"
-                    title={language === "en" ? "Delete Officer" : "Hapus Petugas"}
+                    title={language === "en" ? "Delete / Deactivate Officer" : "Hapus / Nonaktifkan Petugas"}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -250,16 +249,6 @@ export default function DaftarAnggotaPage() {
                   </div>
                   
                   <div className="w-full space-y-2.5 text-left text-sm mt-auto border-t border-gray-100 dark:border-gray-800 pt-4">
-                    {petugas.nik && (
-                      <div className="flex items-start gap-2.5 text-gray-600 dark:text-gray-300">
-                        <Shield className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-                        <div className="truncate flex-1">
-                          <p className="text-[10px] uppercase font-bold text-gray-400 leading-none mb-1">PIC</p>
-                          <p className="truncate font-medium">{petugas.nik}</p>
-                        </div>
-                      </div>
-                    )}
-                    
                     {petugas.email && (
                       <div className="flex items-start gap-2.5 text-gray-600 dark:text-gray-300">
                         <Mail className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
@@ -327,10 +316,7 @@ export default function DaftarAnggotaPage() {
               </div>
 
               <div className="space-y-4">
-                <div className="grid grid-cols-3 gap-2 py-2 border-t border-gray-50 dark:border-gray-800">
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">PIC</span>
-                  <span className="col-span-2 text-sm text-gray-800 dark:text-gray-200 font-medium">{selectedPetugas.nik || "-"}</span>
-                </div>
+
                 <div className="grid grid-cols-3 gap-2 py-2 border-t border-gray-50 dark:border-gray-800">
                   <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</span>
                   <span className="col-span-2 text-sm text-gray-800 dark:text-gray-200">{selectedPetugas.email || "-"}</span>
@@ -377,16 +363,16 @@ export default function DaftarAnggotaPage() {
               <Trash2 className="w-8 h-8" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-              {language === "en" ? "Delete Officer?" : "Hapus Petugas?"}
+              {language === "en" ? "Delete or Deactivate Officer?" : "Hapus / Nonaktifkan Petugas?"}
             </h3>
             <p className="text-gray-500 dark:text-gray-400 mb-6 text-sm">
               {language === "en" ? (
                 <>
-                  Are you sure you want to permanently delete officer <strong>{selectedPetugas.name}</strong>? Deleted data cannot be recovered.
+                  Are you sure you want to remove <strong>{selectedPetugas.name}</strong>? If this officer has task history, their account will be deactivated instead of deleted.
                 </>
               ) : (
                 <>
-                  Anda yakin ingin menghapus petugas <strong>{selectedPetugas.name}</strong> secara permanen? Data yang telah dihapus tidak dapat dikembalikan.
+                  Anda yakin ingin memproses <strong>{selectedPetugas.name}</strong>? Jika petugas memiliki riwayat aktivitas, akunnya hanya akan dinonaktifkan (Soft Delete).
                 </>
               )}
             </p>
@@ -403,7 +389,7 @@ export default function DaftarAnggotaPage() {
                 disabled={isDeleting}
                 className="px-5 py-2.5 text-sm font-medium text-white hover:bg-red-700 bg-red-600 rounded-lg transition flex-1 disabled:opacity-50 cursor-pointer"
               >
-                {isDeleting ? (language === "en" ? "Deleting..." : "Menghapus...") : (language === "en" ? "Yes, Delete" : "Ya, Hapus")}
+                {isDeleting ? (language === "en" ? "Processing..." : "Memproses...") : (language === "en" ? "Yes, Proceed" : "Ya, Lanjutkan")}
               </button>
             </div>
           </div>

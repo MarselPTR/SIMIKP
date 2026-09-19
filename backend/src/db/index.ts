@@ -1,4 +1,4 @@
-﻿import { drizzle } from "drizzle-orm/mysql2";
+import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import "dotenv/config";
 import * as schema from "./schema";
@@ -18,7 +18,11 @@ const poolConnection = mysql.createPool(
   isCloud
     ? {
         uri: cleanUrl,
-        ssl: { rejectUnauthorized: false },
+        ssl: { 
+          rejectUnauthorized: process.env.NODE_ENV === "production" 
+            ? process.env.DB_REJECT_UNAUTHORIZED !== "false" 
+            : false 
+        },
         waitForConnections: true,
         connectionLimit: 5,
         queueLimit: 0,

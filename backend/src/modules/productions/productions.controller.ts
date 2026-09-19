@@ -664,8 +664,86 @@ export class ProductionsController {
       // Update status assignment
       await db
         .update(assignments)
-        .set({ status })
-        .where(eq(assignments.id, assignmentId));
+      // Jalankan transaksi database (Atomicity)
+      await db.transaction(async (tx) => {
+        // Update status assignment
+        await tx
+          .update(assignments)
+          .set({ status })
+          .where(eq(assignments.id, assignmentId));
+
+        // Cari atau buat production item & version untuk menampung file di bank konten
+        let pItem = await tx
+          .select({ id: productionItems.id })
+          .from(productionItems)
+          .where(eq(productionItems.assignmentId, assignmentId))
+          .limit(1);
+
+        let pItemId = pItem[0]?.id;
+        if (!pItemId) {
+          pItemId = crypto.randomUUID();
+          await tx.insert(productionItems).values({
+            id: pItemId,
+            assignmentId: assignmentId,
+            title: `Produksi Aset Liputan`,
+            status,
+          });
+        }
+
+        let pVer = await tx
+          .select({ id: productionVersions.id })
+          .from(productionVersions)
+          .where(eq(productionVersions.productionItemId, pItemId))
+          .limit(1);
+
+        let pVerId = pVer[0]?.id;
+        if (!pVerId) {
+          pVerId = crypto.randomUUID();
+          await tx.insert(productionVersions).values({
+            id: pVerId,
+            productionItemId: pItemId,
+            versionNumber: 1,
+            isCurrent: true,
+          });
+        }
+
+        // Masukkan setiap berkas terkurasi ke productionFiles & archiveAssets
+        for (const file of curatedFiles) {
+          const fileId = crypto.randomUUID();
+          const origName = file.originalName || file.filename || "file_kurasi";
+          const ext = origName.includes(".") ? origName.split(".").pop()?.toLowerCase() : "bin";
+          const storedName = file.filename || origName;
+
+          // Cek duplikasi agar tidak terjadi error 500 (ER_DUP_ENTRY)
+          const existingFile = await tx
+            .select({ id: productionFiles.id })
+            .from(productionFiles)
+            .where(eq(productionFiles.storedFilename, storedName))
+            .limit(1);
+            
+          if (existingFile.length > 0) {
+            continue; // Lewati jika sudah ada (mungkin di-klik setujui 2 kali)
+          }
+
+          const uploaderId = asg[0].userId;
+          if (!uploaderId) {
+            throw new Error("Penugasan tidak memiliki Petugas pengunggah yang valid.");
+          }
+
+          await tx.insert(productionFiles).values({
+            id: fileId,
+            productionVersionId: pVerId,
+            originalFilename: origName,
+            storedFilename: storedName,
+            storagePath: file.url,
+            mimeType: file.mimeType || "application/octet-stream",
+            fileExtension: ext || "bin",
+            fileSize: file.fileSize || 0,
+            uploadedBy: uploaderId,
+          });
+
+        }
+      });
 
       if (asg[0].userId) {
         await createNotification({
@@ -674,79 +752,7 @@ export class ProductionsController {
           title: "Konten Disetujui",
           message: "Hasil pekerjaan Anda telah disetujui dan masuk ke Bank Konten.",
           metadata: { assignmentId },
-        });
-      }
-
-      // Cari atau buat production item & version untuk menampung file di bank konten
-      let pItem = await db
-        .select({ id: productionItems.id })
-        .from(productionItems)
-        .where(eq(productionItems.assignmentId, assignmentId))
-        .limit(1);
-
-      let pItemId = pItem[0]?.id;
-      if (!pItemId) {
-        pItemId = crypto.randomUUID();
-        await db.insert(productionItems).values({
-          id: pItemId,
-          assignmentId: assignmentId,
-          title: `Produksi Aset Liputan`,
-          status,
-        });
-      }
-
-      let pVer = await db
-        .select({ id: productionVersions.id })
-        .from(productionVersions)
-        .where(eq(productionVersions.productionItemId, pItemId))
-        .limit(1);
-
-      let pVerId = pVer[0]?.id;
-      if (!pVerId) {
-        pVerId = crypto.randomUUID();
-        await db.insert(productionVersions).values({
-          id: pVerId,
-          productionItemId: pItemId,
-          versionNumber: 1,
-          isCurrent: true,
-        });
-      }
-
-      // Masukkan setiap berkas terkurasi ke productionFiles & archiveAssets
-      for (const file of curatedFiles) {
-        const fileId = crypto.randomUUID();
-        const origName = file.originalName || file.filename || "file_kurasi";
-        const ext = origName.includes(".") ? origName.split(".").pop()?.toLowerCase() : "bin";
-        const storedName = file.filename || origName;
-
-        // Cek duplikasi agar tidak terjadi error 500 (ER_DUP_ENTRY)
-        const existingFile = await db
-          .select({ id: productionFiles.id })
-          .from(productionFiles)
-          .where(eq(productionFiles.storedFilename, storedName))
-          .limit(1);
-          
-        if (existingFile.length > 0) {
-          continue; // Lewati jika sudah ada (mungkin di-klik setujui 2 kali)
-        }
-
-        const uploaderId = asg[0].userId;
-        if (!uploaderId) {
-          throw new Error("Penugasan tidak memiliki Petugas pengunggah yang valid.");
-        }
-
-        await db.insert(productionFiles).values({
-          id: fileId,
-          productionVersionId: pVerId,
-          originalFilename: origName,
-          storedFilename: storedName,
-          storagePath: file.url,
-          mimeType: file.mimeType || "application/octet-stream",
-          fileExtension: ext || "bin",
-          fileSize: file.fileSize || 0,
-          uploadedBy: uploaderId,
-        });
-
+        }).catch(err => console.error("Gagal buat notifikasi:", err));
       }
 
       return reply.send({

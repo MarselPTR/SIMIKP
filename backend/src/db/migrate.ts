@@ -10,14 +10,25 @@ async function runMigrate() {
   // Create a single connection explicitly for migrations
   const connection = await mysql.createConnection({
     uri: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }, // Crucial for Aiven
+    ssl: { 
+      rejectUnauthorized: process.env.NODE_ENV === "production" 
+        ? process.env.DB_REJECT_UNAUTHORIZED !== "false" 
+        : false 
+    },
   });
 
   const db = drizzle(connection);
 
   console.log("Applying migrations from folder...");
-  const migrationsFolder = path.resolve(process.cwd(), "src/db/migrations");
+  const migrationsFolder = path.join(__dirname, "migrations");
+  
+  // Disable FK checks to allow dropping tables with dependencies in old migrations
+  await connection.query("SET FOREIGN_KEY_CHECKS = 0;");
+  
   await migrate(db, { migrationsFolder });
+  
+  // Re-enable FK checks
+  await connection.query("SET FOREIGN_KEY_CHECKS = 1;");
   
   console.log("Migrations applied successfully! 🎉");
   await connection.end();

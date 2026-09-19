@@ -140,7 +140,7 @@ export default function PenugasanPage() {
     queryKey: ["petugas"],
     queryFn: async () => {
       try {
-        const res = await apiFetch<{ success: boolean; data: any[] }>("/users/petugas");
+        const res = await apiFetch<{ success: boolean; data: any[] }>("/users/petugas?active=true");
         return res.data || [];
       } catch {
         return [];

@@ -5,31 +5,46 @@ import cookie from "@fastify/cookie";
 import multipart from "@fastify/multipart";
 import fastifyJwt from "@fastify/jwt";
 import { ZodError } from "zod";
+import rateLimit from "@fastify/rate-limit";
+import helmet from "@fastify/helmet";
 
 const server = Fastify({
   logger: true,
+  trustProxy: true, // Untuk memastikan rate limiter menangkap IP yang benar di balik reverse proxy
+});
+
+server.register(rateLimit, {
+  global: false, // Kita hanya akan terapkan rate limit secara eksplisit pada rute tertentu (misal login)
+});
+
+server.register(helmet, {
+  crossOriginResourcePolicy: { policy: "cross-origin" }, // Agar aset foto/video tetap bisa diload frontend
 });
 
 server.register(cors, {
-  origin: true, // adjust based on frontend URL
+  origin: process.env.APP_URL || "http://localhost:5173", // Mengunci akses hanya dari origin aplikasi resmi
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
   allowedHeaders: ["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With"],
 });
 
+const cookieSecret = process.env.COOKIE_SECRET;
+if (!cookieSecret) throw new Error("COOKIE_SECRET is required");
 server.register(cookie, {
-  secret: process.env.COOKIE_SECRET || "simikp-super-secret-cookie-key", // for cookies signature
+  secret: cookieSecret, // for cookies signature
   parseOptions: {}
 });
 
 server.register(multipart, {
   limits: {
-    fileSize: (parseInt(process.env.MAX_FILE_SIZE_MB || "4096") * 1024 * 1024),
+    fileSize: (parseInt(process.env.MAX_FILE_SIZE_MB || "400") * 1024 * 1024),
   }
 });
 
+const jwtSecret = process.env.JWT_SECRET;
+if (!jwtSecret) throw new Error("JWT_SECRET is required");
 server.register(fastifyJwt, {
-  secret: process.env.JWT_SECRET || "simikp_super_secret_key_2026",
+  secret: jwtSecret,
   cookie: {
     cookieName: "simikp_session",
     signed: false,
@@ -67,7 +82,9 @@ server.setErrorHandler((err: unknown, request, reply) => {
   return reply.status(error.statusCode || 500).send({
     success: false,
     code: error.code || "INTERNAL_SERVER_ERROR",
-    message: error.message || "An unexpected error occurred",
+    message: (process.env.NODE_ENV === "production" && (!error.statusCode || error.statusCode >= 500)) 
+      ? "An unexpected error occurred" 
+      : (error.message || "An unexpected error occurred"),
   });
 });
 
@@ -108,8 +125,9 @@ import fastifyStatic from "@fastify/static";
 import fs from "fs";
 
 // Serve uploaded storage files (photos, videos, designs)
-const uploadsDir = path.resolve(__dirname, "../storage/uploads");
-const privateUsersDir = path.resolve(__dirname, "../storage/private/users");
+const baseStorageDir = process.env.STORAGE_PATH ? path.resolve(process.cwd(), process.env.STORAGE_PATH) : path.resolve(__dirname, "../storage");
+const uploadsDir = path.join(baseStorageDir, "uploads");
+const privateUsersDir = path.join(baseStorageDir, "private/users");
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }

@@ -11,11 +11,6 @@ export function hashPassword(password: string): string {
 export function verifyPassword(password: string, storedHash: string): boolean {
   if (!password || !storedHash) return false;
 
-  // Backward-compatibility: if hash is a legacy mock/seed placeholder
-  if (storedHash.startsWith("$2a$") || storedHash.startsWith("$2b$")) {
-    return password === "admin123";
-  }
-
   const parts = storedHash.split("$");
   if (parts.length !== 3) return false;
   const [algorithm, salt, key] = parts;

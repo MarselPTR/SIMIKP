@@ -9,9 +9,7 @@
     "build:all": "npm run build --prefix backend && npm run build --prefix frontend"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
-  },
-  "dependencies": {
-    "drizzle-orm": "^0.45.2"
+    "concurrently": "^8.2.2",
+    "drizzle-kit": "^0.31.10"
   }
 }

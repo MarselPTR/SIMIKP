@@ -1,4 +1,4 @@
-import { mysqlTable, char, varchar, date, datetime, time, text, primaryKey, index } from "drizzle-orm/mysql-core";
+import { mysqlTable, char, varchar, date, datetime, time, text, primaryKey, index, unique } from "drizzle-orm/mysql-core";
 import { locations, contentTypes, opds } from "./master";
 import { users } from "./users";
 import { sql } from "drizzle-orm";
@@ -11,12 +11,12 @@ export const activities = mysqlTable("activities", {
   activityTime: varchar("activity_time", { length: 50 }),
   startTime: time("start_time"),
   endTime: time("end_time"),
-  locationId: char("location_id", { length: 36 }).references(() => locations.id),
-  opdId: char("opd_id", { length: 36 }).references(() => opds.id),
+  locationId: char("location_id", { length: 36 }).references(() => locations.id, { onDelete: "set null" }),
+  opdId: char("opd_id", { length: 36 }).references(() => opds.id, { onDelete: "set null" }),
   description: text("description"),
   priority: varchar("priority", { length: 50 }),
   status: varchar("status", { length: 50 }).notNull(),
-  createdBy: char("created_by", { length: 36 }).notNull().references(() => users.id),
+  createdBy: char("created_by", { length: 36 }).notNull().references(() => users.id, { onDelete: "restrict" }),
   createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`),
 }, (t) => ({
   idxActivityDate: index("idx_activity_date").on(t.activityDate),
@@ -24,17 +24,17 @@ export const activities = mysqlTable("activities", {
 }));
 
 export const activityRequiredContents = mysqlTable("activity_required_contents", {
-  activityId: char("activity_id", { length: 36 }).notNull().references(() => activities.id),
-  contentTypeId: char("content_type_id", { length: 36 }).notNull().references(() => contentTypes.id),
+  activityId: char("activity_id", { length: 36 }).notNull().references(() => activities.id, { onDelete: "cascade" }),
+  contentTypeId: char("content_type_id", { length: 36 }).notNull().references(() => contentTypes.id, { onDelete: "cascade" }),
 }, (t) => ({
   pk: primaryKey({ columns: [t.activityId, t.contentTypeId] }),
 }));
 
 export const assignments = mysqlTable("assignments", {
   id: char("id", { length: 36 }).primaryKey(),
-  activityId: char("activity_id", { length: 36 }).notNull().references(() => activities.id),
-  userId: char("user_id", { length: 36 }).notNull().references(() => users.id),
-  contentTypeId: char("content_type_id", { length: 36 }).notNull().references(() => contentTypes.id),
+  activityId: char("activity_id", { length: 36 }).notNull().references(() => activities.id, { onDelete: "cascade" }),
+  userId: char("user_id", { length: 36 }).notNull().references(() => users.id, { onDelete: "restrict" }),
+  contentTypeId: char("content_type_id", { length: 36 }).notNull().references(() => contentTypes.id, { onDelete: "restrict" }),
   assignedAt: datetime("assigned_at").default(sql`CURRENT_TIMESTAMP`),
   startTime: time("start_time"),
   endTime: time("end_time"),
@@ -46,7 +46,9 @@ export const assignments = mysqlTable("assignments", {
   revisionNotes: text("revision_notes"),
   revisionAuthor: varchar("revision_author", { length: 255 }),
   revisionDate: datetime("revision_date"),
-  createdBy: char("created_by", { length: 36 }).notNull().references(() => users.id),
+  createdBy: char("created_by", { length: 36 }).notNull().references(() => users.id, { onDelete: "restrict" }),
 }, (t) => ({
   idxAssignmentStatus: index("idx_assignment_status").on(t.status),
+  idxAssignmentUserStatusDeadline: index("idx_assignment_user_status_deadline").on(t.userId, t.status, t.deadline),
+  unqAssignmentActivityContent: unique("unq_assignment_activity_content").on(t.activityId, t.contentTypeId),
 }));

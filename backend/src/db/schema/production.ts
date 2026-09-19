@@ -5,7 +5,7 @@ import { users } from "./users";
 
 export const productionItems = mysqlTable("production_items", {
   id: char("id", { length: 36 }).primaryKey(),
-  assignmentId: char("assignment_id", { length: 36 }).notNull().unique().references(() => assignments.id),
+  assignmentId: char("assignment_id", { length: 36 }).notNull().unique().references(() => assignments.id, { onDelete: "cascade" }),
   title: varchar("title", { length: 255 }).notNull(),
   status: varchar("status", { length: 50 }).notNull(),
   productionDate: datetime("production_date"),
@@ -13,7 +13,7 @@ export const productionItems = mysqlTable("production_items", {
 
 export const productionVersions = mysqlTable("production_versions", {
   id: char("id", { length: 36 }).primaryKey(),
-  productionItemId: char("production_item_id", { length: 36 }).notNull().references(() => productionItems.id),
+  productionItemId: char("production_item_id", { length: 36 }).notNull().references(() => productionItems.id, { onDelete: "cascade" }),
   versionNumber: int("version_number").notNull(),
   workLink: varchar("work_link", { length: 500 }),
   isCurrent: boolean("is_current").default(false),
@@ -24,13 +24,13 @@ export const productionVersions = mysqlTable("production_versions", {
 
 export const productionFiles = mysqlTable("production_files", {
   id: char("id", { length: 36 }).primaryKey(),
-  productionVersionId: char("production_version_id", { length: 36 }).notNull().references(() => productionVersions.id),
+  productionVersionId: char("production_version_id", { length: 36 }).notNull().references(() => productionVersions.id, { onDelete: "cascade" }),
   originalFilename: varchar("original_filename", { length: 255 }).notNull(),
   storedFilename: varchar("stored_filename", { length: 255 }).notNull().unique(),
   storagePath: varchar("storage_path", { length: 255 }).notNull(),
   mimeType: varchar("mime_type", { length: 100 }).notNull(),
   fileExtension: varchar("file_extension", { length: 10 }).notNull(),
   fileSize: bigint("file_size", { mode: 'number' }).notNull(),
-  uploadedBy: char("uploaded_by", { length: 36 }).notNull().references(() => users.id),
+  uploadedBy: char("uploaded_by", { length: 36 }).references(() => users.id, { onDelete: "set null" }),
   uploadedAt: datetime("uploaded_at").default(sql`CURRENT_TIMESTAMP`),
 });
