@@ -19,6 +19,16 @@ server.register(rateLimit, {
 
 server.register(helmet, {
   crossOriginResourcePolicy: { policy: "cross-origin" }, // Agar aset foto/video tetap bisa diload frontend
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+      imgSrc: ["'self'", "data:", "https:", "blob:"],
+      connectSrc: ["'self'", "https:", "http:"],
+    },
+  },
 });
 
 server.register(cors, {
