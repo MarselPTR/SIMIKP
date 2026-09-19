@@ -288,8 +288,10 @@ Route utama ditentukan di `frontend/src/routes/router.tsx`.
 ### Route khusus Ahli Pertama
 
 - `/review`
+- `/produksi` (berbagi akses dengan Admin)
+- `/publikasi` (berbagi akses dengan Admin)
 
-Route review dibatasi oleh `RoleRoute` untuk role `AHLI_PERTAMA`. Jangan menambahkan role lain tanpa menyesuaikan kebijakan akses dan backend.
+Route `/review` dibatasi khusus oleh `RoleRoute` untuk role `AHLI_PERTAMA`. Jangan menambahkan role lain tanpa menyesuaikan kebijakan akses dan backend.
 
 ### Route petugas
 
@@ -427,7 +429,6 @@ Kolom penting:
 - `email`
 - `phone`
 - `bio`
-- `nik`
 - `gender`
 - `birth_place`
 - `birth_date`
@@ -630,21 +631,12 @@ User lama otomatis mendapat default aktif ketika endpoint preferensi pertama kal
 
 ### 8.8 Migration
 
-Migration yang tersedia saat ini:
+### 8.8 Migration
+
+Seluruh riwayat migrasi lama telah dibersihkan dan dikonsolidasi menjadi satu file utama:
 
 ```text
-0000_far_emma_frost.sql
-0001_dusty_abomination.sql
-0002_aberrant_doctor_strange.sql
-0003_sharp_chamber.sql
-0004_yielding_next_avengers.sql
-0005_add_password_reset_tokens.sql
-0006_add_assignments_work_link.sql
-0007_silly_gorgon.sql
-0008_blushing_boom_boom.sql
-0009_heavy_synch.sql
-0010_quick_odin.sql
-0011_add_notification_preferences.sql
+0000_young_living_tribunal.sql
 ```
 
 Jalankan:
@@ -813,9 +805,9 @@ Frontend menyimpan token fallback di `localStorage` dengan key `simikp_token`.
 
 Password service menggunakan `crypto.scryptSync` bawaan Node.js. Jangan menyimpan password plaintext atau membuat format hash manual baru.
 
-### Catatan prototype
+### Keamanan Password
 
-Versi lokal saat ini masih memiliki mode login prototype yang menerima password non-kosong untuk username yang valid. Ini **tidak boleh dipakai untuk production VPS**. Sebelum go-live, aktifkan kembali verifikasi password dengan `verifyPassword` pada route login dan migrasikan akun lama dari mock hash.
+Sistem sudah menggunakan verifikasi `verifyPassword` yang nyata di endpoint login (`api/v1/auth/login`). Password disimpan menggunakan standar enkripsi Node.js.
 
 ### Secrets
 
@@ -1137,6 +1129,29 @@ sudo ufw status
 
 Port `3000` tidak perlu dibuka ke publik jika Nginx berada di mesin yang sama.
 
+### 13.12 Alternatif Deployment: Platform Cloud (Render / Heroku)
+
+Jika Anda melakukan *hosting* aplikasi menggunakan PaaS (*Platform-as-a-Service*) seperti **Render**, ikuti struktur khusus berikut karena arsitekturnya (Monolith-Static) sangat mendukung sistem 1 Web Service:
+
+**1. Konfigurasi Build & Start Render**
+- **Build Command**:
+  ```bash
+  npm install --include=dev && cd frontend && npm install --include=dev && npm run build && cd ../backend && npm install --include=dev && npm run build
+  ```
+  *(Catatan: Bendera `--include=dev` **sangat krusial** karena tanpa ini Render otomatis membuang dependensi developer seperti Vite dan TypeScript di mode `production`, membuat proses compile gagal).*
+- **Start Command**:
+  ```bash
+  cd backend && npm run start
+  ```
+
+**2. Environment Variables Khusus Cloud**
+- `NODE_ENV=production`
+- `HOST=0.0.0.0` (Wajib untuk koneksi jaringan eksternal Docker/Cloud, BUKAN `127.0.0.1`)
+- `DB_REJECT_UNAUTHORIZED=false` (Wajib ditambahkan jika menggunakan Database MySQL Aiven Gratisan, agar verifikasi sertifikat SSL Fastify tidak memblokir koneksi - Mencegah Error 500 saat Login).
+
+**3. Limitasi Ephemeral Storage**
+Bila menggunakan layanan gratis, file **Bank Konten** (foto/video fisik) akan lenyap setiap server tertidur (*Sleep Mode*) atau *deploy* ulang karena bersifat *Ephemeral*. Untuk mengatasinya di *production* sesungguhnya, gunakan API *Cloud Storage* (AWS S3/Cloudinary) atau fitur *Persistent Disk* berbayar dari Render.
+
 ---
 
 ## 14. Prosedur Update VPS
@@ -1385,7 +1400,7 @@ Sebelum mengubah fitur:
 
 ### Perlu perhatian sebelum production VPS
 
-- login prototype masih menerima password non-kosong; aktifkan verifikasi password sebelum go-live
+- login system telah menggunakan enkripsi native Node.js secara penuh (prototype ditiadakan).
 - audit authorization role semua endpoint backend
 - gunakan path storage persisten di `/var/lib/simikp`
 - lakukan backup database dan file secara rutin
