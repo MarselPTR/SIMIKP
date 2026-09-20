@@ -182,6 +182,9 @@ APP_URL=http://localhost:5173
 
 Jangan memasukkan `.env` ke Git atau dokumentasi publik.
 
+> **Catatan Serah Terima (Handover):**
+> Sebagai panduan konfigurasi untuk pihak infrastruktur Kominfo atau *developer* selanjutnya, aplikasi ini telah dilengkapi dengan file kerangka bernama `.env.example` di dalam folder `backend/` maupun `frontend/`. Pihak infrastruktur hanya perlu me-*rename* atau menyalin file tersebut menjadi `.env` lalu mengisi nilai-nilai yang kosong dengan kredensial rahasia (*database*, *email*, rahasia JWT) milik server produksi Kominfo.
+
 ### Migration lokal
 
 ```bash
