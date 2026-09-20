@@ -435,8 +435,6 @@ Kolom penting:
 - `gender`
 - `birth_place`
 - `birth_date`
-- `religion`
-- `education`
 - `pas_foto_url`
 - `active`
 - `created_at`
