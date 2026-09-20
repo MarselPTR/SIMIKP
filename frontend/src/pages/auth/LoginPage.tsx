@@ -284,64 +284,6 @@ const LoginPage = () => {
             {loading ? t("login_submitting") : t("login_submit_btn")}
           </button>
         </form>
-
-        <div className="mt-5 p-3.5 rounded-xl bg-gray-50 dark:bg-[#0d1117] border border-gray-200 dark:border-gray-700 text-xs text-gray-600 dark:text-gray-400 space-y-2.5">
-          <div className="flex items-center justify-between">
-            <p className="font-semibold text-gray-900 dark:text-gray-200">
-              {t("login_demo_title")}
-            </p>
-            <span className="text-[10px] text-blue-600 dark:text-sky-400 font-medium">Klik untuk isi otomatis</span>
-          </div>
-          <div className="grid grid-cols-3 gap-2 pt-0.5">
-            <button
-              type="button"
-              onClick={() => {
-                setUsername("ahli");
-                setPassword("admin123");
-                setError("");
-              }}
-              className="p-2.5 rounded-lg bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/50 text-left hover:border-indigo-400 dark:hover:border-indigo-600 hover:shadow-xs transition cursor-pointer group"
-              title="Isi otomatis akun Ahli Pertama"
-            >
-              <p className="font-bold text-indigo-700 dark:text-indigo-300 group-hover:underline">
-                {language === "en" ? "First Expert" : "Ahli Pertama"}
-              </p>
-              <p className="text-[10px] text-gray-500 mt-0.5">User: <code className="font-bold text-gray-800 dark:text-gray-200">ahli</code></p>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setUsername("admin");
-                setPassword("admin123");
-                setError("");
-              }}
-              className="p-2.5 rounded-lg bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/50 text-left hover:border-blue-400 dark:hover:border-blue-600 hover:shadow-xs transition cursor-pointer group"
-              title="Isi otomatis akun Admin IKP"
-            >
-              <p className="font-bold text-blue-700 dark:text-blue-300 group-hover:underline">Admin IKP</p>
-              <p className="text-[10px] text-gray-500 mt-0.5">User: <code className="font-bold text-gray-800 dark:text-gray-200">admin</code></p>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setUsername("andi");
-                setPassword("admin123");
-                setError("");
-              }}
-              className="p-2.5 rounded-lg bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 text-left hover:border-emerald-400 dark:hover:border-emerald-600 hover:shadow-xs transition cursor-pointer group"
-              title="Isi otomatis akun Petugas Lapangan"
-            >
-              <p className="font-bold text-emerald-700 dark:text-emerald-300 group-hover:underline">
-                {language === "en" ? "Officer" : "Petugas"}
-              </p>
-              <p className="text-[10px] text-gray-500 mt-0.5">User: <code className="font-bold text-gray-800 dark:text-gray-200">andi</code></p>
-            </button>
-          </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-amber-800 dark:text-amber-300/90 pt-0.5 font-medium">
-            <span>🔒</span>
-            <span>{t("login_demo_hint")}</span>
-          </div>
-        </div>
       </div>
 
       {/* ── Forgot Password Modal ── */}
